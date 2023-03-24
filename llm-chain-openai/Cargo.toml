@@ -1,0 +1,14 @@
+[package]
+name = "llm-chain-openai"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+futures = "0.3.27"
+async-openai = "0.10.0"
+async-trait = "0.1.67"
+llm-chain = { path = "../llm-chain" }
+[dev-dependencies]
+tokio = "1.26.0"
