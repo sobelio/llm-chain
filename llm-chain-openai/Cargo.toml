@@ -16,6 +16,6 @@ repository = "https://github.com/sobelio/llm-chain/"
 futures = "0.3.27"
 async-openai = "0.10.0"
 async-trait = "0.1.67"
-llm-chain = { path = "../llm-chain" }
+llm-chain = { path = "../llm-chain", version = "0.1.0" }
 [dev-dependencies]
 tokio = "1.26.0"
