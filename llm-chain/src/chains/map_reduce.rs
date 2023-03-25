@@ -28,7 +28,7 @@ impl<S: Step> Chain<S> {
 
         let combined_output = mapped_documents
             .iter()
-            .fold(None, |a, b| a.map(|a| (L::combine_outputs(&a, &b))))?;
+            .fold(None, |a, b| a.map(|a| (L::combine_outputs(&a, b))))?;
 
         // TODO: We need to do this recursively for really big documents
 

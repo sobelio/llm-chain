@@ -37,7 +37,7 @@ impl PromptTemplate {
     }
     /// Format the template with the given parameters.
     pub fn format(&self, parameters: &Parameters) -> String {
-        apply_formatting(&self.template, &parameters)
+        apply_formatting(&self.template, parameters)
     }
 }
 
