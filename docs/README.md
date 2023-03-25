@@ -2,7 +2,7 @@
 
 `llm-chain` is a collection of Rust crates designed to help you work with Large Language Models (LLMs) more effectively. Our primary focus is on providing robust support for prompt templates and chaining together prompts in multi-step chains, enabling complex tasks that LLMs can't handle in a single step. This includes, but is not limited to, summarizing lengthy texts or performing advanced data processing tasks.
 
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/sobelio/llm-chain/CI?style=flat-square)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/sobelio/llm-chain/cicd.yaml?branch=main?style=flat-square)
 ![Crates.io](https://img.shields.io/crates/v/llm-chain?style=flat-square)
 ![Crates.io](https://img.shields.io/crates/l/llm-chain-openai?style=flat-square)
 ![License](https://img.shields.io/github/license/sobelio/llm-chain)
