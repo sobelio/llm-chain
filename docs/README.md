@@ -9,7 +9,7 @@
 
 ## Examples 💡
 
-To help you get started, here is an example demonstrating how to use `llm-chain`. You can find more examples in the [examples folder](llm-chain-openai/examples) in the repository.
+To help you get started, here is an example demonstrating how to use `llm-chain`. You can find more examples in the [examples folder](/llm-chain-openai/examples) in the repository.
 
 ```rust
 let exec = Executor::new_default();
@@ -42,15 +42,15 @@ llm-chain = "0.1.0"
 llm-chain-openai = "0.1.0
 ```
 
-Then, refer to the [documentation](https://docs.rs/llm-chain) and [examples](llm-chain-openai/examples) to learn how to create prompt templates, chains, and more.
+Then, refer to the [documentation](https://docs.rs/llm-chain) and [examples](/llm-chain-openai/examples) to learn how to create prompt templates, chains, and more.
 
 ## Contributing 🤝
 
-We warmly welcome contributions from everyone! If you're interested in helping improve `llm-chain`, please check out our [`CONTRIBUTING.md`](docs/CONTRIBUTING.md) file for guidelines and best practices.
+We warmly welcome contributions from everyone! If you're interested in helping improve `llm-chain`, please check out our [`CONTRIBUTING.md`](/docs/CONTRIBUTING.md) file for guidelines and best practices.
 
 ## License 📄
 
-`llm-chain` is licensed under the [MIT License](LICENSE).
+`llm-chain` is licensed under the [MIT License](/LICENSE).
 
 ## Connect with Us 🌐
 
