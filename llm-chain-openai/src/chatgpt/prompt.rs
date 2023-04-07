@@ -1,6 +1,7 @@
 use async_openai::types::{ChatCompletionRequestMessage, Role};
 use llm_chain::{Parameters, PromptTemplate};
 /// A message prompt template consists of a role and a content. The role is either `User`, `System`, `Assistant`, and the content is a prompt template.
+#[derive(Clone)]
 pub struct MessagePromptTemplate {
     role: Role,
     content: PromptTemplate,
@@ -65,6 +66,7 @@ impl<T: Into<MessagePromptTemplate>, L: IntoIterator<Item = T>> From<L> for Chat
 ///   "tell me a joke",
 /// );
 /// ```
+#[derive(Clone)]
 pub struct ChatPromptTemplate {
     messages: Vec<MessagePromptTemplate>,
 }
@@ -89,5 +91,9 @@ impl ChatPromptTemplate {
             .iter()
             .map(|message| message.format(parameters))
             .collect()
+    }
+
+    pub fn add<T: Into<MessagePromptTemplate>>(&mut self, message: T) {
+        self.messages.push(message.into());
     }
 }
