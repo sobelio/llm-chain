@@ -15,13 +15,13 @@ pub struct LlamaInvocation {
 #[derive(Debug, Clone, Default)]
 /// LlamaConfig is an overridable collection of configuration parameters for the LLAMA model. It is combined with a prompt to create an invocation.
 pub struct LlamaConfig {
-    n_threads: Option<i32>,
-    n_tok_predict: Option<usize>,
-    top_k: Option<i32>,
-    top_p: Option<f32>,
-    temp: Option<f32>,
-    repeat_penalty: Option<f32>,
-    stop_sequence: Option<String>,
+    pub n_threads: Option<i32>,
+    pub n_tok_predict: Option<usize>,
+    pub top_k: Option<i32>,
+    pub top_p: Option<f32>,
+    pub temp: Option<f32>,
+    pub repeat_penalty: Option<f32>,
+    pub stop_sequence: Option<String>,
 }
 
 impl LlamaConfig {
@@ -42,7 +42,7 @@ impl LlamaConfig {
     fn to_invocation(&self, prompt: String) -> LlamaInvocation {
         LlamaInvocation {
             n_threads: self.n_threads.unwrap_or(1),
-            n_tok_predict: self.n_tok_predict.unwrap_or(30),
+            n_tok_predict: self.n_tok_predict.unwrap_or(0),
             top_k: self.top_k.unwrap_or(40),
             top_p: self.top_p.unwrap_or(0.0),
             temp: self.temp.unwrap_or(0.7),
