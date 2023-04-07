@@ -8,6 +8,7 @@ use async_trait::async_trait;
 use std::sync::Arc;
 
 /// The executor for the ChatGPT model. This executor uses the `async_openai` crate to communicate with the OpenAI API.
+#[derive(Clone)]
 pub struct Executor {
     client: Arc<async_openai::Client>,
 }

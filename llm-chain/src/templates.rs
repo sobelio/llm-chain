@@ -25,7 +25,7 @@ fn apply_formatting(template: &str, parameters: &Parameters) -> String {
 /// let parameters: Parameters = vec![("name", "World")].into();
 /// assert_eq!(template.format(&parameters), "Hello World!".to_string());
 /// ```
-
+#[derive(Clone)]
 pub struct PromptTemplate {
     template: String,
 }
