@@ -1,7 +1,6 @@
-
 #![allow(clippy::uninlined_format_args)]
 
-// *A lot* of inspiration from whisper-rs :) 
+// *A lot* of inspiration from whisper-rs :)
 // https://github.com/tazz4843/whisper-rs/blob/master/sys/build.rs
 extern crate bindgen;
 
@@ -13,12 +12,12 @@ fn main() {
     // Link C++ standard library
     if let Some(cpp_stdlib) = get_cpp_link_stdlib(&target) {
         println!("cargo:rustc-link-lib=dylib={}", cpp_stdlib);
+        println!("cargo:rustc-link-arg=-l{}", cpp_stdlib);
     }
     // Link macOS Accelerate framework for matrix calculations
     if target.contains("apple") {
         println!("cargo:rustc-link-lib=framework=Accelerate");
     }
-
     println!("cargo:rustc-link-search={}", env::var("OUT_DIR").unwrap());
     println!("cargo:rustc-link-lib=static=llama");
     println!("cargo:rerun-if-changed=wrapper.h");
