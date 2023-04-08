@@ -11,7 +11,7 @@ async fn main() {
                 Role::System,
                 "You are a bot for making personalized greetings",
             ),
-            (Role::User, "Make a personalied greeting tweet for {}"),
+            (Role::User, "Make a personalized greeting tweet for {}"),
         ],
     )
     .to_chain();
