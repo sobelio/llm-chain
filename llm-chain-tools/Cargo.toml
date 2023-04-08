@@ -1,21 +1,23 @@
 [package]
-name = "llm-chain-openai"
+name = "llm-chain-tools"
 version = "0.1.1"
 edition = "2021"
-description = "A library implementing `llm-chains` for OpenAI's models. Chains can be use to apply the model series to complete complex tasks, such as text summation."
+description = "A library for providing Large Language Models with tools (also known as 'actions') that they can trigger"
 license = "MIT"
 keywords = ["llm", "langchain", "chatgpt", "chain"]
 categories = ["science::artificial-intelligence"]
 authors = ["William Rudenmalm <william@sobel.io>"]
-readme = "../docs/README.md"
+readme = "README.md"
 repository = "https://github.com/sobelio/llm-chain/"
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-futures = "0.3.27"
-async-openai = "0.10.0"
-async-trait = "0.1.67"
+serde = { version = "1.0.159", features = ["derive"] }
+serde_yaml = "0.9.21"
 llm-chain = { path = "../llm-chain", version = "0.1.1" }
+
 [dev-dependencies]
+llm-chain-openai = { path = "../llm-chain-openai" }
 tokio = "1.26.0"
