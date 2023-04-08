@@ -17,7 +17,7 @@ let chain = Step::new(
     Model::ChatGPT3_5Turbo,
     [
         (Role::System, "You are a bot for making personalized greetings"),
-        (Role::User, "Make a personalied greet for Joe"),
+        (Role::User, "Make a personalized greet for Joe"),
     ]
 ).to_chain();
 let res = chain.run(Parameters::new(), exec).await.unwrap();
