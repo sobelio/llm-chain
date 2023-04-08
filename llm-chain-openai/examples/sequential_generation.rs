@@ -27,14 +27,14 @@ async fn main() {
                 ),
                 (
                     Role::User,
-                    "Summaize this email into a tweet to be sent by the company, use emoji if you can. \n--\n{}",
+                    "Summarize this email into a tweet to be sent by the company, use emoji if you can. \n--\n{}",
                 ),
             ],
         ),
     ]);
     let res = chain
         .run(
-            vec![("name", "Emil"), ("date", "Feburary 30th 2023")].into(),
+            vec![("name", "Emil"), ("date", "February 30th 2023")].into(),
             exec,
         )
         .await

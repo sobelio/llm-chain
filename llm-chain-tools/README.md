@@ -30,10 +30,10 @@ fn main() {
 
 ## Features 🌟
 
-**Tool management**: Easily create and integrated a collection of tools that LLMs can use to perform various tasks.
-**Prompt integration**: Seamlessly integrate tool descriptions into LLM prompts for more effective interactions.
-**Pre-defined tools**: A submodule providing a variety of pre-defined tools for common tasks, ready for use.
-**Extensibility**: Designed with extensibility in mind, making it easy to integrate additional tools as needed.
+- **Tool management**: Easily create and integrated a collection of tools that LLMs can use to perform various tasks.
+- **Prompt integration**: Seamlessly integrate tool descriptions into LLM prompts for more effective interactions.
+- **Pre-defined tools**: A submodule providing a variety of pre-defined tools for common tasks, ready for use.
+- **Extensibility**: Designed with extensibility in mind, making it easy to integrate additional tools as needed.
 
 ## Getting Started 🚀
 
@@ -44,5 +44,6 @@ To start using `llm-chain-tools`, add it as a dependency in your Cargo.toml:
 llm-chain = "0.1.0"
 llm-chain-openai = "0.1.0"
 llm-chain-tools = "0.1.0"
-Then, refer to the documentation and examples to learn how to create and manage tools, integrate them into prompts, and more.
 ```
+
+Then, refer to the documentation and examples to learn how to create and manage tools, integrate them into prompts, and more.
