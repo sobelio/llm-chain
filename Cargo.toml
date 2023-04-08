@@ -1,2 +1,2 @@
 [workspace]
-members = ["llm-chain", "llm-chain-openai", "llm-chain-tools"]
+members = ["llm-chain", "llm-chain-openai", "llm-chain-tools", "llm-chain-llama", "llm-chain-llama/sys"]

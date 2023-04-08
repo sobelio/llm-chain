@@ -1,0 +1,25 @@
+[package]
+name = "llm-chain-llama"
+version = "0.1.1-rc.1"
+edition = "2021"
+description = "A library implementing `llm-chains` for LLamA. Chains can be use to apply the model series to complete complex tasks, such as agents."
+license = "MIT"
+keywords = ["llm", "langchain", "llama", "chain"]
+categories = ["science"]
+authors = [
+    "Emil Juzovitski <emil@sobel.io",
+    "William Rudenmalm <william@sobel.io>",
+]
+readme = "./README.md"
+repository = "https://github.com/sobelio/llm-chain/"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.70"
+async-trait = "0.1.68"
+llama-sys = { path = "./sys", version = "0.1" }
+llm-chain = { path = "../llm-chain", version = "0.1.1-rc.1" }
+
+[dev-dependencies]
+tokio = { version = "1.27.0", features = ["macros", "rt"] }
