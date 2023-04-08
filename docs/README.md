@@ -28,7 +28,10 @@ println!("{:?}", res);
 
 - **Prompt templates**: Create reusable and easily customizable prompt templates for consistent and structured interactions with LLMs.
 - **Chains**: Build powerful chains of prompts that allow you to execute more complex tasks, step by step, leveraging the full potential of LLMs.
-- **ChatGPT support**: Currently supports ChatGPT models, with plans to add support for more LLMs in the future.
+- **ChatGPT support**: Supports ChatGPT models, with plans to add OpenAI's other models in the future.
+- **LLaMa support**: Provides seamless integration with LLaMa models, enabling natural language understanding and generation tasks with Facebook's research models.
+- **Alpaca support**: Incorporates support for Stanford's Alpaca models, expanding the range of available language models for advanced AI applications.
+- **Tools**: Enhance your AI agents' capabilities by giving them access to various tools, such as running Bash commands, executing Python scripts, or performing web searches, enabling more complex and powerful interactions.
 - **Extensibility**: Designed with extensibility in mind, making it easy to integrate additional LLMs as the ecosystem grows.
 - **Community-driven**: We welcome and encourage contributions from the community to help improve and expand the capabilities of `llm-chain`.
 
