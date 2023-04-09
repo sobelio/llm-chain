@@ -1,7 +1,7 @@
 use std::ptr::null_mut;
 
 use anyhow::Result;
-use llm_chain_llama_sysm::{
+use llm_chain_llama_sys::{
     llama_context, llama_context_default_params, llama_context_params, llama_eval, llama_free,
     llama_init_from_file, llama_sample_top_p_top_k, llama_token,
 };
