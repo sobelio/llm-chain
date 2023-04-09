@@ -1,5 +1,8 @@
+#[cfg(feature = "serialization")]
+use llm_chain::serialization::StorableEntity;
 use llm_chain::{traits, Parameters, PromptTemplate};
-
+#[cfg(feature = "serialization")]
+use serde::{Deserialize, Serialize};
 /// Represents a concrete call to the LLM model, with all the parameters specified, and no implicit behavior.
 pub struct LlamaInvocation {
     pub(crate) n_threads: i32,
@@ -14,6 +17,7 @@ pub struct LlamaInvocation {
 
 #[derive(Debug, Clone, Default)]
 /// LlamaConfig is an overridable collection of configuration parameters for the LLAMA model. It is combined with a prompt to create an invocation.
+#[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
 pub struct LlamaConfig {
     pub n_threads: Option<i32>,
     pub n_tok_predict: Option<usize>,
@@ -57,6 +61,7 @@ impl LlamaConfig {
 }
 
 /// A step in a chain of LLAMA invocations. It is a combination of a prompt and a configuration.
+#[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
 pub struct Step {
     prompt: PromptTemplate,
     config: LlamaConfig,
@@ -101,5 +106,15 @@ impl traits::Step for Step {
     /// A LlamaInvocation instance with the formatted prompt and configuration.
     fn format(&self, parameters: &Parameters) -> Self::Output {
         self.config.to_invocation(self.prompt.format(parameters))
+    }
+}
+
+#[cfg(feature = "serialization")]
+impl StorableEntity for Step {
+    fn get_metadata() -> Vec<(String, String)> {
+        vec![(
+            "step-type".to_string(),
+            "llm-chain-llama::step::Step".to_string(),
+        )]
     }
 }

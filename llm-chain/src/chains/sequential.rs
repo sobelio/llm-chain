@@ -1,4 +1,8 @@
+#[cfg(feature = "serialization")]
+use serde::{Deserialize, Serialize};
+
 use crate::{
+    serialization::StorableEntity,
     traits::{Executor, Step},
     Parameters,
 };
@@ -30,5 +34,36 @@ impl<S: Step> Chain<S> {
             output = Some(res);
         }
         output
+    }
+}
+
+#[cfg(feature = "serialization")]
+impl<S: Step + Serialize> Serialize for Chain<S> {
+    fn serialize<SER>(&self, serializer: SER) -> Result<SER::Ok, SER::Error>
+    where
+        SER: serde::Serializer,
+    {
+        Serialize::serialize(&self.steps, serializer)
+    }
+}
+
+#[cfg(feature = "serialization")]
+impl<'de, S: Step + Deserialize<'de>> Deserialize<'de> for Chain<S> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Deserialize::deserialize(deserializer).map(|steps| Chain { steps })
+    }
+}
+
+impl<S: Step + StorableEntity> StorableEntity for Chain<S> {
+    fn get_metadata() -> Vec<(String, String)> {
+        let mut base = vec![(
+            "chain-type".to_string(),
+            "llm-chain::chains::sequential::Chain".to_string(),
+        )];
+        base.append(&mut S::get_metadata());
+        base
     }
 }

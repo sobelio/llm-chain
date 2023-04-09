@@ -5,14 +5,21 @@ edition = "2021"
 description = "A library for running chains of LLMs (such as ChatGPT) in series to complete complex tasks, such as text summation."
 license = "MIT"
 keywords = ["llm", "langchain", "chatgpt", "chain"]
-categories = ["science::artificial-intelligence"]
+categories = ["science"]
 authors = ["William Rudenmalm <william@sobel.io>"]
 readme = "../docs/README.md"
 repository = "https://github.com/sobelio/llm-chain/"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+default = ["serialization"]
+serialization = ["dep:serde", "dep:serde_yaml"]
+async = ["dep:tokio"]
 
 [dependencies]
 async-trait = "0.1.67"
 dynfmt = { version = "0.1.5", features = ["curly"], default-features = false }
 futures = "0.3.27"
+serde = { version = "1.0.159", optional = true, features = ["derive"] }
+serde_yaml = { version = "0.9.21", optional = true }
+thiserror = "1.0.40"
+tokio = { version = "1.27.0", optional = true, features = ["fs", "io-util"] }

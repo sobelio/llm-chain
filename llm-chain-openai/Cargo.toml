@@ -5,17 +5,20 @@ edition = "2021"
 description = "A library implementing `llm-chains` for OpenAI's models. Chains can be use to apply the model series to complete complex tasks, such as text summation."
 license = "MIT"
 keywords = ["llm", "langchain", "chatgpt", "chain"]
-categories = ["science::artificial-intelligence"]
+categories = ["science"]
 authors = ["William Rudenmalm <william@sobel.io>"]
 readme = "../docs/README.md"
 repository = "https://github.com/sobelio/llm-chain/"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+default = ["serialization"]
+serialization = ["dep:serde", "llm-chain/serialization"]
 
 [dependencies]
 futures = "0.3.27"
 async-openai = "0.10.0"
 async-trait = "0.1.67"
 llm-chain = { path = "../llm-chain", version = "0.1.4" }
+serde = { version = "1.0.159", optional = true }
 [dev-dependencies]
 tokio = "1.26.0"
