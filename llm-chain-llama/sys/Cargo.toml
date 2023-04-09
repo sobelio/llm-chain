@@ -1,7 +1,7 @@
 [package]
 name = "llm-chain-llama-sys"
 description = "A library with bindings based on bindgen for LLaMA.cpp"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 license = "MIT"
 keywords = ["llm", "langchain", "llama", "chain"]

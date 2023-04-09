@@ -1,6 +1,6 @@
 [package]
 name = "llm-chain-openai"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 description = "A library implementing `llm-chains` for OpenAI's models. Chains can be use to apply the model series to complete complex tasks, such as text summation."
 license = "MIT"
@@ -16,6 +16,6 @@ repository = "https://github.com/sobelio/llm-chain/"
 futures = "0.3.27"
 async-openai = "0.10.0"
 async-trait = "0.1.67"
-llm-chain = { path = "../llm-chain", version = "0.1.2" }
+llm-chain = { path = "../llm-chain", version = "0.1.3" }
 [dev-dependencies]
 tokio = "1.26.0"
