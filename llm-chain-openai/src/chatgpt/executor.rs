@@ -35,11 +35,7 @@ impl traits::Executor for Executor {
         input: <<Executor as traits::Executor>::Step as traits::Step>::Output,
     ) -> Self::Output {
         let client = self.client.clone();
-        async move {
-            
-            client.chat().create(input).await.unwrap()
-        }
-        .await
+        async move { client.chat().create(input).await.unwrap() }.await
     }
     fn apply_output_to_parameters(parameters: Parameters, output: &Self::Output) -> Parameters {
         let text = output.choices.first().unwrap().message.content.to_string();

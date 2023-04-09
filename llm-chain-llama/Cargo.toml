@@ -13,13 +13,16 @@ authors = [
 readme = "./README.md"
 repository = "https://github.com/sobelio/llm-chain/"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+default = ["serialization"]
+serialization = ["llm-chain/serialization", "dep:serde"]
 
 [dependencies]
 anyhow = "1.0.70"
 async-trait = "0.1.68"
 llm-chain-llama-sys = { path = "./sys", version = "0.3" }
 llm-chain = { path = "../llm-chain", version = "0.1.4" }
+serde = { version = "1.0.159", optional = true, features = ["derive"] }
 
 [dev-dependencies]
 tokio = { version = "1.27.0", features = ["macros", "rt"] }

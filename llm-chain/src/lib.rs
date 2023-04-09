@@ -16,9 +16,13 @@
 //!
 
 pub mod chains;
+
 mod parameters;
+#[cfg(feature = "serialization")]
+pub mod serialization;
 mod templates;
 pub mod traits;
 
 pub use parameters::Parameters;
+
 pub use templates::PromptTemplate;

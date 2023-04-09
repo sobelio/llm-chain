@@ -1,7 +1,10 @@
 use async_openai::types::{ChatCompletionRequestMessage, Role};
 use llm_chain::{Parameters, PromptTemplate};
+#[cfg(feature = "serialization")]
+use serde::{Deserialize, Serialize};
 /// A message prompt template consists of a role and a content. The role is either `User`, `System`, `Assistant`, and the content is a prompt template.
 #[derive(Clone)]
+#[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
 pub struct MessagePromptTemplate {
     role: Role,
     content: PromptTemplate,
@@ -67,6 +70,7 @@ impl<T: Into<MessagePromptTemplate>, L: IntoIterator<Item = T>> From<L> for Chat
 /// );
 /// ```
 #[derive(Clone)]
+#[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
 pub struct ChatPromptTemplate {
     messages: Vec<MessagePromptTemplate>,
 }

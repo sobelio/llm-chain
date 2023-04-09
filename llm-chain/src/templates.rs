@@ -1,5 +1,7 @@
 use crate::Parameters;
 use dynfmt::{Format, SimpleCurlyFormat};
+#[cfg(feature = "serialization")]
+use serde::{Deserialize, Serialize};
 
 fn apply_formatting(template: &str, parameters: &Parameters) -> String {
     SimpleCurlyFormat {}
@@ -26,6 +28,7 @@ fn apply_formatting(template: &str, parameters: &Parameters) -> String {
 /// assert_eq!(template.format(&parameters), "Hello World!".to_string());
 /// ```
 #[derive(Clone)]
+#[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
 pub struct PromptTemplate {
     template: String,
 }
@@ -44,5 +47,43 @@ impl PromptTemplate {
 impl<T: Into<String>> From<T> for PromptTemplate {
     fn from(template: T) -> Self {
         Self::new(template.into())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{apply_formatting, Parameters, PromptTemplate};
+    #[test]
+    fn test_apply_formatting() {
+        let template = "Hello {name}!";
+        let parameters = vec![("name", "World")].into();
+        assert_eq!(
+            apply_formatting(template, &parameters),
+            "Hello World!".to_string()
+        );
+    }
+
+    #[test]
+    fn test_prompt_template_format() {
+        let template: PromptTemplate = "Hello {name}!".into();
+        let parameters = vec![("name", "World")].into();
+        assert_eq!(template.format(&parameters), "Hello World!".to_string());
+    }
+
+    #[test]
+    fn test_prompt_template_format_with_default_key() {
+        let template: PromptTemplate = "Hello {}!".into();
+        let parameters: Parameters = "World".into();
+        assert_eq!(template.format(&parameters), "Hello World!".to_string());
+    }
+
+    #[test]
+    fn test_prompt_template_format_with_multiple_keys() {
+        let template: PromptTemplate = "Hello {name}, you are {age} years old.".into();
+        let parameters: Parameters = vec![("name", "John"), ("age", "30")].into();
+        assert_eq!(
+            template.format(&parameters),
+            "Hello John, you are 30 years old.".to_string()
+        );
     }
 }

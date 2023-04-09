@@ -1,0 +1,11 @@
+metadata: {}
+data:
+- model: ChatGPT3_5Turbo
+  prompt:
+    messages:
+    - role: system
+      content:
+        template: You are a bot for making personalized greetings
+    - role: user
+      content:
+        template: Make a personalized greet for Joe

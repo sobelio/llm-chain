@@ -1,6 +1,5 @@
 use crate::description::ToolDescription;
 
-
 macro_rules! gen_invoke_function {
     () => {
         fn invoke(&self, input: serde_yaml::Value) -> Result<serde_yaml::Value, String> {
