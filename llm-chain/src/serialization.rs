@@ -191,7 +191,7 @@ pub trait IoExt: StorableEntity + Serialize + DeserializeOwned {
         Envelope::<Self>::read_file_sync(path).map(|envelope| Self::from_envelope(envelope))
     }
     #[cfg(feature = "async")]
-    fn read_file_async(&path: &str) -> Result<Self, EnvelopeError> {
+    fn read_file_async(path: &str) -> Result<Self, EnvelopeError> {
         Envelope::<Self>::read_file_async(path)
             .await
             .map(|envelope| Self::from_envelope(envelope))
