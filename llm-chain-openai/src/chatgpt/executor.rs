@@ -36,8 +36,8 @@ impl traits::Executor for Executor {
     ) -> Self::Output {
         let client = self.client.clone();
         async move {
-            let create = client.chat().create(input).await.unwrap();
-            create
+            
+            client.chat().create(input).await.unwrap()
         }
         .await
     }

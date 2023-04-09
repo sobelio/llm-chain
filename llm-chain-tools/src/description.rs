@@ -80,8 +80,8 @@ impl ToolDescription {
             name: name.to_string(),
             description: description.to_string(),
             description_context: description_context.to_string(),
-            input_format: input_format.into(),
-            output_format: output_format.into(),
+            input_format,
+            output_format,
         }
     }
 }

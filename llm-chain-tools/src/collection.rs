@@ -27,14 +27,14 @@ impl ToolCollection {
                 let end = &data[start + 6..];
                 match end.find("```") {
                     Some(end_pos) => (start + 6, start + 6 + end_pos),
-                    None => return Err(format!("Could not find end of code block")),
+                    None => return Err("Could not find end of code block".to_string()),
                 }
             }
             (_, Some(start)) => {
                 let end = &data[start + 7..];
                 match end.find("```") {
                     Some(end_pos) => (start + 7, start + 7 + end_pos),
-                    None => return Err(format!("Could not find end of code block")),
+                    None => return Err("Could not find end of code block".to_string()),
                 }
             }
             _ => (0, data.len()),
@@ -43,7 +43,7 @@ impl ToolCollection {
         let yaml_str = &data[yaml_start..yaml_end];
         let yaml_str = yaml_str.trim_start_matches("yaml\n").trim_start();
         let res: serde_yaml::Result<ToolInvocationInput> = serde_yaml::from_str(yaml_str);
-        let input = res.map_err(|_e| format!("INPUT MUST BE YAML ONLY"))?;
+        let input = res.map_err(|_e| "INPUT MUST BE YAML ONLY".to_string())?;
         let output = self.invoke(&input.command, &input.input)?;
         Ok(serde_yaml::to_string(&output).unwrap())
     }

@@ -94,7 +94,7 @@ impl LLamaContext {
                 self.ctx,
                 tokens.as_ptr(),
                 n_tokens,
-                n_past as i32,
+                n_past,
                 input.n_threads,
             )
         };

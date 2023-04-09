@@ -12,6 +12,12 @@ impl BashTool {
     }
 }
 
+impl Default for BashTool {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct BashToolInput {
     cmd: String,

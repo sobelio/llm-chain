@@ -11,6 +11,12 @@ impl PythonTool {
     }
 }
 
+impl Default for PythonTool {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct PythonToolInput {
     code: String,
