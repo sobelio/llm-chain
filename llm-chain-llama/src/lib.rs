@@ -23,13 +23,13 @@
 
 mod context;
 mod executor;
+mod instruct;
 mod output;
 mod step;
 mod tokenizer;
-mod instruct;
 
-pub use executor::Executor;
-pub use output::Output;
-pub use step::{Step, LlamaConfig};
 pub use context::LlamaContextParams;
+pub use executor::Executor;
 pub use instruct::new_instruct_template;
+pub use output::Output;
+pub use step::{LlamaConfig, Step};
