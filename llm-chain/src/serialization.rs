@@ -159,7 +159,7 @@ where
     pub async fn write_file_async(&self, path: &str) -> Result<(), EnvelopeError> {
         let file = tokio::fs::File::create(path).await?;
         let writer = tokio::io::BufWriter::new(file);
-        serde_yaml::to_writer(writer, &self).await?;
+        serde_yaml::to_writer(writer, &self)?;
         Ok(())
     }
 }
