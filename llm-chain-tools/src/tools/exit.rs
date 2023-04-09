@@ -11,6 +11,12 @@ impl ExitTool {
     }
 }
 
+impl Default for ExitTool {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct ExitToolInput {
     status_code: i32,
