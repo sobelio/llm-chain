@@ -1,7 +1,7 @@
 use std::ptr::null_mut;
 
 use anyhow::Result;
-use llama_sys::{
+use llm_chain_llama_sysm::{
     llama_context, llama_context_default_params, llama_context_params, llama_eval, llama_free,
     llama_init_from_file, llama_sample_top_p_top_k, llama_token,
 };
@@ -89,15 +89,8 @@ impl LLamaContext {
         n_past: i32,
         input: &LlamaInvocation,
     ) -> Result<(), ()> {
-        let res = unsafe {
-            llama_eval(
-                self.ctx,
-                tokens.as_ptr(),
-                n_tokens,
-                n_past,
-                input.n_threads,
-            )
-        };
+        let res =
+            unsafe { llama_eval(self.ctx, tokens.as_ptr(), n_tokens, n_past, input.n_threads) };
         if res == 0 {
             Ok(())
         } else {
