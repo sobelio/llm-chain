@@ -1,4 +1,3 @@
-
 use crate::context::{LLamaContext, LlamaContextParams};
 use crate::step::{LlamaInvocation, Step as LLamaStep};
 use crate::tokenizer::{embedding_to_output, llama_token_eos, tokenize};
@@ -81,7 +80,7 @@ fn run_model(
         if tok == token_eos {
             break;
         }
-        if input.n_tok_predict != 0 && input.n_tok_predict != 0 && n_used > input.n_tok_predict + tokenized_input.len() - 1 {
+        if input.n_tok_predict != 0 && n_used > input.n_tok_predict + tokenized_input.len() - 1 {
             break;
         }
         if tok == tokenized_stop_prompt[stop_sequence_i] {

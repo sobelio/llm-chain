@@ -54,7 +54,7 @@ pub(crate) fn tokenize(
     add_bos: bool,
 ) -> Result<Vec<llama_token>> {
     let tokenized_input = llama_tokenize_helper(context, text, add_bos);
-    if tokenized_input.len() > context_window_size as usize {
+    if tokenized_input.len() > context_window_size {
         anyhow::bail!("Input too long")
     }
     Ok(tokenized_input)
