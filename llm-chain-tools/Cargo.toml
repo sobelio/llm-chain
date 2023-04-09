@@ -1,6 +1,6 @@
 [package]
 name = "llm-chain-tools"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "A library for providing Large Language Models with tools (also known as 'actions') that they can trigger"
 license = "MIT"
@@ -16,7 +16,7 @@ repository = "https://github.com/sobelio/llm-chain/"
 [dependencies]
 serde = { version = "1.0.159", features = ["derive"] }
 serde_yaml = "0.9.21"
-llm-chain = { path = "../llm-chain", version = "0.1.1" }
+llm-chain = { path = "../llm-chain", version = "0.1.2" }
 
 [dev-dependencies]
 llm-chain-openai = { path = "../llm-chain-openai" }
