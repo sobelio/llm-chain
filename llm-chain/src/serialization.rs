@@ -29,7 +29,7 @@
 //! let data = MyData { value: 42 };
 //!
 //! // Convert the data into an envelope
-//! let envelope = data.write_file_sync("mydata.yaml").unwrap();
+//! let envelope = data.clone().write_file_sync("mydata.yaml").unwrap();
 //! // Serialize the envelope to a YAML file
 //! let path = "mydata.yaml";
 //! // Deserialize the envelope from a YAML file
