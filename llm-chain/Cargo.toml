@@ -1,6 +1,6 @@
 [package]
 name = "llm-chain"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 description = "A library for running chains of LLMs (such as ChatGPT) in series to complete complex tasks, such as text summation."
 license = "MIT"
