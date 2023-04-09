@@ -144,9 +144,11 @@ where
     }
     #[cfg(feature = "async")]
     pub async fn read_file_async(path: &str) -> Result<Self, EnvelopeError> {
-        let file = tokio::fs::File::open(path).await?;
-        let reader = tokio::io::BufReader::new(file);
-        let envelope = serde_yaml::from_reader(reader).await?;
+        use tokio::io::AsyncReadExt;
+        let mut file = tokio::fs::File::open(path).await?;
+        let mut contents: Vec<u8> = vec![];
+        file.read_to_end(&mut contents).await?;
+        let envelope = serde_yaml::from_slice(&contents)?;
         Ok(envelope)
     }
     pub fn write_file_sync(&self, path: &str) -> Result<(), EnvelopeError> {
@@ -157,9 +159,10 @@ where
     }
     #[cfg(feature = "async")]
     pub async fn write_file_async(&self, path: &str) -> Result<(), EnvelopeError> {
-        let file = tokio::fs::File::create(path).await?;
-        let writer = tokio::io::BufWriter::new(file);
-        serde_yaml::to_writer(writer, &self)?;
+        use tokio::io::AsyncWriteExt;
+        let data = serde_yaml::to_string(&self)?;
+        let mut file = tokio::fs::File::create(path).await?;
+        file.write_all(data.as_bytes()).await?;
         Ok(())
     }
 }
@@ -190,18 +193,8 @@ pub trait IoExt: StorableEntity + Serialize + DeserializeOwned {
     fn read_file_sync(path: &str) -> Result<Self, EnvelopeError> {
         Envelope::<Self>::read_file_sync(path).map(|envelope| Self::from_envelope(envelope))
     }
-    #[cfg(feature = "async")]
-    fn read_file_async(path: &str) -> Result<Self, EnvelopeError> {
-        Envelope::<Self>::read_file_async(path)
-            .await
-            .map(|envelope| Self::from_envelope(envelope))
-    }
     fn write_file_sync(self, path: &str) -> Result<(), EnvelopeError> {
         Envelope::new(self).write_file_sync(path)
-    }
-    #[cfg(feature = "async")]
-    async fn write_file_async(self, path: &str) -> Result<(), EnvelopeError> {
-        Envelope::new(self).write_file_async(path).await
     }
 }
 
