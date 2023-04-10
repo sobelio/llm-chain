@@ -150,12 +150,13 @@ impl<S: Step> Chain<S> {
         let mut res: Vec<Parameters> = Vec::new();
         let split_at = executor.max_tokens(step)? - executor.count_prompt_tokens(step)?;
         for x in v {
-            let document = x.get_text().unwrap_or(&"".to_owned()).to_owned();
+            let document = x.get_text().unwrap().to_owned();
             let chunks = chunk_document(executor, step, &document, split_at)?;
             for chunk in chunks {
                 res.push(x.with_text(&chunk));
             }
         }
+        println!("Chunks: {:?}", res.len());
         Ok(res)
     }
 }
@@ -252,6 +253,7 @@ where
     let mut remainder = document.to_owned();
     loop {
         let (a, b) = executor.split_at_tokens(step, &remainder, split_at)?;
+        println!("{} {}", a.len(), b.len());
         res.push(a);
         if b.is_empty() {
             break;

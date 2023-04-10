@@ -153,38 +153,15 @@ impl traits::ExecutorPromptTokens<LLamaStep> for Executor {
     }
     fn count_prompt_tokens(&self, step: &LLamaStep) -> Result<usize, traits::PromptTokensError> {
         let template = step.prompt_source();
-        tokenize(
-            &self.context,
-            template,
-            self.context_params().n_ctx as usize,
-            true,
-        )
-        .map(|t| t.len())
-        .map_err(|e| match e {
-            crate::tokenizer::TokenizeError::InputTooLong => {
-                traits::PromptTokensError::UnableToCompute
-            }
-        })
+        Ok(llama_tokenize_helper(&self.context, template, true).len())
     }
     fn split_at_tokens(
         &self,
-        step: &LLamaStep,
+        _step: &LLamaStep,
         doc: &str,
         tokens: usize,
     ) -> Result<(String, String), traits::PromptTokensError> {
-        let template = step.prompt_source();
-        let tokenized = tokenize(
-            &self.context,
-            template,
-            self.context_params().n_ctx as usize,
-            true,
-        )
-        .map_err(|e| match e {
-            crate::tokenizer::TokenizeError::InputTooLong => {
-                traits::PromptTokensError::UnableToCompute
-            }
-        })?;
-
+        let tokenized = llama_tokenize_helper(&self.context, doc, true);
         if tokenized.len() < tokens {
             Ok((doc.to_owned(), "".to_owned()))
         } else {

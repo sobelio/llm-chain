@@ -27,9 +27,8 @@ fn to_cstring(s: &str) -> CString {
 fn to_output(context: &LLamaContext, token: i32) -> String {
     let c_ptr = unsafe { llama_token_to_str(**context, token) };
     let native_string = unsafe { CStr::from_ptr(c_ptr) }
-        .to_str()
-        .unwrap()
-        .to_owned();
+        .to_string_lossy()
+        .into_owned();
     native_string
 }
 

@@ -24,6 +24,13 @@ impl Executor {
         let client = async_openai::Client::new();
         Self::new(client)
     }
+
+    fn count_tokens(&self, step: &Step, s: &str) -> Result<usize, traits::PromptTokensError> {
+        use tiktoken_rs::get_bpe_from_model;
+        let tok = get_bpe_from_model(&step.model.to_string())
+            .map_err(|_| traits::PromptTokensError::NotAvailable)?;
+        Ok(tok.encode_ordinary(&s).len())
+    }
 }
 
 #[async_trait]
@@ -35,7 +42,8 @@ impl traits::Executor for Executor {
         input: <<Executor as traits::Executor>::Step as traits::Step>::Output,
     ) -> Self::Output {
         let client = self.client.clone();
-        async move { client.chat().create(input).await.unwrap() }.await
+        let res = async move { client.chat().create(input).await.unwrap() }.await;
+        res
     }
     fn apply_output_to_parameters(parameters: Parameters, output: &Self::Output) -> Parameters {
         let text = output.choices.first().unwrap().message.content.to_string();
@@ -54,9 +62,9 @@ impl traits::Executor for Executor {
 
 impl traits::ExecutorPromptTokens<Step> for Executor {
     fn count_prompt_tokens(&self, step: &Step) -> Result<usize, traits::PromptTokensError> {
-        use tiktoken_rs::async_openai::get_chat_completion_max_tokens;
+        use tiktoken_rs::async_openai::num_tokens_from_messages;
         let placeholder_params = Parameters::new_with_text("".to_string());
-        get_chat_completion_max_tokens(
+        num_tokens_from_messages(
             &step.model.to_string(),
             &step.prompt.format(&placeholder_params).as_slice(),
         )
@@ -67,10 +75,7 @@ impl traits::ExecutorPromptTokens<Step> for Executor {
         step: &Step,
         doc: &str,
     ) -> Result<usize, traits::PromptTokensError> {
-        use tiktoken_rs::get_bpe_from_model;
-        let tok = get_bpe_from_model(&step.model.to_string())
-            .map_err(|_| traits::PromptTokensError::NotAvailable)?;
-        Ok(tok.encode_ordinary(doc).len())
+        self.count_tokens(step, doc)
     }
     fn split_at_tokens(
         &self,
