@@ -2,10 +2,10 @@
 
 `llm-chain` is a collection of Rust crates designed to help you work with Large Language Models (LLMs) more effectively. Our primary focus is on providing robust support for prompt templates and chaining together prompts in multi-step chains, enabling complex tasks that LLMs can't handle in a single step. This includes, but is not limited to, summarizing lengthy texts or performing advanced data processing tasks.
 
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/sobelio/llm-chain/cicd.yaml?branch=main?style=flat-square)
-![Crates.io](https://img.shields.io/crates/v/llm-chain?style=flat-square)
-![Crates.io](https://img.shields.io/crates/l/llm-chain-openai?style=flat-square)
-![License](https://img.shields.io/github/license/sobelio/llm-chain)
+[![](https://dcbadge.vercel.app/api/server/kewN9Gtjt2?style=for-the-badge)](https://discord.gg/kewN9Gtjt2)
+![Crates.io](https://img.shields.io/crates/v/llm-chain?style=for-the-badge)
+![Crates.io](https://img.shields.io/crates/l/llm-chain-openai?style=for-the-badge)
+![License](https://img.shields.io/github/license/sobelio/llm-chain?style=for-the-badge)
 
 ## Examples 💡
 
@@ -49,7 +49,7 @@ Then, refer to the [documentation](https://docs.rs/llm-chain) and [examples](/ll
 
 ## Contributing 🤝
 
-We warmly welcome contributions from everyone! If you're interested in helping improve `llm-chain`, please check out our [`CONTRIBUTING.md`](/docs/CONTRIBUTING.md) file for guidelines and best practices.
+**We warmly welcome contributions from everyone!** If you're interested in helping improve `llm-chain`, please check out our [`CONTRIBUTING.md`](/docs/CONTRIBUTING.md) file for guidelines and best practices.
 
 ## License 📄
 
@@ -57,6 +57,6 @@ We warmly welcome contributions from everyone! If you're interested in helping i
 
 ## Connect with Us 🌐
 
-If you have any questions, suggestions, or feedback, feel free to open an issue or join our community discussions. We're always excited to hear from our users and learn about your experiences with `llm-chain`.
+If you have any questions, suggestions, or feedback, feel free to open an issue or join our [community discord](https://discord.gg/kewN9Gtjt2). We're always excited to hear from our users and learn about your experiences with `llm-chain`.
 
 We hope you enjoy using `llm-chain` to unlock the full potential of Large Language Models in your projects. Happy coding! 🎉
