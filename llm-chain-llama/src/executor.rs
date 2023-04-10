@@ -12,21 +12,32 @@ use llm_chain::Parameters;
 pub struct Executor {
     context: LLamaContext,
     context_params: Option<LlamaContextParams>,
+    callback: Option<fn(&Output)>,
 }
 
 impl Executor {
     /// Creates a new executor with the given client and optional context parameters.
-    pub fn new_with_config(model_path: String, context_params: Option<LlamaContextParams>) -> Self {
+    pub fn new_with_config(
+        model_path: String,
+        context_params: Option<LlamaContextParams>,
+        callback: Option<fn(&Output)>,
+    ) -> Self {
         let context = LLamaContext::from_file_and_params(&model_path, &context_params);
         Self {
             context,
             context_params,
+            callback,
         }
+    }
+
+    // Creates a new executor with callback for the given model with default context parameters.
+    pub fn new_with_callback(model_path: String, callback: fn(&Output)) -> Self {
+        Self::new_with_config(model_path, None, Some(callback))
     }
 
     /// Creates a new executor for the given model with default context parameters.
     pub fn new(model_path: String) -> Self {
-        Self::new_with_config(model_path, None)
+        Self::new_with_config(model_path, None, None)
     }
 }
 
@@ -35,6 +46,7 @@ fn run_model(
     input_ctx: &LLamaContext,
     input: LlamaInvocation,
     context_params: &Option<LlamaContextParams>,
+    callback: &Option<fn(&Output)>,
 ) -> Output {
     let context_params_c = LlamaContextParams::or_default(context_params);
     // Tokenize the stop sequence and input prompt.
@@ -94,6 +106,11 @@ fn run_model(
         input_ctx
             .llama_eval(&embd[n_used..], 1, n_used as i32, &input)
             .unwrap();
+
+        if let Some(callback) = callback {
+            let output = input_ctx.llama_token_to_str(&embd[n_used]);
+            callback(&output.into());
+        }
     }
     embedding_to_output(
         input_ctx,
@@ -104,7 +121,7 @@ fn run_model(
 impl Executor {
     // Run the LLAMA model with the provided input and generate output.
     fn run_model(&self, input: LlamaInvocation) -> Output {
-        run_model(&self.context, input, &self.context_params)
+        run_model(&self.context, input, &self.context_params, &self.callback)
     }
 }
 

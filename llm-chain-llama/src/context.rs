@@ -1,9 +1,9 @@
-use std::ptr::null_mut;
+use std::{ffi::CStr, ptr::null_mut};
 
 use anyhow::Result;
 use llm_chain_llama_sys::{
     llama_context, llama_context_default_params, llama_context_params, llama_eval, llama_free,
-    llama_init_from_file, llama_sample_top_p_top_k, llama_token,
+    llama_init_from_file, llama_sample_top_p_top_k, llama_token, llama_token_to_str,
 };
 
 use crate::step::LlamaInvocation;
@@ -79,6 +79,15 @@ impl LLamaContext {
                 input.repeat_penalty,
             )
         }
+    }
+
+    pub fn llama_token_to_str(&self, token: &i32) -> String {
+        let c_ptr = unsafe { llama_token_to_str(self.ctx, *token) };
+        let native_string = unsafe { CStr::from_ptr(c_ptr) }
+            .to_str()
+            .unwrap()
+            .to_owned();
+        native_string
     }
 
     // Evaluates the given tokens with the specified configuration.
