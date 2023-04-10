@@ -23,6 +23,7 @@ async-trait = "0.1.68"
 llm-chain-llama-sys = { path = "./sys", version = "0.3" }
 llm-chain = { path = "../llm-chain", version = "0.1.4" }
 serde = { version = "1.0.159", optional = true, features = ["derive"] }
+thiserror = "1.0.40"
 
 [dev-dependencies]
 tokio = { version = "1.27.0", features = ["macros", "rt"] }

@@ -80,6 +80,18 @@ impl traits::Step for Step {
     }
 }
 
+impl traits::PromptTokens for Step {
+    fn count_prompt_tokens(&self) -> Result<usize, traits::PromptTokensError> {
+        use tiktoken_rs::async_openai::get_chat_completion_max_tokens;
+        let placeholder_params = Parameters::new_with_text("".to_string());
+        get_chat_completion_max_tokens(
+            &self.model.to_string(),
+            self.prompt.format(&placeholder_params).as_slice(),
+        )
+        .map_err(|_| traits::PromptTokensError::NotAvailable)
+    }
+}
+
 #[cfg(feature = "serialization")]
 impl StorableEntity for Step {
     fn get_metadata() -> Vec<(String, String)> {

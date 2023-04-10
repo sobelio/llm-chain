@@ -1,4 +1,14 @@
+//! The `map_reduce` module contains the `Chain` struct, which represents a map-reduce chain.
+//!
+//! A map-reduce chain is a combination of two steps - a `map` step and a `reduce` step.
+//! The `map` step processes each input document and the `reduce` step combines the results
+//! of the `map` step into a single output.
+//!
+//! The `Chain` struct is generic over the type of the `Step` and provides a convenient way
+//! to execute map-reduce operations using a provided `Executor`.
+
 use crate::{
+    frame::Frame,
     serialization::StorableEntity,
     traits::{Executor, Step},
     Parameters,
@@ -7,56 +17,66 @@ use futures::future::join_all;
 #[cfg(feature = "serialization")]
 use serde::{
     de::{MapAccess, Visitor},
-    ser::SerializeStruct,
-    Deserialize, Serialize,
+    Deserialize,
 };
 
+/// The `Chain` struct represents a map-reduce chain, consisting of a `map` step and a `reduce` step.
+///
+/// The struct is generic over the type of the `Step` and provides methods for constructing and
+/// executing the chain using a given `Executor`.
 pub struct Chain<S: Step> {
     map: S,
     reduce: S,
 }
 
 impl<S: Step> Chain<S> {
+    /// Constructs a new `Chain` with the given `map` and `reduce` steps.
+    ///
+    /// The `new` function takes two instances of `Step` and returns a new `Chain` instance.
     pub fn new(map: S, reduce: S) -> Chain<S> {
         Chain { map, reduce }
     }
-    pub async fn run<L: Executor<Step = S>>(
+
+    /// Executes the map-reduce chain using the provided `Executor`.
+    ///
+    /// The `run` function takes a vector of input documents, a base set of parameters, and a reference
+    /// to an `Executor`. It processes the input documents using the `map` step and the `reduce` step,
+    /// and returns the result as an `Option<E::Output>`.
+    ///
+    /// The function is asynchronous and must be awaited.
+    pub async fn run<E: Executor<Step = S>>(
         &self,
         documents: Vec<Parameters>,
         base_parameters: Parameters,
-        executor: L,
-    ) -> Option<L::Output> {
-        let mapped_documents = documents
+        executor: &E,
+    ) -> Option<E::Output> {
+        let map_frame = Frame::new(executor, &self.map);
+        let reduce_frame = Frame::new(executor, &self.reduce);
+
+        // Execute the `map` step for each document, combining the base parameters with each document's parameters.
+        let combined_docs: Vec<_> = documents
             .iter()
             .map(|doc| base_parameters.combine(doc))
-            .map(|doc| self.map.format(&doc))
-            .map(|formatted| executor.execute(formatted));
-        let mapped_documents = join_all(mapped_documents).await;
+            .collect();
+        let futures: Vec<_> = combined_docs
+            .iter()
+            .map(|doc| map_frame.format_and_execute(doc))
+            .collect();
+        let mapped_documents = join_all(futures).await;
 
+        // Combine the results of the `map` step using the `reduce` step.
         let combined_output = mapped_documents
             .iter()
-            .fold(None, |a, b| a.map(|a| (L::combine_outputs(&a, b))))?;
+            .fold(None, |a, b| a.map(|a| (E::combine_outputs(&a, b))))?;
 
         // TODO: We need to do this recursively for really big documents
 
-        let combined_parameters = L::apply_output_to_parameters(base_parameters, &combined_output);
+        // Apply the combined output to the base parameters.
+        let combined_parameters = E::apply_output_to_parameters(base_parameters, &combined_output);
 
-        let formatted = self.reduce.format(&combined_parameters);
-        let output = executor.execute(formatted).await;
+        // Execute the `reduce` step using the combined parameters.
+        let output = reduce_frame.format_and_execute(&combined_parameters).await;
         Some(output)
-    }
-}
-
-#[cfg(feature = "serialization")]
-impl<S: Step + Serialize> Serialize for Chain<S> {
-    fn serialize<SER>(&self, serializer: SER) -> Result<SER::Ok, SER::Error>
-    where
-        SER: serde::Serializer,
-    {
-        let mut strct = serializer.serialize_struct("Chain", 2)?;
-        strct.serialize_field("map", &self.map)?;
-        strct.serialize_field("reduce", &self.reduce)?;
-        strct.end()
     }
 }
 
@@ -115,10 +135,19 @@ impl<'de, S: Step + Deserialize<'de>> Deserialize<'de> for Chain<S> {
     }
 }
 
+/// Implements the `StorableEntity` trait for the `Chain` struct.
+///
+/// This implementation provides a method for extracting metadata from a `Chain` instance, in order to identify it
 impl<S> StorableEntity for Chain<S>
 where
     S: Step + StorableEntity,
 {
+    /// Returns metadata about the Chain instance.
+    ///
+    /// The metadata is returned as a vector of tuples, where each tuple contains a key-value pair
+    /// representing a metadata field and its value.
+    ///
+    /// This method also extracts metadata from the Step instances associated with the Chain.
     fn get_metadata() -> Vec<(String, String)> {
         let mut base = vec![(
             "chain-type".to_string(),

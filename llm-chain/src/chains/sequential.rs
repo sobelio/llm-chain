@@ -2,6 +2,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    frame::Frame,
     serialization::StorableEntity,
     traits::{Executor, Step},
     Parameters,
@@ -20,17 +21,17 @@ impl<S: Step> Chain<S> {
         Chain { steps: vec![step] }
     }
 
-    pub async fn run<L: Executor<Step = S>>(
+    pub async fn run<E: Executor<Step = S>>(
         &self,
         parameters: Parameters,
-        executor: L,
-    ) -> Option<<L as Executor>::Output> {
+        executor: &E,
+    ) -> Option<E::Output> {
         let mut current_params = parameters;
-        let mut output: Option<L::Output> = None;
+        let mut output: Option<E::Output> = None;
         for step in self.steps.iter() {
-            let formatted = step.format(&current_params);
-            let res = executor.execute(formatted).await;
-            current_params = L::apply_output_to_parameters(current_params, &res);
+            let frame = Frame::new(executor, step);
+            let res = frame.format_and_execute(&current_params).await;
+            current_params = E::apply_output_to_parameters(current_params, &res);
             output = Some(res);
         }
         output

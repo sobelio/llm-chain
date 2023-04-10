@@ -35,7 +35,7 @@ async fn main() {
     let res = chain
         .run(
             vec![("name", "Emil"), ("date", "February 30th 2023")].into(),
-            exec,
+            &exec,
         )
         .await
         .unwrap();

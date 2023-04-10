@@ -29,7 +29,7 @@ async fn main() {
 
     let chain = Chain::<Step>::read_file_sync("chain-from-yaml.yaml").unwrap();
     let res = chain
-        .run(llm_chain::Parameters::new(), chatgpt)
+        .run(llm_chain::Parameters::new(), &chatgpt)
         .await
         .unwrap();
     println!("{:?}", res);

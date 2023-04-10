@@ -15,6 +15,6 @@ async fn main() {
         ],
     )
     .to_chain();
-    let res = chain.run(Parameters::new(), exec).await.unwrap();
+    let res = chain.run(Parameters::new(), &exec).await.unwrap();
     println!("{:?}", res);
 }

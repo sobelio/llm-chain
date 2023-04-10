@@ -31,7 +31,7 @@ async fn main() {
     ]);
     for _ in 1..5 {
         let chain = Step::new(Model::ChatGPT3_5Turbo, chat.clone()).to_chain();
-        let res = chain.run(Parameters::new(), exec.clone()).await.unwrap();
+        let res = chain.run(Parameters::new(), &exec).await.unwrap();
         let message_text = res.choices.first().unwrap().message.content.clone();
         println!("Assistant: {}", message_text);
         println!("=============");

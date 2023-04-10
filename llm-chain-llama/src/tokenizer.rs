@@ -1,7 +1,7 @@
 use crate::output::Output;
-use anyhow::Result;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
+use thiserror::Error;
 
 use llm_chain_llama_sys::{
     llama_token, llama_token_eos as inner_eos, llama_token_to_str, llama_tokenize,
@@ -37,6 +37,12 @@ pub fn llama_token_eos() -> i32 {
     unsafe { inner_eos() }
 }
 
+#[derive(Error, Debug)]
+pub(crate) enum TokenizeError {
+    #[error("Input too long")]
+    InputTooLong,
+}
+
 /// Tokenizes the given text using the provided LLamaContext, respecting the context_window_size and add_bos options.
 ///
 /// # Arguments
@@ -54,12 +60,13 @@ pub(crate) fn tokenize(
     text: &str,
     context_window_size: usize,
     add_bos: bool,
-) -> Result<Vec<llama_token>> {
+) -> Result<Vec<llama_token>, TokenizeError> {
     let tokenized_input = llama_tokenize_helper(context, text, add_bos);
     if tokenized_input.len() > context_window_size {
-        anyhow::bail!("Input too long")
+        Err(TokenizeError::InputTooLong)
+    } else {
+        Ok(tokenized_input)
     }
-    Ok(tokenized_input)
 }
 
 /// Helper function to tokenize text using the provided LLamaContext and add_bos option.

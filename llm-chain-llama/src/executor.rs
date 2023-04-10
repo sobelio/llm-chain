@@ -4,9 +4,11 @@ use crate::tokenizer::{embedding_to_output, llama_token_eos, tokenize};
 
 use crate::output::Output;
 use async_trait::async_trait;
+
 use llm_chain::traits;
 use llm_chain::traits::Executor as ExecutorTrait;
 use llm_chain::Parameters;
+use llm_chain_llama_sys::llama_context_params;
 
 /// Executor is responsible for running the LLAMA model and managing its context.
 pub struct Executor {
@@ -28,15 +30,18 @@ impl Executor {
     pub fn new(model_path: String) -> Self {
         Self::new_with_config(model_path, None)
     }
+
+    fn context_params(&self) -> llama_context_params {
+        LlamaContextParams::or_default(&self.context_params)
+    }
 }
 
 // Executes the model with the provided input and context parameters.
 fn run_model(
     input_ctx: &LLamaContext,
     input: LlamaInvocation,
-    context_params: &Option<LlamaContextParams>,
+    context_params_c: llama_context_params,
 ) -> Output {
-    let context_params_c = LlamaContextParams::or_default(context_params);
     // Tokenize the stop sequence and input prompt.
     let tokenized_stop_prompt = tokenize(
         input_ctx,
@@ -104,7 +109,7 @@ fn run_model(
 impl Executor {
     // Run the LLAMA model with the provided input and generate output.
     fn run_model(&self, input: LlamaInvocation) -> Output {
-        run_model(&self.context, input, &self.context_params)
+        run_model(&self.context, input, self.context_params())
     }
 }
 
@@ -129,5 +134,23 @@ impl ExecutorTrait for Executor {
     // Combines two outputs into a single output.
     fn combine_outputs(output: &Self::Output, other: &Self::Output) -> Self::Output {
         output.combine(other)
+    }
+}
+
+impl traits::ExecutorPromptTokens<LLamaStep> for Executor {
+    fn count_prompt_tokens(&self, step: &LLamaStep) -> Result<usize, traits::PromptTokensError> {
+        let template = step.prompt_source();
+        tokenize(
+            &self.context,
+            template,
+            self.context_params().n_ctx as usize,
+            true,
+        )
+        .map(|t| t.len())
+        .map_err(|e| match e {
+            crate::tokenizer::TokenizeError::InputTooLong => {
+                traits::PromptTokensError::UnableToCompute
+            }
+        })
     }
 }

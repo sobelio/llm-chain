@@ -23,6 +23,8 @@ pub mod serialization;
 mod templates;
 pub mod traits;
 
+pub mod frame;
+
 pub use parameters::Parameters;
 
 pub use templates::PromptTemplate;
