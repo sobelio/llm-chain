@@ -16,7 +16,6 @@ jobs:
         working-directory: website
     steps:
       - uses: actions/checkout@v3
-      - run: cd website
       - uses: actions/setup-node@v3
         with:
           node-version: 18
