@@ -70,6 +70,31 @@ impl Parameters {
     pub fn get(&self, key: &str) -> Option<&String> {
         self.0.get(key)
     }
+
+    pub fn forked<K, V1, V2>(&self, key: K, a: V1, b: V2) -> (Parameters, Parameters)
+    where
+        K: Into<String> + Copy,
+        V1: Into<String>,
+        V2: Into<String>,
+    {
+        let mut copy = self.clone();
+        copy.0.insert(key.into(), a.into());
+        let mut copy2 = self.clone();
+        copy2.0.insert(key.into(), b.into());
+        (copy, copy2)
+    }
+
+    pub fn forked_text<V1, V2>(&self, a: V1, b: V2) -> (Parameters, Parameters)
+    where
+        V1: Into<String>,
+        V2: Into<String>,
+    {
+        self.forked(TEXT_KEY, a, b)
+    }
+
+    pub fn get_text(&self) -> Option<&String> {
+        self.get(TEXT_KEY)
+    }
 }
 
 impl From<String> for Parameters {

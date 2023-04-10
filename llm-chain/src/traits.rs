@@ -30,10 +30,21 @@ pub trait StepExt: Step {
 // An executor performs a single step in a chain. It takes a step, executes it, and returns the output.
 pub trait Executor {
     type Step: Step;
-    type Output: Send;
+    type Output: Send + Clone;
     async fn execute(&self, input: <<Self as Executor>::Step as Step>::Output) -> Self::Output;
     fn apply_output_to_parameters(parameters: Parameters, output: &Self::Output) -> Parameters;
     fn combine_outputs(output: &Self::Output, other: &Self::Output) -> Self::Output;
+    fn combine_outputs_many(outputs: &[Self::Output]) -> Option<Self::Output> {
+        if outputs.is_empty() {
+            return None;
+        }
+        let (cur, rest) = outputs.split_first().unwrap();
+        let mut cur = cur.clone();
+        for output in rest {
+            cur = Self::combine_outputs(&cur, output);
+        }
+        Some(cur)
+    }
 }
 
 #[derive(Clone, Debug, Error)]
@@ -44,22 +55,20 @@ pub enum PromptTokensError {
     UnableToCompute,
 }
 
-// A trait that allows us to count the number of prompt tokens in a step.
-pub trait PromptTokens {
-    fn count_prompt_tokens(&self) -> Result<usize, PromptTokensError>;
-}
 // A trait for executors that can count the number of prompt tokens in a step. Useful if the Step itself cannot count the number of prompt tokens.
 pub trait ExecutorPromptTokens<Step>: Executor<Step = Step> {
+    fn count_tokens_for_output(
+        &self,
+        step: &Step,
+        output: &Self::Output,
+    ) -> Result<usize, PromptTokensError>;
+    fn count_tokens_for_doc(&self, step: &Step, doc: &str) -> Result<usize, PromptTokensError>;
     fn count_prompt_tokens(&self, step: &Step) -> Result<usize, PromptTokensError>;
-}
-
-// Blanket implementation for executors that can count the number of prompt tokens in a step.
-impl<E, S> ExecutorPromptTokens<S> for E
-where
-    S: Step + PromptTokens,
-    E: Executor<Step = S>,
-{
-    fn count_prompt_tokens(&self, step: &S) -> Result<usize, PromptTokensError> {
-        step.count_prompt_tokens()
-    }
+    fn max_tokens(&self, step: &Step) -> Result<usize, PromptTokensError>;
+    fn split_at_tokens(
+        &self,
+        step: &Step,
+        doc: &str,
+        tokens: usize,
+    ) -> Result<(String, String), PromptTokensError>;
 }

@@ -1,6 +1,6 @@
 use crate::context::{LLamaContext, LlamaContextParams};
 use crate::step::{LlamaInvocation, Step as LLamaStep};
-use crate::tokenizer::{embedding_to_output, llama_token_eos, tokenize};
+use crate::tokenizer::{embedding_to_output, llama_token_eos, llama_tokenize_helper, tokenize};
 
 use crate::output::Output;
 use async_trait::async_trait;
@@ -138,6 +138,19 @@ impl ExecutorTrait for Executor {
 }
 
 impl traits::ExecutorPromptTokens<LLamaStep> for Executor {
+    fn count_tokens_for_doc(
+        &self,
+        _step: &LLamaStep,
+        doc: &str,
+    ) -> Result<usize, traits::PromptTokensError> {
+        Ok(llama_tokenize_helper(&self.context, doc, true).len())
+    }
+    fn max_tokens(&self, _step: &LLamaStep) -> Result<usize, traits::PromptTokensError> {
+        self.context_params()
+            .n_ctx
+            .try_into()
+            .map_err(|_| traits::PromptTokensError::UnableToCompute)
+    }
     fn count_prompt_tokens(&self, step: &LLamaStep) -> Result<usize, traits::PromptTokensError> {
         let template = step.prompt_source();
         tokenize(
@@ -152,5 +165,54 @@ impl traits::ExecutorPromptTokens<LLamaStep> for Executor {
                 traits::PromptTokensError::UnableToCompute
             }
         })
+    }
+    fn split_at_tokens(
+        &self,
+        step: &LLamaStep,
+        doc: &str,
+        tokens: usize,
+    ) -> Result<(String, String), traits::PromptTokensError> {
+        let template = step.prompt_source();
+        let tokenized = tokenize(
+            &self.context,
+            template,
+            self.context_params().n_ctx as usize,
+            true,
+        )
+        .map_err(|e| match e {
+            crate::tokenizer::TokenizeError::InputTooLong => {
+                traits::PromptTokensError::UnableToCompute
+            }
+        })?;
+
+        if tokenized.len() < tokens {
+            Ok((doc.to_owned(), "".to_owned()))
+        } else {
+            let (new_doc, rest) = tokenized.split_at(tokens);
+            Ok((
+                embedding_to_output(&self.context, new_doc).into(),
+                embedding_to_output(&self.context, rest).into(),
+            ))
+        }
+    }
+    fn count_tokens_for_output(
+        &self,
+        step: &LLamaStep,
+        output: &Self::Output,
+    ) -> Result<usize, traits::PromptTokensError> {
+        let template = step.prompt_source();
+        let tokenized = tokenize(
+            &self.context,
+            template,
+            self.context_params().n_ctx as usize,
+            true,
+        )
+        .map_err(|e| match e {
+            crate::tokenizer::TokenizeError::InputTooLong => {
+                traits::PromptTokensError::UnableToCompute
+            }
+        })?;
+        let output_tokens = llama_tokenize_helper(&self.context, output.as_str(), true);
+        Ok(tokenized.len() + output_tokens.len())
     }
 }

@@ -80,7 +80,11 @@ pub(crate) fn tokenize(
 /// # Returns
 ///
 /// A Vec of llama_tokens representing the tokenized input.
-fn llama_tokenize_helper(context: &LLamaContext, text: &str, add_bos: bool) -> Vec<llama_token> {
+pub(crate) fn llama_tokenize_helper(
+    context: &LLamaContext,
+    text: &str,
+    add_bos: bool,
+) -> Vec<llama_token> {
     let mut res = Vec::with_capacity(text.len() + add_bos as usize);
     let c_text = to_cstring(text);
 

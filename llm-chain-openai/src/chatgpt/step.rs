@@ -50,8 +50,8 @@ impl ToString for Model {
 /// ```
 #[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
 pub struct Step {
-    model: Model,
-    prompt: ChatPromptTemplate,
+    pub(crate) model: Model,
+    pub(crate) prompt: ChatPromptTemplate,
 }
 impl Step {
     pub fn new<P: Into<ChatPromptTemplate>>(model: Model, prompt: P) -> Step {
@@ -77,18 +77,6 @@ impl traits::Step for Step {
             logit_bias: None,
             user: None,
         }
-    }
-}
-
-impl traits::PromptTokens for Step {
-    fn count_prompt_tokens(&self) -> Result<usize, traits::PromptTokensError> {
-        use tiktoken_rs::async_openai::get_chat_completion_max_tokens;
-        let placeholder_params = Parameters::new_with_text("".to_string());
-        get_chat_completion_max_tokens(
-            &self.model.to_string(),
-            self.prompt.format(&placeholder_params).as_slice(),
-        )
-        .map_err(|_| traits::PromptTokensError::NotAvailable)
     }
 }
 

@@ -51,3 +51,63 @@ impl traits::Executor for Executor {
         combined
     }
 }
+
+impl traits::ExecutorPromptTokens<Step> for Executor {
+    fn count_prompt_tokens(&self, step: &Step) -> Result<usize, traits::PromptTokensError> {
+        use tiktoken_rs::async_openai::get_chat_completion_max_tokens;
+        let placeholder_params = Parameters::new_with_text("".to_string());
+        get_chat_completion_max_tokens(
+            &step.model.to_string(),
+            &step.prompt.format(&placeholder_params).as_slice(),
+        )
+        .map_err(|_| traits::PromptTokensError::NotAvailable)
+    }
+    fn count_tokens_for_doc(
+        &self,
+        step: &Step,
+        doc: &str,
+    ) -> Result<usize, traits::PromptTokensError> {
+        use tiktoken_rs::get_bpe_from_model;
+        let tok = get_bpe_from_model(&step.model.to_string())
+            .map_err(|_| traits::PromptTokensError::NotAvailable)?;
+        Ok(tok.encode_ordinary(doc).len())
+    }
+    fn split_at_tokens(
+        &self,
+        step: &Step,
+        doc: &str,
+        tokens: usize,
+    ) -> Result<(String, String), traits::PromptTokensError> {
+        use tiktoken_rs::get_bpe_from_model;
+
+        let tok = get_bpe_from_model(&step.model.to_string())
+            .map_err(|_| traits::PromptTokensError::NotAvailable)?;
+        let v = tok.encode_ordinary(doc);
+        if v.len() <= tokens {
+            return Ok((doc.to_string(), "".to_string()));
+        } else {
+            Ok((
+                tok.decode(v[..tokens].to_vec())
+                    .map_err(|_| traits::PromptTokensError::NotAvailable)?,
+                tok.decode(v[tokens..].to_vec())
+                    .map_err(|_| traits::PromptTokensError::NotAvailable)?,
+            ))
+        }
+    }
+    fn max_tokens(&self, step: &Step) -> Result<usize, traits::PromptTokensError> {
+        let context_size = tiktoken_rs::model::get_context_size(&step.model.to_string());
+        Ok(context_size)
+    }
+    fn count_tokens_for_output(
+        &self,
+        step: &Step,
+        output: &Self::Output,
+    ) -> Result<usize, traits::PromptTokensError> {
+        use tiktoken_rs::get_bpe_from_model;
+        let tok = get_bpe_from_model(&step.model.to_string())
+            .map_err(|_| traits::PromptTokensError::NotAvailable)?;
+        Ok(tok
+            .encode_ordinary(&output.choices.first().unwrap().message.content)
+            .len())
+    }
+}

@@ -8,7 +8,6 @@
 //! combination of types that implement the required traits.
 
 use crate::traits;
-use crate::traits::PromptTokens;
 use crate::Parameters;
 
 /// The `Frame` struct represents a combination of a `Step` and an `Executor`.
@@ -44,20 +43,5 @@ where
     pub async fn format_and_execute(&self, parameters: &Parameters) -> E::Output {
         let output = self.step.format(parameters);
         self.executor.execute(output).await
-    }
-}
-
-impl<'l, E, S> PromptTokens for Frame<'l, E, S>
-where
-    S: traits::Step,
-    E: traits::ExecutorPromptTokens<S>,
-{
-    /// Counts the number of prompt tokens in the step by delegating to the executor's `count_prompt_tokens` method.
-    ///
-    /// This function returns the number of prompt tokens in the step. If the executor implements the
-    /// `ExecutorPromptTokens` trait, it delegates the counting process to the executor's `count_prompt_tokens`
-    /// method.
-    fn count_prompt_tokens(&self) -> Result<usize, crate::traits::PromptTokensError> {
-        self.executor.count_prompt_tokens(self.step)
     }
 }
