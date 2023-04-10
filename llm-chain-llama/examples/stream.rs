@@ -1,7 +1,7 @@
 use std::{env, io::Write, path::Path};
 
 use llm_chain::{traits::StepExt, Parameters, PromptTemplate};
-use llm_chain_llama::{Step, StreamExecutor};
+use llm_chain_llama::{Step, Executor};
 
 /// This example demonstrates how to use the llm-chain-llama crate to generate text using a
 /// LLaMA model.
@@ -21,8 +21,8 @@ async fn main() {
     // Get the path to the model.
     let path = Path::new(&args[1]);
 
-    // Initialize the StreamExecutor with the model path.
-    let exec = StreamExecutor::new(path.to_str().unwrap().to_string(), |output| {
+    // Initialize the Executor with the model path.
+    let exec = Executor::new_with_callback(path.to_str().unwrap().to_string(), |output| {
         print!("{}", output);
         std::io::stdout().flush().unwrap();
     });
