@@ -23,6 +23,7 @@
 
 mod context;
 mod executor;
+mod stream_executor;
 mod instruct;
 mod output;
 mod step;
@@ -30,6 +31,7 @@ mod tokenizer;
 
 pub use context::LlamaContextParams;
 pub use executor::Executor;
+pub use stream_executor::StreamExecutor;
 pub use instruct::new_instruct_template;
 pub use output::Output;
 pub use step::{LlamaConfig, Step};
