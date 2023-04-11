@@ -1,4 +1,3 @@
-
 # llm-chain 🚀
 
 `llm-chain` is a collection of Rust crates designed to help you work with Large Language Models (LLMs) more effectively. Our primary focus is on providing robust support for prompt templates and chaining together prompts in multi-step chains, enabling complex tasks that LLMs can't handle in a single step. This includes, but is not limited to, summarizing lengthy texts or performing advanced data processing tasks.
@@ -12,7 +11,6 @@
 
 To help you get started, here is an example demonstrating how to use `llm-chain`. You can find more examples in the [examples folder](/llm-chain-openai/examples) in the repository.
 
----
 ```rust
 let exec = Executor::new_default();
 let chain = Step::new(
@@ -25,7 +23,7 @@ let chain = Step::new(
 let res = chain.run(Parameters::new(), exec).await.unwrap();
 println!("{:?}", res);
 ```
----
+
 ## Features 🌟
 
 - **Prompt templates**: Create reusable and easily customizable prompt templates for consistent and structured interactions with LLMs.
@@ -41,7 +39,7 @@ println!("{:?}", res);
 
 To start using `llm-chain`, add it as a dependency in your `Cargo.toml`:
 
----
+
 ```toml
 [dependencies]
 llm-chain = "0.1.0"
@@ -51,10 +49,10 @@ llm-chain-openai = "0.1.0
 add your open ai api key to the `.bashrc` or `.zshrc` file  to run the example code e.g.
 
 ---
-```go
+```bash
 export OPENAI_API_KEY="sk-.........................................."
 ```
----
+
 Then, refer to the [documentation](https://docs.rs/llm-chain) and [examples](/llm-chain-openai/examples) to learn how to create prompt templates, chains, and more.
 
 ## Contributing 🤝
