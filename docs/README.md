@@ -39,7 +39,6 @@ println!("{:?}", res);
 
 To start using `llm-chain`, add it as a dependency in your `Cargo.toml`:
 
-
 ```toml
 [dependencies]
 llm-chain = "0.1.0"
