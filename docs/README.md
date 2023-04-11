@@ -44,6 +44,13 @@ To start using `llm-chain`, add it as a dependency in your `Cargo.toml`:
 llm-chain = "0.1.0"
 llm-chain-openai = "0.1.0
 ```
+---
+add your open ai api key to the `.bashrc` or `.zshrc` file  to run the example code e.g.
+
+---
+```bash
+export OPENAI_API_KEY="sk-.........................................."
+```
 
 Then, refer to the [documentation](https://docs.rs/llm-chain) and [examples](/llm-chain-openai/examples) to learn how to create prompt templates, chains, and more.
 
