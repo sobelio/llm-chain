@@ -31,6 +31,9 @@ const config = {
     defaultLocale: "en",
     locales: ["en"],
   },
+  scripts: [
+    { src: "https://embed.lu.ma/checkout-button.js", async: true, defer: true },
+  ],
 
   presets: [
     [
@@ -60,13 +63,12 @@ const config = {
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
       // Replace with your project's social card
-      image: "img/llm-chain-social-card.jpg",
+      image: "img/llmchainsocial.jpg",
       navbar: {
-        title: "llm-chain",
-        /*logo: {
-          alt: "LLM-chain Logo",
-          src: "img/logo.svg",
-        },*/
+        logo: {
+          alt: "llm-chain-logo",
+          src: "img/llmchain.png",
+        },
         items: [
           {
             type: "docSidebar",
@@ -104,6 +106,10 @@ const config = {
               {
                 label: "GitHub",
                 href: "https://github.com/sobelio/llm-chain",
+              },
+              {
+                label: "Events",
+                href: "/llmcasual",
               },
             ],
           },
