@@ -70,6 +70,7 @@ fn main() {
     env::set_current_dir("build").expect("Unable to change directory to llama.cpp build");
 
     env::set_var("CXXFLAGS", "-fPIC");
+    env::set_var("CFLAGS", "-fPIC");
 
     let code = std::process::Command::new("cmake")
         .arg("..")
