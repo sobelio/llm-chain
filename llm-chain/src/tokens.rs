@@ -128,6 +128,7 @@ impl TokenCount {
     /// # Examples
     ///
     /// ```
+    /// use llm_chain::tokens::TokenCount;
     /// let token_count = TokenCount::new(100, 50, 10);
     /// assert!(token_count.has_room_for(49));
     /// ```
