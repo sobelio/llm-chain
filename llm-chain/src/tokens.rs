@@ -128,7 +128,7 @@ impl TokenCount {
     /// # Examples
     ///
     /// ```
-    /// let token_count = TokenCount::new(100, 50);
+    /// let token_count = TokenCount::new(100, 50, 10);
     /// assert!(token_count.has_room_for(49));
     /// ```
     pub fn has_room_for(&self, tokens: i32) -> bool {
