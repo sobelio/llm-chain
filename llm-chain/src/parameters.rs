@@ -21,39 +21,57 @@ use std::collections::HashMap;
 /// assert_eq!(p.get("name").unwrap().as_str(), "John Doe");
 /// ```
 #[derive(Clone, Default, Debug)]
-pub struct Parameters(HashMap<String, String>);
+pub struct Parameters {
+    map: HashMap<String, String>,
+    non_strict: bool,
+}
 
 const TEXT_KEY: &str = "text";
 
 impl FormatArgs for Parameters {
     fn get_index(&self, index: usize) -> Result<Option<Argument<'_>>, ()> {
-        if index == 0 {
-            self.get_key(TEXT_KEY)
+        let res = if index == 0 {
+            self.get_key(TEXT_KEY)?
         } else {
-            self.0.get_index(index)
+            self.map.get_index(index)?
+        };
+
+        if self.non_strict && res.is_none() {
+            Ok(Some(&""))
+        } else {
+            Ok(res)
         }
     }
 
     fn get_key(&self, key: &str) -> Result<Option<Argument<'_>>, ()> {
-        self.0.get_key(key)
+        let res = self.map.get_key(key)?;
+
+        if self.non_strict && res.is_none() {
+            Ok(Some(&""))
+        } else {
+            Ok(res)
+        }
     }
 }
 
 impl Parameters {
     /// Creates a new empty set of parameters.
     pub fn new() -> Parameters {
-        Parameters(HashMap::new())
+        Default::default()
     }
     /// Creates a new set of parameters with a single key, `text`, set to the given value.
     pub fn new_with_text<T: Into<String>>(text: T) -> Parameters {
         let mut map = HashMap::new();
         map.insert(TEXT_KEY.to_string(), text.into());
-        Parameters(map)
+        Parameters {
+            map,
+            ..Default::default()
+        }
     }
     /// Copies the parameters and adds a new key-value pair.
     pub fn with<K: Into<String>, V: Into<String>>(&self, key: K, value: V) -> Parameters {
         let mut copy = self.clone();
-        copy.0.insert(key.into(), value.into());
+        copy.map.insert(key.into(), value.into());
         copy
     }
     /// Copies the parameters and adds a new key-value pair with the key `text`, which is the default key.
@@ -63,12 +81,44 @@ impl Parameters {
     /// Combines two sets of parameters, returning a new set of parameters with all the keys from both sets.
     pub fn combine(&self, other: &Parameters) -> Parameters {
         let mut copy = self.clone();
-        copy.0.extend(other.0.clone());
+        copy.map.extend(other.map.clone());
         copy
     }
     /// Returns the value of the given key, or `None` if the key does not exist.
     pub fn get(&self, key: &str) -> Option<&String> {
-        self.0.get(key)
+        self.map.get(key)
+    }
+
+    pub fn new_non_strict() -> Parameters {
+        Parameters {
+            non_strict: true,
+            ..Default::default()
+        }
+    }
+
+    pub fn forked<K, V1, V2>(&self, key: K, a: V1, b: V2) -> (Parameters, Parameters)
+    where
+        K: Into<String> + Copy,
+        V1: Into<String>,
+        V2: Into<String>,
+    {
+        let mut copy = self.clone();
+        copy.map.insert(key.into(), a.into());
+        let mut copy2 = self.clone();
+        copy2.map.insert(key.into(), b.into());
+        (copy, copy2)
+    }
+
+    pub fn forked_text<V1, V2>(&self, a: V1, b: V2) -> (Parameters, Parameters)
+    where
+        V1: Into<String>,
+        V2: Into<String>,
+    {
+        self.forked(TEXT_KEY, a, b)
+    }
+
+    pub fn get_text(&self) -> Option<&String> {
+        self.get(TEXT_KEY)
     }
 }
 
@@ -86,14 +136,20 @@ impl From<&str> for Parameters {
 
 impl From<HashMap<String, String>> for Parameters {
     fn from(map: HashMap<String, String>) -> Self {
-        Parameters(map)
+        Parameters {
+            map,
+            ..Default::default()
+        }
     }
 }
 
 impl From<Vec<(String, String)>> for Parameters {
     fn from(data: Vec<(String, String)>) -> Self {
         let map: HashMap<String, String> = data.into_iter().collect();
-        Parameters(map)
+        Parameters {
+            map,
+            ..Default::default()
+        }
     }
 }
 
@@ -103,6 +159,9 @@ impl From<Vec<(&str, &str)>> for Parameters {
             .into_iter()
             .map(|(k, v)| (k.to_string(), v.to_string()))
             .collect();
-        Parameters(map)
+        Parameters {
+            map,
+            ..Default::default()
+        }
     }
 }

@@ -50,8 +50,8 @@ impl ToString for Model {
 /// ```
 #[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
 pub struct Step {
-    model: Model,
-    prompt: ChatPromptTemplate,
+    pub(crate) model: Model,
+    pub(crate) prompt: ChatPromptTemplate,
 }
 impl Step {
     pub fn new<P: Into<ChatPromptTemplate>>(model: Model, prompt: P) -> Step {

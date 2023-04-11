@@ -31,6 +31,6 @@ async fn main() {
     .to_chain();
 
     // Execute the chain and print the result
-    let res = chain.run(Parameters::new(), exec).await.unwrap();
+    let res = chain.run(Parameters::new(), &exec).await.unwrap();
     println!("{}", res);
 }

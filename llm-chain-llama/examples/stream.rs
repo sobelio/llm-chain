@@ -1,7 +1,7 @@
 use std::{env, io::Write, path::Path};
 
 use llm_chain::{traits::StepExt, Parameters, PromptTemplate};
-use llm_chain_llama::{Step, Executor};
+use llm_chain_llama::{Executor, Step};
 
 /// This example demonstrates how to use the llm-chain-llama crate to generate text using a
 /// LLaMA model.
@@ -34,6 +34,6 @@ async fn main() {
     .to_chain();
 
     // Execute the chain and print the result
-    let res = chain.run(Parameters::new(), exec).await.unwrap();
+    let res = chain.run(Parameters::new(), &exec).await.unwrap();
     println!("{}", res);
 }

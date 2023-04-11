@@ -15,6 +15,6 @@ async fn main() {
         ],
     )
     .to_chain();
-    let res = chain.run("Emil".into(), exec).await.unwrap();
+    let res = chain.run("Emil".into(), &exec).await.unwrap();
     println!("{:?}", res);
 }

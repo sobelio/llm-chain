@@ -1,12 +1,15 @@
 use crate::context::{LLamaContext, LlamaContextParams};
 use crate::step::{LlamaInvocation, Step as LLamaStep};
-use crate::tokenizer::{embedding_to_output, llama_token_eos, tokenize};
+use crate::tokenizer::{embedding_to_output, llama_token_eos, llama_tokenize_helper, tokenize};
 
 use crate::output::Output;
 use async_trait::async_trait;
-use llm_chain::traits;
-use llm_chain::traits::Executor as ExecutorTrait;
+
+use llm_chain::tokens::{PromptTokensError, TokenCount};
+use llm_chain::traits::{self};
+use llm_chain::traits::{Executor as ExecutorTrait, Step as StepTrait};
 use llm_chain::Parameters;
+use llm_chain_llama_sys::llama_context_params;
 
 /// Executor is responsible for running the LLAMA model and managing its context.
 pub struct Executor {
@@ -39,16 +42,19 @@ impl Executor {
     pub fn new(model_path: String) -> Self {
         Self::new_with_config(model_path, None, None)
     }
+
+    fn context_params(&self) -> llama_context_params {
+        LlamaContextParams::or_default(&self.context_params)
+    }
 }
 
 // Executes the model with the provided input and context parameters.
 fn run_model(
     input_ctx: &LLamaContext,
     input: LlamaInvocation,
-    context_params: &Option<LlamaContextParams>,
+    context_params_c: llama_context_params,
     callback: &Option<fn(&Output)>,
 ) -> Output {
-    let context_params_c = LlamaContextParams::or_default(context_params);
     // Tokenize the stop sequence and input prompt.
     let tokenized_stop_prompt = tokenize(
         input_ctx,
@@ -121,7 +127,11 @@ fn run_model(
 impl Executor {
     // Run the LLAMA model with the provided input and generate output.
     fn run_model(&self, input: LlamaInvocation) -> Output {
-        run_model(&self.context, input, &self.context_params, &self.callback)
+        run_model(&self.context, input, self.context_params(), &self.callback)
+    }
+    
+    fn max_tokens(&self) -> i32 {
+        self.context_params().n_ctx
     }
 }
 
@@ -130,6 +140,7 @@ impl Executor {
 impl ExecutorTrait for Executor {
     type Step = LLamaStep;
     type Output = Output;
+    type Token = i32;
     // Executes the model asynchronously and returns the output.
     async fn execute(
         &self,
@@ -146,5 +157,36 @@ impl ExecutorTrait for Executor {
     // Combines two outputs into a single output.
     fn combine_outputs(output: &Self::Output, other: &Self::Output) -> Self::Output {
         output.combine(other)
+    }
+
+    fn tokens_used(
+        &self,
+        step: &LLamaStep,
+        parameters: &Parameters,
+    ) -> Result<TokenCount, PromptTokensError> {
+        let input = step.format(parameters);
+        let tokens_used = self.tokenize_str(step, &input.prompt)?.len() as i32;
+
+        let input_with_empty_params = step.format(&Parameters::new_non_strict());
+        let template_tokens_used = self
+            .tokenize_str(step, &input_with_empty_params.prompt)?
+            .len() as i32;
+
+        let max_tokens = self.max_tokens();
+        Ok(TokenCount::new(
+            max_tokens,
+            tokens_used,
+            template_tokens_used,
+        ))
+    }
+
+    fn tokenize_str(&self, _step: &LLamaStep, doc: &str) -> Result<Vec<i32>, PromptTokensError> {
+        let tokenized = llama_tokenize_helper(&self.context, doc, true);
+        Ok(tokenized)
+    }
+
+    fn to_string(&self, _step: &LLamaStep, tokens: &[i32]) -> Result<String, PromptTokensError> {
+        let output = embedding_to_output(&self.context, tokens);
+        Ok(output.to_string())
     }
 }

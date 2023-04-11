@@ -20,7 +20,7 @@ let chain = Step::new(
         (Role::User, "Make a personalized greet for Joe"),
     ]
 ).to_chain();
-let res = chain.run(Parameters::new(), exec).await.unwrap();
+let res = chain.run(Parameters::new(), &exec).await.unwrap();
 println!("{:?}", res);
 ```
 

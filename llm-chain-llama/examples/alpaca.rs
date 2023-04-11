@@ -23,7 +23,7 @@ async fn main() {
             Parameters::new()
                 .with("season", "summer")
                 .with("location", "the moon"),
-            exec,
+            &exec,
         )
         .await
         .unwrap();

@@ -3,6 +3,7 @@ use llm_chain::serialization::StorableEntity;
 use llm_chain::{traits, Parameters, PromptTemplate};
 #[cfg(feature = "serialization")]
 use serde::{Deserialize, Serialize};
+
 /// Represents a concrete call to the LLM model, with all the parameters specified, and no implicit behavior.
 pub struct LlamaInvocation {
     pub(crate) n_threads: i32,
@@ -88,6 +89,10 @@ impl Step {
     /// * `prompt` - The prompt template for the step.
     pub fn new(prompt: PromptTemplate) -> Self {
         Self::new_with_config(prompt, None)
+    }
+
+    pub fn prompt_source(&self) -> &str {
+        self.prompt.source()
     }
 }
 

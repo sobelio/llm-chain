@@ -21,6 +21,11 @@ impl Output {
             output: format!("{}\n{}", &self.output, &other.output),
         }
     }
+
+    /// Returns the string slice representation of the output.
+    pub fn as_str(&self) -> &str {
+        &self.output
+    }
 }
 
 /// Implements the `Display` trait for the `Output` struct.
