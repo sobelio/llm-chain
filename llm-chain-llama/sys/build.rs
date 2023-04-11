@@ -18,6 +18,10 @@ fn main() {
     if target.contains("apple") {
         println!("cargo:rustc-link-lib=framework=Accelerate");
     }
+    if target.contains("aarch64-apple-darwin") {
+        // Add any target-specific flags for aarch64-apple-darwin here
+        println!("cargo:rustc-link-arg=-target=aarch64-apple-darwin");
+    }
     println!("cargo:rustc-link-search={}", env::var("OUT_DIR").unwrap());
     println!("cargo:rustc-link-lib=static=llama");
     println!("cargo:rerun-if-changed=wrapper.h");
