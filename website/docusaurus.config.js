@@ -63,7 +63,7 @@ const config = {
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
       // Replace with your project's social card
-      image: "img/llmchainsocial.jpg",
+      image: "img/llmchainsocial.png",
       navbar: {
         logo: {
           alt: "llm-chain-logo",
