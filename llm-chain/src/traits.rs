@@ -6,9 +6,12 @@
 //!
 //! By implementing these traits, you can set up a new model and use it in your application. Your step, defines the input to the model, and your executor invokes the model and returns the output. The output of the executor is then passed to the next step in the chain, and so on.
 
-use crate::{chains::sequential, Parameters};
+use crate::{
+    chains::sequential,
+    tokens::{PromptTokensError, TokenCount},
+    Parameters,
+};
 use async_trait::async_trait;
-use thiserror::Error;
 
 // A step is a single step in a chain. It takes a set of parameters and returns a formatted prompt that can be used by an executor.
 pub trait Step {
@@ -31,6 +34,7 @@ pub trait StepExt: Step {
 pub trait Executor {
     type Step: Step;
     type Output: Send + Clone;
+    type Token;
     async fn execute(&self, input: <<Self as Executor>::Step as Step>::Output) -> Self::Output;
     fn apply_output_to_parameters(parameters: Parameters, output: &Self::Output) -> Parameters;
     fn combine_outputs(output: &Self::Output, other: &Self::Output) -> Self::Output;
@@ -45,30 +49,19 @@ pub trait Executor {
         }
         Some(cur)
     }
-}
-
-#[derive(Clone, Debug, Error)]
-pub enum PromptTokensError {
-    #[error("The prompt tokens are accessible for this type of step.")]
-    NotAvailable,
-    #[error("The prompt tokens could not be computed.")]
-    UnableToCompute,
-}
-
-// A trait for executors that can count the number of prompt tokens in a step. Useful if the Step itself cannot count the number of prompt tokens.
-pub trait ExecutorPromptTokens<Step>: Executor<Step = Step> {
-    fn count_tokens_for_output(
+    fn tokens_used(
         &self,
-        step: &Step,
-        output: &Self::Output,
-    ) -> Result<usize, PromptTokensError>;
-    fn count_tokens_for_doc(&self, step: &Step, doc: &str) -> Result<usize, PromptTokensError>;
-    fn count_prompt_tokens(&self, step: &Step) -> Result<usize, PromptTokensError>;
-    fn max_tokens(&self, step: &Step) -> Result<usize, PromptTokensError>;
-    fn split_at_tokens(
+        step: &Self::Step,
+        parameters: &Parameters,
+    ) -> Result<TokenCount, PromptTokensError>;
+    fn tokenize_str(
         &self,
-        step: &Step,
+        step: &Self::Step,
         doc: &str,
-        tokens: usize,
-    ) -> Result<(String, String), PromptTokensError>;
+    ) -> Result<Vec<Self::Token>, PromptTokensError>;
+    fn to_string(
+        &self,
+        step: &Self::Step,
+        tokens: &[Self::Token],
+    ) -> Result<String, PromptTokensError>;
 }

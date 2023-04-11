@@ -10,7 +10,9 @@
 use crate::{
     frame::Frame,
     serialization::StorableEntity,
-    traits::{Executor, ExecutorPromptTokens, Step},
+    tokens::ExecutorTokenCountExt,
+    tokens::PromptTokensError,
+    traits::{Executor, Step},
     Parameters,
 };
 use futures::future::join_all;
@@ -27,7 +29,7 @@ use thiserror::Error;
 pub enum MapReduceChainError {
     /// An error relating to tokenizing the inputs.
     #[error("TokenizeError: {0}")]
-    TokenizeError(#[from] crate::traits::PromptTokensError),
+    TokenizeError(#[from] crate::tokens::PromptTokensError),
     #[error("The vector of input documents was empty")]
     InputEmpty,
 }
@@ -63,7 +65,7 @@ impl<S: Step> Chain<S> {
         executor: &E,
     ) -> Result<E::Output, MapReduceChainError>
     where
-        E: Executor<Step = S> + ExecutorPromptTokens<S>,
+        E: Executor<Step = S>,
     {
         if documents.is_empty() {
             return Err(MapReduceChainError::InputEmpty);
@@ -71,7 +73,8 @@ impl<S: Step> Chain<S> {
         let map_frame = Frame::new(executor, &self.map);
         let reduce_frame = Frame::new(executor, &self.reduce);
 
-        let chunked_docs = self.chunk_documents(documents.clone(), executor, &self.map)?;
+        let chunked_docs =
+            self.chunk_documents::<E, E::Token>(documents.clone(), executor, &self.map)?;
 
         // Execute the `map` step for each document, combining the base parameters with each document's parameters.
         let chunked_docs_with_base_parameters: Vec<_> = chunked_docs
@@ -84,7 +87,11 @@ impl<S: Step> Chain<S> {
             .collect();
         let mapped_documents = join_all(futures).await;
 
-        let mut documents = self.combine_documents_up_to(executor, mapped_documents)?;
+        let mut documents = self.combine_documents_up_to::<E, E::Token>(
+            executor,
+            mapped_documents,
+            &base_parameters,
+        )?;
 
         if documents.is_empty() {
             return Err(MapReduceChainError::InputEmpty);
@@ -93,12 +100,13 @@ impl<S: Step> Chain<S> {
         loop {
             let tasks: Vec<_> = documents
                 .iter()
-                .map(|doc| E::apply_output_to_parameters(base_parameters.clone(), &doc))
+                .map(|doc| E::apply_output_to_parameters(base_parameters.clone(), doc))
                 .collect();
-            let futures = tasks.iter().map(|p| reduce_frame.format_and_execute(&p));
+            let futures = tasks.iter().map(|p| reduce_frame.format_and_execute(p));
             let new_docs = join_all(futures).await;
             let n_new_docs = new_docs.len();
-            documents = self.combine_documents_up_to(executor, new_docs)?;
+            documents =
+                self.combine_documents_up_to::<E, E::Token>(executor, new_docs, &base_parameters)?;
             if n_new_docs == 1 {
                 break;
             }
@@ -109,24 +117,23 @@ impl<S: Step> Chain<S> {
         Ok(output)
     }
 
-    fn combine_documents_up_to<E>(
+    fn combine_documents_up_to<E, T>(
         &self,
         executor: &E,
         mut v: Vec<<E as Executor>::Output>,
+        parameters: &Parameters,
     ) -> Result<Vec<<E as Executor>::Output>, MapReduceChainError>
     where
-        E: Executor<Step = S> + ExecutorPromptTokens<S>,
+        E: Executor<Step = S>,
     {
-        // The approximate number of tokens remaining in the reduce step. TODO: Should this be capped???
-        let max_tokens = executor.max_tokens(&self.reduce)?;
-        v.reverse();
         let mut new_outputs = Vec::new();
         while let Some(current) = v.pop() {
             let mut current_doc = current;
             while let Some(next) = v.last() {
-                let new_doc = E::combine_outputs(&current_doc, &next);
-                let new_tokens = executor.count_tokens_for_output(&self.reduce, &new_doc)?;
-                if new_tokens < max_tokens {
+                let new_doc = E::combine_outputs(&current_doc, next);
+                let params = E::apply_output_to_parameters(parameters.clone(), &new_doc);
+                let count = executor.tokens_used(&self.reduce, &params)?;
+                if count.has_tokens_remaining() {
                     current_doc = new_doc;
                     v.pop();
                 } else {
@@ -138,26 +145,18 @@ impl<S: Step> Chain<S> {
         Ok(new_outputs)
     }
 
-    fn chunk_documents<E>(
+    fn chunk_documents<E, T>(
         &self,
         v: Vec<Parameters>,
         executor: &E,
         step: &S,
-    ) -> Result<Vec<Parameters>, crate::traits::PromptTokensError>
+    ) -> Result<Vec<Parameters>, PromptTokensError>
     where
-        E: Executor<Step = S> + ExecutorPromptTokens<S>,
+        E: Executor<Step = S>,
     {
-        let mut res: Vec<Parameters> = Vec::new();
-        let split_at = executor.max_tokens(step)? - executor.count_prompt_tokens(step)?;
-        for x in v {
-            let document = x.get_text().unwrap().to_owned();
-            let chunks = chunk_document(executor, step, &document, split_at)?;
-            for chunk in chunks {
-                res.push(x.with_text(&chunk));
-            }
-        }
-        println!("Chunks: {:?}", res.len());
-        Ok(res)
+        let data: Result<Vec<_>, _> = v.iter().map(|x| executor.split_to_fit(step, x)).collect();
+        let data = data?.iter().flatten().cloned().collect();
+        Ok(data)
     }
 }
 
@@ -237,28 +236,4 @@ where
         base.append(&mut S::get_metadata());
         base
     }
-}
-
-fn chunk_document<E, S>(
-    executor: &E,
-    step: &S,
-    document: &str,
-    split_at: usize,
-) -> Result<Vec<String>, crate::traits::PromptTokensError>
-where
-    E: crate::traits::ExecutorPromptTokens<S>,
-    S: crate::traits::Step,
-{
-    let mut res = Vec::new();
-    let mut remainder = document.to_owned();
-    loop {
-        let (a, b) = executor.split_at_tokens(step, &remainder, split_at)?;
-        println!("{} {}", a.len(), b.len());
-        res.push(a);
-        if b.is_empty() {
-            break;
-        }
-        remainder = b;
-    }
-    Ok(res)
 }

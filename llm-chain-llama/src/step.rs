@@ -4,7 +4,6 @@ use llm_chain::{traits, Parameters, PromptTemplate};
 #[cfg(feature = "serialization")]
 use serde::{Deserialize, Serialize};
 
-
 /// Represents a concrete call to the LLM model, with all the parameters specified, and no implicit behavior.
 pub struct LlamaInvocation {
     pub(crate) n_threads: i32,
