@@ -65,6 +65,8 @@ fn main() {
     _ = std::fs::create_dir("build");
     env::set_current_dir("build").expect("Unable to change directory to llama.cpp build");
 
+    env::set_var("CXXFLAGS", "-fPIC");
+
     let code = std::process::Command::new("cmake")
         .arg("..")
         .arg("-DCMAKE_BUILD_TYPE=Release")
