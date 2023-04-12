@@ -12,7 +12,7 @@ repository = "https://github.com/sobelio/llm-chain/"
 
 [features]
 default = ["serialization"]
-serialization = ["dep:serde", "dep:serde_yaml"]
+serialization = ["dep:serde", "dep:serde_yaml", "dep:markdown"]
 async = ["dep:tokio"]
 
 [dependencies]
@@ -24,3 +24,4 @@ serde = { version = "1.0.159", optional = true, features = ["derive"] }
 serde_yaml = { version = "0.9.21", optional = true }
 thiserror = "1.0.40"
 tokio = { version = "1.27.0", optional = true, features = ["fs", "io-util"] }
+markdown = { version = "1.0.0-alpha.7", optional = true }
