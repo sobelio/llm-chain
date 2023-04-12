@@ -4,9 +4,9 @@
 
 Having problems? Don't worry reach out on [discord](https://discord.gg/kewN9Gtjt2) and we will help you out.
 
-Welcome to llm-chain, a Rust library designed to simplify working with large language models (LLMs) and help you create powerful applications. In this tutorial, we'll walk you through installing Rust, setting up a new project, and getting started with LLM-Chain.
-
 :::
+
+Welcome to llm-chain, a Rust library designed to simplify working with large language models (LLMs) and help you create powerful applications. In this tutorial, we'll walk you through installing Rust, setting up a new project, and getting started with LLM-Chain.
 
 ## Installing Rust
 
