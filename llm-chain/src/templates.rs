@@ -37,7 +37,7 @@ impl PromptTemplate {
     /// Create a new prompt template from a string.
     pub fn new(template: &str) -> PromptTemplate {
         PromptTemplate {
-            template: template.to_owned(),
+            template: template.to_string(),
         }
     }
     /// Format the template with the given parameters.
