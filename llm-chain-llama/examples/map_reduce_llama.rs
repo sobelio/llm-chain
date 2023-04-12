@@ -4,7 +4,7 @@ use llm_chain_llama::{Executor, Step};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
-    let exec = Executor::new("model.bin".to_string());
+    let exec = Executor::new("model.bin");
     let map_prompt = Step::new("== ARTICLE ==\n{}== SUMMARY ==\n".into());
     let reduce_prompt = Step::new("== ARTICLE ==\n{}== SUMMARY ==\n".into());
     let chain = Chain::new(map_prompt, reduce_prompt);

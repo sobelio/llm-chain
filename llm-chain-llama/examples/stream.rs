@@ -22,14 +22,14 @@ async fn main() {
     let path = Path::new(&args[1]);
 
     // Initialize the Executor with the model path.
-    let exec = Executor::new_with_callback(path.to_str().unwrap().to_string(), |output| {
+    let exec = Executor::new_with_callback(path.to_str().unwrap(), |output| {
         print!("{}", output);
         std::io::stdout().flush().unwrap();
     });
 
     // Create a chain with a single step using a prompt template
     let chain = Step::new(PromptTemplate::new(
-        "The Colors of the Rainbow are (in order): ".to_string(),
+        "The Colors of the Rainbow are (in order): ",
     ))
     .to_chain();
 

@@ -44,7 +44,7 @@ impl LlamaConfig {
     /// # Returns
     ///
     /// A LlamaInvocation instance with the specified configuration and prompt.
-    fn to_invocation(&self, prompt: String) -> LlamaInvocation {
+    fn to_invocation(&self, prompt: &str) -> LlamaInvocation {
         LlamaInvocation {
             n_threads: self.n_threads.unwrap_or(1),
             n_tok_predict: self.n_tok_predict.unwrap_or(0),
@@ -56,7 +56,7 @@ impl LlamaConfig {
                 .stop_sequence
                 .clone()
                 .unwrap_or_else(|| "\n\n".to_string()),
-            prompt,
+            prompt: prompt.to_string(),
         }
     }
 }
@@ -110,7 +110,7 @@ impl traits::Step for Step {
     ///
     /// A LlamaInvocation instance with the formatted prompt and configuration.
     fn format(&self, parameters: &Parameters) -> Self::Output {
-        self.config.to_invocation(self.prompt.format(parameters))
+        self.config.to_invocation(&self.prompt.format(parameters))
     }
 }
 
