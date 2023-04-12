@@ -18,7 +18,7 @@ serialization = ["dep:serde", "llm-chain/serialization"]
 futures = "0.3.27"
 async-openai = "0.10.0"
 async-trait = "0.1.67"
-llm-chain = { path = "../llm-chain", version = "0.1.4" }
+llm-chain = { path = "../llm-chain", version = "0.4.0" }
 serde = { version = "1.0.159", optional = true }
 tiktoken-rs = { version = "0.4.0", features = ["async-openai"] }
 [dev-dependencies]

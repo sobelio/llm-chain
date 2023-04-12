@@ -21,7 +21,7 @@ serialization = ["llm-chain/serialization", "dep:serde"]
 anyhow = "1.0.70"
 async-trait = "0.1.68"
 llm-chain-llama-sys = { path = "./sys", version = "0.3" }
-llm-chain = { path = "../llm-chain", version = "0.1.4" }
+llm-chain = { path = "../llm-chain", version = "0.4.0" }
 serde = { version = "1.0.159", optional = true, features = ["derive"] }
 thiserror = "1.0.40"
 
