@@ -40,9 +40,6 @@ impl PromptTemplate {
         template: template.into()
       }
    }
-        PromptTemplate {
-            template: template.to_string(),
-        }
     }
     /// Format the template with the given parameters.
     pub fn format(&self, parameters: &Parameters) -> String {
