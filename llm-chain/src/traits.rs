@@ -8,6 +8,7 @@
 
 use crate::{
     chains::sequential,
+    schema::Document,
     tokens::{PromptTokensError, TokenCount},
     Parameters,
 };
@@ -64,4 +65,11 @@ pub trait Executor {
         step: &Self::Step,
         tokens: &[Self::Token],
     ) -> Result<String, PromptTokensError>;
+}
+
+#[async_trait]
+pub trait Docstore {
+    type PageContent: ToString;
+    type Error;
+    async fn search(&self, search: String) -> Result<Document<Self::PageContent>, Self::Error>;
 }

@@ -16,8 +16,10 @@
 //!
 
 pub mod chains;
+pub mod docstore;
 
 mod parameters;
+pub mod schema;
 #[cfg(feature = "serialization")]
 pub mod serialization;
 mod templates;
