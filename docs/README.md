@@ -52,6 +52,12 @@ add your open ai api key to the `.bashrc` or `.zshrc` file  to run the example c
 export OPENAI_API_KEY="sk-.........................................."
 ```
 
+The examples for `llm-chain-openai` require you to set the `OPENAI_API_KEY` environment variable which you can do like this:
+
+```bash
+export OPENAI_API_KEY="sk-YOUR_OPEN_AI_KEY_HERE"
+```
+
 Then, refer to the [documentation](https://docs.rs/llm-chain) and [examples](/llm-chain-openai/examples) to learn how to create prompt templates, chains, and more.
 
 ## Contributing 🤝
