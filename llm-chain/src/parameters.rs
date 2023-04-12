@@ -1,6 +1,8 @@
 use dynfmt::{Argument, FormatArgs};
 use std::collections::HashMap;
 
+use crate::output::Output;
+
 /// Parameters define the parameters sent into each step. The parameters are used to fill in the prompt template, and are also filled in by the output of the previous step. Parameters have a special key, `text`, which is used as a default key for simple use cases.
 ///
 /// Parameters also implement a few convenience conversion traits to make it easier to work with them.
@@ -77,6 +79,12 @@ impl Parameters {
     /// Copies the parameters and adds a new key-value pair with the key `text`, which is the default key.
     pub fn with_text<K: Into<String>>(&self, text: K) -> Parameters {
         self.with(TEXT_KEY, text)
+    }
+    pub async fn with_text_from_output<O: Output>(&self, output: &O) -> Parameters {
+        output
+            .primary_textual_output()
+            .await
+            .map_or(self.clone(), |text| self.with_text(text))
     }
     /// Combines two sets of parameters, returning a new set of parameters with all the keys from both sets.
     pub fn combine(&self, other: &Parameters) -> Parameters {

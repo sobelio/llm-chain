@@ -27,6 +27,8 @@ pub mod frame;
 
 pub mod tokens;
 
+pub mod output;
+
 pub use parameters::Parameters;
 
 pub use templates::PromptTemplate;

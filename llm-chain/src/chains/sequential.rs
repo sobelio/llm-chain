@@ -31,7 +31,8 @@ impl<S: Step> Chain<S> {
         for step in self.steps.iter() {
             let frame = Frame::new(executor, step);
             let res = frame.format_and_execute(&current_params).await;
-            current_params = E::apply_output_to_parameters(current_params, &res);
+
+            current_params = current_params.with_text_from_output(&res).await;
             output = Some(res);
         }
         output

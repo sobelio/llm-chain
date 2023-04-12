@@ -7,6 +7,7 @@
 //! The `Chain` struct is generic over the type of the `Step` and provides a convenient way
 //! to execute map-reduce operations using a provided `Executor`.
 
+use crate::output::Output;
 use crate::{
     frame::Frame,
     serialization::StorableEntity,
@@ -87,11 +88,9 @@ impl<S: Step> Chain<S> {
             .collect();
         let mapped_documents = join_all(futures).await;
 
-        let mut documents = self.combine_documents_up_to::<E, E::Token>(
-            executor,
-            mapped_documents,
-            &base_parameters,
-        )?;
+        let mut documents = self
+            .combine_documents_up_to::<E, E::Token>(executor, mapped_documents, &base_parameters)
+            .await?;
 
         if documents.is_empty() {
             return Err(MapReduceChainError::InputEmpty);
@@ -100,38 +99,42 @@ impl<S: Step> Chain<S> {
         loop {
             let tasks: Vec<_> = documents
                 .iter()
-                .map(|doc| E::apply_output_to_parameters(base_parameters.clone(), doc))
+                .map(|doc| base_parameters.with_text(doc))
                 .collect();
             let futures = tasks.iter().map(|p| reduce_frame.format_and_execute(p));
             let new_docs = join_all(futures).await;
             let n_new_docs = new_docs.len();
-            documents =
-                self.combine_documents_up_to::<E, E::Token>(executor, new_docs, &base_parameters)?;
             if n_new_docs == 1 {
-                break;
+                return Ok(new_docs[0].clone());
             }
+            documents = self
+                .combine_documents_up_to::<E, E::Token>(executor, new_docs, &base_parameters)
+                .await?;
         }
-        // At this point there is exactly one document.
-        assert_eq!(documents.len(), 1);
-        let output = documents.pop().unwrap();
-        Ok(output)
     }
 
-    fn combine_documents_up_to<E, T>(
+    async fn combine_documents_up_to<E, T>(
         &self,
         executor: &E,
         mut v: Vec<<E as Executor>::Output>,
         parameters: &Parameters,
-    ) -> Result<Vec<<E as Executor>::Output>, MapReduceChainError>
+    ) -> Result<Vec<String>, MapReduceChainError>
     where
         E: Executor<Step = S>,
     {
         let mut new_outputs = Vec::new();
         while let Some(current) = v.pop() {
-            let mut current_doc = current;
+            let mut current_doc = current.primary_textual_output().await.unwrap_or_default();
             while let Some(next) = v.last() {
-                let new_doc = E::combine_outputs(&current_doc, next);
-                let params = E::apply_output_to_parameters(parameters.clone(), &new_doc);
+                let next_doc = next.primary_textual_output().await;
+                if next_doc.is_none() {
+                    continue;
+                }
+                let mut new_doc = current_doc.clone();
+                new_doc.push('\n');
+                new_doc.push_str(&next.primary_textual_output().await.unwrap_or_default());
+
+                let params = parameters.with_text(new_doc.clone());
                 let count = executor.tokens_used(&self.reduce, &params)?;
                 if count.has_tokens_remaining() {
                     current_doc = new_doc;

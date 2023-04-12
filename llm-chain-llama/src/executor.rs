@@ -148,17 +148,6 @@ impl ExecutorTrait for Executor {
     ) -> Self::Output {
         self.run_model(input)
     }
-
-    // Applies the output to the given parameters.
-    fn apply_output_to_parameters(parameters: Parameters, output: &Self::Output) -> Parameters {
-        parameters.with_text(output.to_owned())
-    }
-
-    // Combines two outputs into a single output.
-    fn combine_outputs(output: &Self::Output, other: &Self::Output) -> Self::Output {
-        output.combine(other)
-    }
-
     fn tokens_used(
         &self,
         step: &LLamaStep,
