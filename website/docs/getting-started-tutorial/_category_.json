@@ -1,0 +1,14 @@
+{
+  "position": 2.5,
+  "label": "Tutorial",
+  "collapsible": true,
+  "collapsed": false,
+  "className": "red",
+  "link": {
+    "type": "generated-index",
+    "title": "Tutorial: Getting Started"
+  },
+  "customProps": {
+    "description": "A tutorial for getting started with llm-chain"
+  }
+}
