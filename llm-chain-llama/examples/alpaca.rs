@@ -11,7 +11,7 @@ async fn main() {
         std::process::exit(1);
     }
     let path = Path::new(&args[1]);
-    let exec = Executor::new(path.to_str().unwrap().to_string());
+    let exec = Executor::new(path.to_str().unwrap());
 
     // This is the Alpaca templated used to instruct the user to write a response. As with all LLM-chain templates, {} is used to indicate the main/default parameter.
     let instr =
