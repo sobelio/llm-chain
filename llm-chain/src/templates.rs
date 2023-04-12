@@ -35,7 +35,11 @@ pub struct PromptTemplate {
 
 impl PromptTemplate {
     /// Create a new prompt template from a string.
-    pub fn new(template: &str) -> PromptTemplate {
+    pub fn new<K: Into<String>>(template: K) -> PromptTemplate {
+      PromptTemplate {
+        template: template.into()
+      }
+   }
         PromptTemplate {
             template: template.to_string(),
         }
