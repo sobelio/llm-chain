@@ -1,6 +1,6 @@
 [package]
 name = "llm-chain-tools"
-version = "0.1.4"
+version = "0.4.0"
 edition = "2021"
 description = "A library for providing Large Language Models with tools (also known as 'actions') that they can trigger"
 license = "MIT"
