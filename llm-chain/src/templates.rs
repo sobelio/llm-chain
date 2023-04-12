@@ -39,7 +39,6 @@ impl PromptTemplate {
       PromptTemplate {
         template: template.into()
       }
-   }
     }
     /// Format the template with the given parameters.
     pub fn format(&self, parameters: &Parameters) -> String {
