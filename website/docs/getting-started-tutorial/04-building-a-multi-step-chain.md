@@ -10,10 +10,10 @@ Sequential chains in LLM-Chain allow you to execute a series of steps, with the 
 
 Here's a Rust program that demonstrates how to create a sequential chain:
 
+```rust
 use llm_chain::chains::sequential::Chain;
 use llm_chain_openai::chatgpt::{Executor, Model, Role, Step};
 
-```rust
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
     let exec = Executor::new_default();
