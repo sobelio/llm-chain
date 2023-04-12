@@ -1,5 +1,5 @@
+use super::output::Output;
 use super::step::Step;
-use async_openai::types::CreateChatCompletionResponse;
 use llm_chain::tokens::PromptTokensError;
 use llm_chain::traits;
 use llm_chain::Parameters;
@@ -37,33 +37,15 @@ impl Executor {
 #[async_trait]
 impl traits::Executor for Executor {
     type Step = Step;
-    type Output = CreateChatCompletionResponse;
+    type Output = Output;
     type Token = usize;
     async fn execute(
         &self,
         input: <<Executor as traits::Executor>::Step as traits::Step>::Output,
     ) -> Self::Output {
         let client = self.client.clone();
-        let toks =
-            tiktoken_rs::async_openai::num_tokens_from_messages(&input.model, &input.messages)
-                .unwrap();
-        println!("toks: {}", toks);
-
         let res = async move { client.chat().create(input).await.unwrap() }.await;
-        res
-    }
-    fn apply_output_to_parameters(parameters: Parameters, output: &Self::Output) -> Parameters {
-        let text = output.choices.first().unwrap().message.content.to_string();
-        parameters.with_text(text)
-    }
-    fn combine_outputs(output: &Self::Output, other: &Self::Output) -> Self::Output {
-        let mut combined = output.clone();
-        combined.choices.first_mut().unwrap().message.content = [
-            output.choices.first().unwrap().message.content.clone(),
-            other.choices.first().unwrap().message.content.clone(),
-        ]
-        .join("\n");
-        combined
+        res.into()
     }
     fn tokens_used(
         &self,

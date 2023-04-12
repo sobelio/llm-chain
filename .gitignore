@@ -3,3 +3,5 @@
 model.bin
 .vscode/
 build/
+chain
+mydata.yaml

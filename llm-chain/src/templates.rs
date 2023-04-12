@@ -36,9 +36,9 @@ pub struct PromptTemplate {
 impl PromptTemplate {
     /// Create a new prompt template from a string.
     pub fn new<K: Into<String>>(template: K) -> PromptTemplate {
-      PromptTemplate {
-        template: template.into()
-      }
+        PromptTemplate {
+            template: template.into(),
+        }
     }
     /// Format the template with the given parameters.
     pub fn format(&self, parameters: &Parameters) -> String {
@@ -52,7 +52,7 @@ impl PromptTemplate {
 
 impl<T: Into<String>> From<T> for PromptTemplate {
     fn from(template: T) -> Self {
-        Self::new(&template.into())
+        Self::new(template.into())
     }
 }
 
