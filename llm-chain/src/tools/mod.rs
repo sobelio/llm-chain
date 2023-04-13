@@ -30,11 +30,12 @@
 
 mod collection;
 mod description;
+pub use description::{Describe, Format, ToolDescription};
 mod tool;
 pub mod tools;
 use crate::PromptTemplate;
 
-pub use collection::ToolCollection;
+pub use collection::{ToolCollection, ToolUseError};
 pub use tool::Tool;
 
 /// Creates a prompt that indicates the model should use the tools provided.
