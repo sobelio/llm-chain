@@ -101,3 +101,55 @@ impl ChatPromptTemplate {
         self.messages.push(message.into());
     }
 }
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn test_chat_prompt_template() {
+        use super::*;
+        use async_openai::types::Role;
+        let system_msg = MessagePromptTemplate::new(
+            Role::System,
+            "You are an assistant that speaks like Shakespeare.".into(),
+        );
+        let user_msg = MessagePromptTemplate::new(Role::User, "tell me a joke".into());
+
+        let chat_template = ChatPromptTemplate::new(vec![system_msg, user_msg]);
+        let messages = chat_template.format(&Parameters::new());
+        assert_eq!(messages.len(), 2);
+        assert_eq!(
+            messages[0].content,
+            "You are an assistant that speaks like Shakespeare."
+        );
+        assert_eq!(messages[1].content, "tell me a joke");
+    }
+
+    #[test]
+    fn test_chat_prompt_template_with_named_parameters() {
+        use super::*;
+        use async_openai::types::Role;
+        let system_msg = MessagePromptTemplate::new(
+            Role::System,
+            "You are an assistant that speaks like Shakespeare.".into(),
+        );
+        let user_msg = MessagePromptTemplate::new(Role::User, "tell me a joke".into());
+        let assistant_msg = MessagePromptTemplate::new(
+            Role::User,
+            PromptTemplate::static_string("here is one, I'm sure, will crack you {up}"),
+        );
+
+        let chat_template = ChatPromptTemplate::new(vec![system_msg, user_msg, assistant_msg]);
+        let messages = chat_template.format(&Parameters::new());
+        assert_eq!(messages.len(), 3);
+        assert_eq!(
+            messages[0].content,
+            "You are an assistant that speaks like Shakespeare."
+        );
+        assert_eq!(messages[1].content, "tell me a joke");
+        assert_eq!(
+            messages[2].content,
+            "here is one, I'm sure, will crack you {up}"
+        );
+    }
+}

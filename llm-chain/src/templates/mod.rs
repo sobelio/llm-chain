@@ -48,8 +48,8 @@ impl PromptTemplate {
         self.0.format(parameters)
     }
     /// Creates a non-dynmamic prompt template, useful for untrusted inputs.
-    pub fn static_string(template: String) -> PromptTemplate {
-        PromptTemplateImpl::static_string(template).into()
+    pub fn static_string<K: Into<String>>(template: K) -> PromptTemplate {
+        PromptTemplateImpl::static_string(template.into()).into()
     }
 }
 
