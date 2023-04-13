@@ -90,10 +90,6 @@ impl Step {
     pub fn new(prompt: PromptTemplate) -> Self {
         Self::new_with_config(prompt, None)
     }
-
-    pub fn prompt_source(&self) -> &str {
-        self.prompt.source()
-    }
 }
 
 /// Implements the `Step` trait for the `Step` struct.
