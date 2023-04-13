@@ -7,7 +7,7 @@ use crate::Parameters;
 // Initialize a static Tera instance, wrapped in an Arc and Mutex, to handle template rendering.
 lazy_static! {
     static ref TERA: Arc<Mutex<Tera>> = {
-        let mut tera = Tera::default();
+        let tera = Tera::default();
         Arc::new(Mutex::new(tera))
     };
 }
