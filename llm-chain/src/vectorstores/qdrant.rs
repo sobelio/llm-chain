@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 use async_trait::async_trait;
 use qdrant_client::{
     prelude::QdrantClient,
-    qdrant::{vectors::VectorsOptions, PointStruct, Value, Vectors},
+    qdrant::{PointStruct, Vectors},
 };
 use thiserror::Error;
 use uuid::Uuid;

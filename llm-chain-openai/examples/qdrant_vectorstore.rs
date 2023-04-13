@@ -1,15 +1,9 @@
 use std::sync::Arc;
 
-use llm_chain::{
-    traits::{Embeddings, VectorStore},
-    vectorstores::qdrant::Qdrant,
-};
+use llm_chain::{traits::VectorStore, vectorstores::qdrant::Qdrant};
 use qdrant_client::{
     prelude::{QdrantClient, QdrantClientConfig},
-    qdrant::{
-        with_vectors_selector::SelectorOptions, CreateCollection, Distance, VectorParams,
-        VectorsConfig, WithPayloadSelector, WithVectorsSelector,
-    },
+    qdrant::{CreateCollection, Distance, VectorParams, VectorsConfig, WithPayloadSelector},
 };
 
 #[tokio::main(flavor = "current_thread")]

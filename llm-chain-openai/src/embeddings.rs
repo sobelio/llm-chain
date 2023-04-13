@@ -5,10 +5,7 @@ use async_openai::{
     types::{CreateEmbeddingRequest, EmbeddingInput},
 };
 use async_trait::async_trait;
-use llm_chain::{
-    traits::{self, EmbeddingsError},
-    vectorstores::qdrant::QdrantError,
-};
+use llm_chain::traits::{self, EmbeddingsError};
 use thiserror::Error;
 
 pub struct Embeddings {
