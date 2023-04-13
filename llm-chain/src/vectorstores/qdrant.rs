@@ -8,10 +8,7 @@ use qdrant_client::{
 use thiserror::Error;
 use uuid::Uuid;
 
-use crate::{
-    schema::Document,
-    traits::{Embeddings, EmbeddingsError, VectorStore},
-};
+use crate::traits::{Embeddings, EmbeddingsError, VectorStore};
 
 pub struct Qdrant<E>
 where

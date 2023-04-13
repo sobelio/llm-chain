@@ -18,7 +18,6 @@ use crate::{
     Parameters,
 };
 use async_trait::async_trait;
-use thiserror::Error;
 
 /// The `Step` trait represents a single step in a chain. It takes a set of parameters and returns a
 /// formatted prompt that can be used by an executor.
