@@ -5,3 +5,6 @@ members = [
     "llm-chain-llama",
     "llm-chain-llama/sys",
 ]
+
+[workspace.metadata.release]
+shared-version = true
