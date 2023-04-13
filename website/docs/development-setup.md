@@ -1,3 +1,10 @@
+---
+id: dev-setup
+title: Development Setup
+sidebar_label: Development Setup
+sidebar_position: 3
+---
+
 # Contributing to `llm-chain`
 
 First of all, thank you for considering contributing to our project! 🎉 We are delighted to have you here and truly appreciate your interest in making our project even better. Your contributions and ideas are highly valued.
