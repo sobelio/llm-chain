@@ -9,6 +9,8 @@
 //! By implementing these traits, you can set up a new model and use it in your application. Your step defines the input to the model, and your executor invokes the model and returns the output. The output of the executor is then passed to the next step in the chain, and so on.
 //!
 
+use std::{error::Error, fmt::Debug};
+
 use crate::{
     chains::sequential,
     output::Output,
@@ -16,6 +18,7 @@ use crate::{
     Parameters,
 };
 use async_trait::async_trait;
+use thiserror::Error;
 
 /// The `Step` trait represents a single step in a chain. It takes a set of parameters and returns a
 /// formatted prompt that can be used by an executor.
@@ -128,4 +131,19 @@ pub trait Executor {
         step: &Self::Step,
         tokens: &[Self::Token],
     ) -> Result<String, PromptTokensError>;
+}
+
+/// This marker trait is needed so the concrete VectorStore::Error can have a derived From<Embeddings::Error>
+pub trait EmbeddingsError {}
+
+#[async_trait]
+pub trait Embeddings {
+    type Error: Debug + Error + EmbeddingsError;
+    async fn embed_texts(&self, texts: Vec<String>) -> Result<Vec<Vec<f32>>, Self::Error>;
+}
+
+#[async_trait]
+pub trait VectorStore<E: Embeddings> {
+    type Error: Debug + Error + From<<E as Embeddings>::Error>;
+    async fn add_texts(&self, texts: Vec<String>) -> Result<Vec<String>, Self::Error>;
 }
