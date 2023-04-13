@@ -44,10 +44,6 @@ impl PromptTemplate {
     pub fn format(&self, parameters: &Parameters) -> String {
         apply_formatting(&self.template, parameters)
     }
-    /// Get the source string of the template.
-    pub fn source(&self) -> &str {
-        &self.template
-    }
 }
 
 impl<T: Into<String>> From<T> for PromptTemplate {
