@@ -29,6 +29,9 @@ pub mod tokens;
 
 pub mod output;
 
+#[cfg(feature = "serialization")]
+pub mod parsing;
+
 pub use parameters::Parameters;
 
 pub use templates::PromptTemplate;

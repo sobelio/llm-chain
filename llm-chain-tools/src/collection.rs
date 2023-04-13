@@ -1,4 +1,5 @@
 use crate::tool::Tool;
+use llm_chain::parsing::find_yaml;
 use serde::{Deserialize, Serialize};
 
 pub struct ToolCollection {
@@ -22,29 +23,13 @@ impl ToolCollection {
         tool.invoke(input.clone())
     }
     pub fn process_chat_input(&self, data: &str) -> Result<String, String> {
-        let (yaml_start, yaml_end) = match (data.find("```"), data.find("```yaml")) {
-            (Some(start), _) => {
-                let end = &data[start + 6..];
-                match end.find("```") {
-                    Some(end_pos) => (start + 6, start + 6 + end_pos),
-                    None => return Err("Could not find end of code block".to_string()),
-                }
-            }
-            (_, Some(start)) => {
-                let end = &data[start + 7..];
-                match end.find("```") {
-                    Some(end_pos) => (start + 7, start + 7 + end_pos),
-                    None => return Err("Could not find end of code block".to_string()),
-                }
-            }
-            _ => (0, data.len()),
-        };
-
-        let yaml_str = &data[yaml_start..yaml_end];
-        let yaml_str = yaml_str.trim_start_matches("yaml\n").trim_start();
-        let res: serde_yaml::Result<ToolInvocationInput> = serde_yaml::from_str(yaml_str);
-        let input = res.map_err(|_e| "INPUT MUST BE YAML ONLY".to_string())?;
-        let output = self.invoke(&input.command, &input.input)?;
+        let tool_invocations: Vec<ToolInvocationInput> = find_yaml::<ToolInvocationInput>(data)
+            .map_err(|e| format!("You must output YAML: {}", e))?;
+        if tool_invocations.len() != 1 {
+            println!("{:?}", tool_invocations);
+            return Err("You must output exactly one tool invocation".to_string());
+        }
+        let output = self.invoke(&tool_invocations[0].command, &tool_invocations[0].input)?;
         Ok(serde_yaml::to_string(&output).unwrap())
     }
 
@@ -54,7 +39,7 @@ impl ToolCollection {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 struct ToolInvocationInput {
     command: String,
     input: serde_yaml::Value,

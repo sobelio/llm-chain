@@ -13,8 +13,10 @@ use std::boxed::Box;
 async fn main() {
     let tool_collection =
         ToolCollection::new(vec![Box::new(BashTool::new()), Box::new(ExitTool::new())]);
-    let template =
-        create_tool_prompt_segment(&tool_collection, "Please perform the following task: {}");
+    let template = create_tool_prompt_segment(
+        &tool_collection,
+        "Please perform the following task: {}. Once you are done, type trigger ExitTool do not ask for more tasks.",
+    );
     let task = "Figure out my IP address";
     let prompt = template.format(&Parameters::new_with_text(task));
 
