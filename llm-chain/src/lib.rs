@@ -16,6 +16,7 @@
 //!
 
 pub mod chains;
+pub mod vectorstores;
 
 mod parameters;
 #[cfg(feature = "serialization")]
