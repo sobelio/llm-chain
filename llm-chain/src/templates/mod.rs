@@ -1,9 +1,8 @@
 mod legacy;
+mod tera;
 
 #[cfg(feature = "serialization")]
 use serde::{Deserialize, Serialize};
-
-pub use legacy::PromptTemplate as LegacyPromptTemplate;
 
 use crate::Parameters;
 
@@ -51,6 +50,21 @@ impl PromptTemplate {
     pub fn static_string<K: Into<String>>(template: K) -> PromptTemplate {
         PromptTemplateImpl::static_string(template.into()).into()
     }
+
+    #[cfg(feature = "tera")]
+    /// Creates a prompt template that uses the Tera templating engine.
+    /// This is only available if the `tera` feature is enabled, which it is by default.
+    /// # Examples
+    ///
+    /// ```rust
+    /// use llm_chain::{PromptTemplate, Parameters};
+    /// let template = PromptTemplate::tera("Hello {{name}}!");
+    /// let parameters: Parameters = vec![("name", "World")].into();
+    /// assert_eq!(template.format(&parameters), "Hello World!");
+    /// ```
+    pub fn tera<K: Into<String>>(template: K) -> PromptTemplate {
+        PromptTemplateImpl::tera(template.into()).into()
+    }
 }
 
 impl<T: Into<String>> From<T> for PromptTemplate {
@@ -64,23 +78,32 @@ impl<T: Into<String>> From<T> for PromptTemplate {
 #[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
 enum PromptTemplateImpl {
     Static(String),
-    Legacy(LegacyPromptTemplate),
+    Legacy(legacy::PromptTemplate),
+    #[cfg(feature = "tera")]
+    Tera(String),
 }
 
 impl PromptTemplateImpl {
     /// Create a new prompt template from a string.
     pub fn new<K: Into<String>>(template: K) -> PromptTemplateImpl {
-        PromptTemplateImpl::Legacy(LegacyPromptTemplate::new(template))
+        PromptTemplateImpl::Legacy(legacy::PromptTemplate::new(template))
     }
 
     pub fn format(&self, parameters: &Parameters) -> String {
         match self {
             PromptTemplateImpl::Static(template) => template.clone(),
             PromptTemplateImpl::Legacy(template) => template.format(parameters),
+            #[cfg(feature = "tera")]
+            PromptTemplateImpl::Tera(template) => tera::render(template, parameters).unwrap(),
         }
     }
 
     pub fn static_string(template: String) -> PromptTemplateImpl {
         PromptTemplateImpl::Static(template)
+    }
+
+    #[cfg(feature = "tera")]
+    pub fn tera(template: String) -> PromptTemplateImpl {
+        PromptTemplateImpl::Tera(template)
     }
 }

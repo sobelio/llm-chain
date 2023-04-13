@@ -1,7 +1,6 @@
+use crate::output::Output;
 use dynfmt::{Argument, FormatArgs};
 use std::collections::HashMap;
-
-use crate::output::Output;
 
 /// Parameters define the parameters sent into each step. The parameters are used to fill in the prompt template, and are also filled in by the output of the previous step. Parameters have a special key, `text`, which is used as a default key for simple use cases.
 ///
@@ -127,6 +126,15 @@ impl Parameters {
 
     pub fn get_text(&self) -> Option<&String> {
         self.get(TEXT_KEY)
+    }
+
+    #[cfg(feature = "tera")]
+    pub fn to_tera(&self) -> tera::Context {
+        let mut context = tera::Context::new();
+        for (key, value) in self.map.iter() {
+            context.insert(key, value);
+        }
+        context
     }
 }
 
