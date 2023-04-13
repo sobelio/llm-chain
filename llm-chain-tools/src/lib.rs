@@ -15,8 +15,9 @@
 //! use llm_chain_tools::tools::BashTool;
 //! use std::boxed::Box;
 //!
-//! // Create a ToolCollection with some tools.
-//! let mut tc = ToolCollection::new(vec![Box::new(BashTool::new())]);
+//! // Create a ToolCollection with a tool.
+//! let mut tc = ToolCollection::new();
+//! tc.add_tool(BashTool::new());
 //!
 //! // Create a prompt indicating the LLM should use the provided tools.
 //! let prompt = "Find information about Rust programming language.";

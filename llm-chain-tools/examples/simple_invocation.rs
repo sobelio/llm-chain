@@ -3,12 +3,12 @@ use llm_chain_openai::chatgpt::{Executor, Model, Role, Step};
 use llm_chain_tools::create_tool_prompt_segment;
 use llm_chain_tools::tools::BashTool;
 use llm_chain_tools::ToolCollection;
-use std::boxed::Box;
 // A simple example generating a prompt with some tools.
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
-    let tool_collection = ToolCollection::new(vec![Box::new(BashTool::new())]);
+    let mut tool_collection = ToolCollection::new();
+    tool_collection.add_tool(BashTool::new());
     let template =
         create_tool_prompt_segment(&tool_collection, "Please perform the following task: {}");
     let prompt = template.format(&Parameters::new_with_text(

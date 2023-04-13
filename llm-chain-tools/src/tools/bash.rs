@@ -1,3 +1,4 @@
+use crate::collection::ToolUseError;
 use crate::description::{Describe, Format, ToolDescription};
 use crate::tool::{gen_invoke_function, Tool};
 use serde::{Deserialize, Serialize};
@@ -48,12 +49,13 @@ impl Describe for BashToolOutput {
 }
 
 impl BashTool {
-    fn invoke_typed(&self, input: &BashToolInput) -> Result<BashToolOutput, String> {
+    fn invoke_typed(&self, input: &BashToolInput) -> Result<BashToolOutput, ToolUseError> {
         let output = Command::new("bash")
             .arg("-c")
             .arg(&input.cmd)
             .output()
-            .map_err(|_e| "failed to execute process")?;
+            .map_err(|e| ToolUseError::ToolInvocationFailed(e.to_string()))?;
+
         Ok(BashToolOutput {
             status: output.status.code().unwrap() as isize,
             stderr: String::from_utf8(output.stderr).unwrap(),
