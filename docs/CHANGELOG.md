@@ -6,11 +6,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## Unreleased
+
+## [0.5.0] 2023-04-14
 
 ### Added
 
 - Added new `llm_chain::parsing::find_yaml` for finding YAML output in LLMs
+- Add support for generating embeddings for text, for now only OpenAI supported, but extensive for other packages
+- Add support for the quadrant vector store with the possibility to extend it for other vector stores.
 
 ### Changed
 
