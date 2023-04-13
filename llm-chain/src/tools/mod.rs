@@ -11,8 +11,8 @@
 //! ## Example
 //!
 //! ```rust
-//! use llm_chain_tools::{ToolCollection, create_tool_prompt_segment};
-//! use llm_chain_tools::tools::BashTool;
+//! use llm_chain::tools::{ToolCollection, create_tool_prompt_segment};
+//! use llm_chain::tools::tools::BashTool;
 //! use std::boxed::Box;
 //!
 //! // Create a ToolCollection with a tool.
@@ -32,9 +32,9 @@ mod collection;
 mod description;
 mod tool;
 pub mod tools;
-use llm_chain::PromptTemplate;
+use crate::PromptTemplate;
 
-pub use crate::collection::ToolCollection;
+pub use collection::ToolCollection;
 pub use tool::Tool;
 
 /// Creates a prompt that indicates the model should use the tools provided.

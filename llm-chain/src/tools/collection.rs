@@ -1,5 +1,5 @@
-use crate::tool::Tool;
-use llm_chain::parsing::{find_yaml, ExtractionError};
+use super::tool::Tool;
+use crate::parsing::{find_yaml, ExtractionError};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 

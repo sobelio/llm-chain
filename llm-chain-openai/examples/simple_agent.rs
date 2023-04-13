@@ -1,12 +1,12 @@
+use llm_chain::tools::create_tool_prompt_segment;
+use llm_chain::tools::tools::{ExitTool, PythonTool};
+use llm_chain::tools::ToolCollection;
 use llm_chain::PromptTemplate;
 use llm_chain::{traits::StepExt, Parameters};
 use llm_chain_openai::chatgpt::{
     ChatPromptTemplate, Executor, MessagePromptTemplate, Model, Role, Step,
 };
-use llm_chain_tools::create_tool_prompt_segment;
-use llm_chain_tools::tools::{BashTool, ExitTool, PythonTool};
-use llm_chain_tools::ToolCollection;
-use std::boxed::Box;
+
 // A simple example generating a prompt with some tools.
 
 #[tokio::main(flavor = "current_thread")]

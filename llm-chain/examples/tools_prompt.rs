@@ -1,7 +1,7 @@
+use llm_chain::tools::create_tool_prompt_segment;
+use llm_chain::tools::tools::BashTool;
+use llm_chain::tools::ToolCollection;
 use llm_chain::Parameters;
-use llm_chain_tools::create_tool_prompt_segment;
-use llm_chain_tools::tools::BashTool;
-use llm_chain_tools::ToolCollection;
 // A simple example generating a prompt with some tools.
 
 fn main() {

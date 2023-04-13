@@ -1,6 +1,6 @@
-use crate::collection::ToolUseError;
-use crate::description::{Describe, Format, ToolDescription};
-use crate::tool::{gen_invoke_function, Tool};
+use crate::tools::collection::ToolUseError;
+use crate::tools::description::{Describe, Format, ToolDescription};
+use crate::tools::tool::{gen_invoke_function, Tool};
 use serde::{Deserialize, Serialize};
 
 /// A tool that exits the program with the given status code.

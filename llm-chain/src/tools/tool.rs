@@ -1,12 +1,12 @@
-use crate::collection::ToolUseError;
-use crate::description::ToolDescription;
+use super::collection::ToolUseError;
+use super::description::ToolDescription;
 
 macro_rules! gen_invoke_function {
     () => {
         fn invoke(
             &self,
             input: serde_yaml::Value,
-        ) -> Result<serde_yaml::Value, crate::collection::ToolUseError> {
+        ) -> Result<serde_yaml::Value, crate::tools::collection::ToolUseError> {
             let input = serde_yaml::from_value(input)?;
             let output = self.invoke_typed(&input)?;
             Ok(serde_yaml::to_value(output)?)
