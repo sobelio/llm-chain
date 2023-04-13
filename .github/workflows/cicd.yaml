@@ -2,9 +2,15 @@ name: CI/CD
 
 on:
   push:
+    paths-ignore:
+      - 'docs/**'
+      - 'website/**'
     branches:
       - main
   pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - 'website/**'
     branches:
       - main
 
@@ -30,6 +36,10 @@ jobs:
           profile: minimal
           toolchain: ${{ matrix.rust-version }}
           override: true
+
+      - name: Install Protobuf Compiler (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
 
       - name: Build
         uses: actions-rs/cargo@v1
