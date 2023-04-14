@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkwebsite=self.webpackChunkwebsite||[]).push([[990],{1197:s=>{s.exports=JSON.parse('{"label":"rust","permalink":"/llm-chain/blog/tags/rust","allTagsPath":"/llm-chain/blog/tags","count":1}')}}]);
