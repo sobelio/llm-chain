@@ -1,8 +1,8 @@
-use llm_chain::{Parameters, PromptTemplate};
+use llm_chain::PromptTemplate;
 
 /// Creates a new Alpaca prompt template for an instruction.
 pub fn new_instruct_template<T: Into<String>>(instruction_template: T) -> PromptTemplate {
-    let instruct: PromptTemplate = "
+    format!("
         Below is an instruction that describes a task. Write a response that appropriately completes the request.
 
 
@@ -15,8 +15,5 @@ pub fn new_instruct_template<T: Into<String>>(instruction_template: T) -> Prompt
         ### Response:
 
 
-        ".into();
-    instruct
-        .format(&Parameters::new_with_text(instruction_template))
-        .into()
+        ", instruction_template.into()).into()
 }

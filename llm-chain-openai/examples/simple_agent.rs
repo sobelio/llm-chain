@@ -19,7 +19,7 @@ async fn main() {
         "Please perform the following task: {}. Once you are done, type trigger ExitTool do not ask for more tasks.",
     );
     let task = "Figure out my IP address";
-    let prompt = template.format(&Parameters::new_with_text(task));
+    let prompt = template.format(&Parameters::new_with_text(task)).unwrap();
 
     println!("Prompt: {}", prompt);
     let exec = Executor::new_default();
@@ -52,10 +52,12 @@ async fn main() {
                 println!("LLMCHAIN: {}\n", x)
             }
             Err(e) => {
-                let pt = template.format(&Parameters::new_with_text(format!(
-                    "Correct your output and perform the task - {}. Your task was: {}",
-                    e, task
-                )));
+                let pt = template
+                    .format(&Parameters::new_with_text(format!(
+                        "Correct your output and perform the task - {}. Your task was: {}",
+                        e, task
+                    )))
+                    .unwrap();
                 let pt: PromptTemplate = pt.into();
                 chat.add(MessagePromptTemplate::new(Role::User, pt));
                 println!("Error: {}", e)

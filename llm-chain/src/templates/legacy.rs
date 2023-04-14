@@ -3,11 +3,11 @@ use dynfmt::{Format, SimpleCurlyFormat};
 #[cfg(feature = "serialization")]
 use serde::{Deserialize, Serialize};
 
-fn apply_formatting(template: &str, parameters: &Parameters) -> String {
+fn apply_formatting<'l>(template: &'l str, parameters: &Parameters) -> Result<String, String> {
     SimpleCurlyFormat {}
         .format(template, parameters)
-        .unwrap()
-        .to_string()
+        .map_err(|e| e.to_string())
+        .map(|s| s.to_string())
 }
 
 /// A template for a prompt. This is a string that can be formatted with a set of parameters.
@@ -18,14 +18,14 @@ fn apply_formatting(template: &str, parameters: &Parameters) -> String {
 /// use llm_chain::{PromptTemplate, Parameters};
 /// let template: PromptTemplate = "Hello {}!".into();
 /// let parameters: Parameters = "World".into();
-/// assert_eq!(template.format(&parameters), "Hello World!");
+/// assert_eq!(template.format(&parameters).unwrap(), "Hello World!");
 /// ```
 /// **Using a custom key**
 /// ```
 /// use llm_chain::{PromptTemplate, Parameters};
 /// let template: PromptTemplate = "Hello {name}!".into();
 /// let parameters: Parameters = vec![("name", "World")].into();
-/// assert_eq!(template.format(&parameters), "Hello World!");
+/// assert_eq!(template.format(&parameters).unwrap(), "Hello World!");
 /// ```
 #[derive(Clone)]
 #[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
@@ -41,7 +41,7 @@ impl PromptTemplate {
         }
     }
     /// Format the template with the given parameters.
-    pub fn format(&self, parameters: &Parameters) -> String {
+    pub fn format(&self, parameters: &Parameters) -> Result<String, String> {
         apply_formatting(&self.template, parameters)
     }
 }
@@ -59,21 +59,24 @@ mod tests {
     fn test_apply_formatting() {
         let template = "Hello {name}!";
         let parameters = vec![("name", "World")].into();
-        assert_eq!(apply_formatting(template, &parameters), "Hello World!");
+        assert_eq!(
+            apply_formatting(template, &parameters).unwrap(),
+            "Hello World!"
+        );
     }
 
     #[test]
     fn test_prompt_template_format() {
         let template: PromptTemplate = "Hello {name}!".into();
         let parameters = vec![("name", "World")].into();
-        assert_eq!(template.format(&parameters), "Hello World!");
+        assert_eq!(template.format(&parameters).unwrap(), "Hello World!");
     }
 
     #[test]
     fn test_prompt_template_format_with_default_key() {
         let template: PromptTemplate = "Hello {}!".into();
         let parameters: Parameters = "World".into();
-        assert_eq!(template.format(&parameters), "Hello World!");
+        assert_eq!(template.format(&parameters).unwrap(), "Hello World!");
     }
 
     #[test]
@@ -81,7 +84,7 @@ mod tests {
         let template: PromptTemplate = "Hello {name}, you are {age} years old.".into();
         let parameters: Parameters = vec![("name", "John"), ("age", "30")].into();
         assert_eq!(
-            template.format(&parameters),
+            template.format(&parameters).unwrap(),
             "Hello John, you are 30 years old."
         );
     }
