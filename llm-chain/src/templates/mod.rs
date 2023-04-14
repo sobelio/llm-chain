@@ -112,7 +112,7 @@ impl PromptTemplateImpl {
             PromptTemplateImpl::Static(template) => Ok(template.clone()),
             PromptTemplateImpl::Legacy(template) => template
                 .format(parameters)
-                .map_err(|e| PromptTemplateErrorImpl::LegacyTemplateError(e)),
+                .map_err(PromptTemplateErrorImpl::LegacyTemplateError),
             #[cfg(feature = "tera")]
             PromptTemplateImpl::Tera(template) => {
                 tera::render(template, parameters).map_err(|e| e.into())
