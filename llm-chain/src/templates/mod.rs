@@ -3,6 +3,9 @@ mod legacy;
 mod tera;
 
 #[cfg(feature = "serialization")]
+mod io;
+
+#[cfg(feature = "serialization")]
 use serde::{Deserialize, Serialize};
 
 use crate::Parameters;
@@ -65,6 +68,17 @@ impl PromptTemplate {
     /// ```
     pub fn tera<K: Into<String>>(template: K) -> PromptTemplate {
         PromptTemplateImpl::tera(template.into()).into()
+    }
+
+    #[cfg(feature = "tera")]
+    /// Creates a prompt template from a file. The file should be a text file containing the template as a tera template.
+    /// # Examples
+    /// ```no_run
+    /// use llm_chain::PromptTemplate;
+    /// let template = PromptTemplate::from_file("template.txt").unwrap();
+    /// ```
+    pub fn from_file<K: AsRef<std::path::Path>>(path: K) -> Result<PromptTemplate, std::io::Error> {
+        io::read_prompt_template_file(path)
     }
 }
 
