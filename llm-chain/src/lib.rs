@@ -38,4 +38,4 @@ pub mod tools;
 
 pub use parameters::Parameters;
 
-pub use templates::PromptTemplate;
+pub use templates::{PromptTemplate, PromptTemplateError};

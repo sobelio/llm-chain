@@ -1,5 +1,5 @@
 use async_openai::types::{ChatCompletionRequestMessage, Role};
-use llm_chain::{Parameters, PromptTemplate};
+use llm_chain::{Parameters, PromptTemplate, PromptTemplateError};
 #[cfg(feature = "serialization")]
 use serde::{Deserialize, Serialize};
 /// A message prompt template consists of a role and a content. The role is either `User`, `System`, `Assistant`, and the content is a prompt template.
@@ -21,12 +21,15 @@ impl MessagePromptTemplate {
     pub fn new(role: async_openai::types::Role, content: PromptTemplate) -> MessagePromptTemplate {
         MessagePromptTemplate { role, content }
     }
-    pub fn format(&self, parameters: &Parameters) -> ChatCompletionRequestMessage {
-        ChatCompletionRequestMessage {
+    pub fn format(
+        &self,
+        parameters: &Parameters,
+    ) -> Result<ChatCompletionRequestMessage, PromptTemplateError> {
+        Ok(ChatCompletionRequestMessage {
             role: self.role.clone(),
-            content: self.content.format(parameters),
+            content: self.content.format(parameters)?,
             name: None,
-        }
+        })
     }
 }
 
@@ -90,7 +93,10 @@ impl ChatPromptTemplate {
             ],
         }
     }
-    pub fn format(&self, parameters: &Parameters) -> Vec<ChatCompletionRequestMessage> {
+    pub fn format(
+        &self,
+        parameters: &Parameters,
+    ) -> Result<Vec<ChatCompletionRequestMessage>, PromptTemplateError> {
         self.messages
             .iter()
             .map(|message| message.format(parameters))
@@ -116,7 +122,7 @@ mod tests {
         let user_msg = MessagePromptTemplate::new(Role::User, "tell me a joke".into());
 
         let chat_template = ChatPromptTemplate::new(vec![system_msg, user_msg]);
-        let messages = chat_template.format(&Parameters::new());
+        let messages = chat_template.format(&Parameters::new()).unwrap();
         assert_eq!(messages.len(), 2);
         assert_eq!(
             messages[0].content,
@@ -140,7 +146,7 @@ mod tests {
         );
 
         let chat_template = ChatPromptTemplate::new(vec![system_msg, user_msg, assistant_msg]);
-        let messages = chat_template.format(&Parameters::new());
+        let messages = chat_template.format(&Parameters::new()).unwrap();
         assert_eq!(messages.len(), 3);
         assert_eq!(
             messages[0].content,

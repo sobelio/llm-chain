@@ -106,7 +106,8 @@ impl traits::Step for Step {
     ///
     /// A LlamaInvocation instance with the formatted prompt and configuration.
     fn format(&self, parameters: &Parameters) -> Self::Output {
-        self.config.to_invocation(&self.prompt.format(parameters))
+        self.config
+            .to_invocation(&self.prompt.format(parameters).unwrap()) // FIXME: Step.Format needs to be allowed to return error
     }
 }
 

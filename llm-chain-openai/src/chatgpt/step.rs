@@ -65,7 +65,7 @@ impl traits::Step for Step {
     fn format(&self, parameters: &Parameters) -> Self::Output {
         CreateChatCompletionRequest {
             model: self.model.to_string(),
-            messages: self.prompt.format(parameters),
+            messages: self.prompt.format(parameters).unwrap(), //
             temperature: None,
             top_p: None,
             n: Some(1),

@@ -11,9 +11,11 @@ async fn main() {
     tool_collection.add_tool(BashTool::new());
     let template =
         create_tool_prompt_segment(&tool_collection, "Please perform the following task: {}");
-    let prompt = template.format(&Parameters::new_with_text(
-        "Find the file GOAL.txt and tell me its content.",
-    ));
+    let prompt = template
+        .format(&Parameters::new_with_text(
+            "Find the file GOAL.txt and tell me its content.",
+        ))
+        .unwrap();
 
     let exec = Executor::new_default();
     let chain = Step::new(
