@@ -34,8 +34,13 @@ jobs:
         uses: actions/cache@v2
         with:
           path: |
-            ~/.cargo
-          key: rust-${{ matrix.os }}
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/            
+          key: ${{ matrix.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ matrix.os }}-cargo-
 
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
