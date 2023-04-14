@@ -1,4 +1,5 @@
 mod legacy;
+#[cfg(feature = "tera")]
 mod tera;
 
 #[cfg(feature = "serialization")]
