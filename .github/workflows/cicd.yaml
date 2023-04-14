@@ -35,7 +35,7 @@ jobs:
         with:
           path: |
             ~/.cargo
-          key: rust-$${{ matrix.platform }}
+          key: rust-${{ matrix.os }}
 
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
