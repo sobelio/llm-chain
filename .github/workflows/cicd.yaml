@@ -47,6 +47,13 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: choco install protoc --yes
 
+      - name: Cache Rust Dependencies
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo
+          key: rust-$${{ matrix.platform }}
+
       - name: Build
         uses: actions-rs/cargo@v1
         with:
