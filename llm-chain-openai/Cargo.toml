@@ -15,13 +15,13 @@ default = ["serialization"]
 serialization = ["dep:serde", "llm-chain/serialization"]
 
 [dependencies]
-futures = "0.3.27"
-async-openai = "0.10.0"
-async-trait = "0.1.67"
+futures = "0.3.28"
+async-openai = "0.10.3"
+async-trait = "0.1.68"
 llm-chain = { path = "../llm-chain", version = "0.5.0" }
-serde = { version = "1.0.159", optional = true }
+serde = { version = "1.0.160", optional = true }
 tiktoken-rs = { version = "0.4.0", features = ["async-openai"] }
 thiserror = "1.0.40"
 [dev-dependencies]
-tokio = "1.26.0"
+tokio = "1.27.0"
 qdrant-client = "1.1.1"

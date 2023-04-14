@@ -22,7 +22,7 @@ anyhow = "1.0.70"
 async-trait = "0.1.68"
 llm-chain-llama-sys = { path = "./sys", version = "0.5" }
 llm-chain = { path = "../llm-chain", version = "0.5.0" }
-serde = { version = "1.0.159", optional = true, features = ["derive"] }
+serde = { version = "1.0.160", optional = true, features = ["derive"] }
 thiserror = "1.0.40"
 
 [dev-dependencies]
