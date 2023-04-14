@@ -1,5 +1,5 @@
 use super::step::Model;
-use llm_chain::text_splitter::{TextSplitError, TextSplitter};
+use llm_chain::text_splitter::{TextSplitter, Tokenizer, TokenizerError};
 use tiktoken_rs::CoreBPE;
 
 pub struct OpenAITextSplitter {
@@ -11,31 +11,33 @@ impl OpenAITextSplitter {
         Self { model }
     }
 
-    fn get_bpe_from_model(&self) -> Result<CoreBPE, TextSplitError> {
+    fn get_bpe_from_model(&self) -> Result<CoreBPE, TokenizerError> {
         use tiktoken_rs::get_bpe_from_model;
-        get_bpe_from_model(&self.model.to_string()).map_err(|_| TextSplitError::TokenizationError)
+        get_bpe_from_model(&self.model.to_string()).map_err(|_| TokenizerError::TokenizationError)
     }
 }
 
-impl TextSplitter<usize> for OpenAITextSplitter {
-    fn tokenize(&self, text: &str) -> Result<Vec<usize>, TextSplitError> {
-        Ok(self.get_bpe_from_model()?.encode_ordinary(text))
+impl Tokenizer<usize> for OpenAITextSplitter {
+    fn tokenize_str(&self, doc: &str) -> Result<Vec<usize>, TokenizerError> {
+        Ok(self.get_bpe_from_model()?.encode_ordinary(doc))
     }
 
-    fn chunk_to_string(&self, chunk_tokens: Vec<usize>) -> Result<String, TextSplitError> {
+    fn to_string(&self, tokens: Vec<usize>) -> Result<String, TokenizerError> {
         self.get_bpe_from_model()?
-            .decode(chunk_tokens)
-            .map_err(|_| TextSplitError::ChunkToStringError)
+            .decode(tokens)
+            .map_err(|_| TokenizerError::ToStringError)
     }
 }
+
+impl TextSplitter<usize> for OpenAITextSplitter {}
 
 #[cfg(test)]
 mod tests {
-    use super::{OpenAITextSplitter, TextSplitError, TextSplitter};
+    use super::{OpenAITextSplitter, TextSplitter, TokenizerError};
 
     #[test]
-    fn openai_splitter_no_overlap() -> Result<(), TextSplitError> {
-        let text = "This is a sample text that will be split into chunks based on tokens.";
+    fn openai_splitter_no_overlap() -> Result<(), TokenizerError> {
+        let doc = "This is a sample text that will be split into chunks based on tokens.";
         let max_tokens_per_chunk = 4;
         let chunk_overlap = 0;
 
@@ -43,7 +45,7 @@ mod tests {
             model: crate::chatgpt::Model::ChatGPT3_5Turbo,
         };
 
-        let chunks = splitter.split_text(text, max_tokens_per_chunk, chunk_overlap)?;
+        let chunks = splitter.split_text(doc, max_tokens_per_chunk, chunk_overlap)?;
 
         assert_eq!(
             chunks,
@@ -59,8 +61,8 @@ mod tests {
     }
 
     #[test]
-    fn openai_splitter_1_overlap() -> Result<(), TextSplitError> {
-        let text = "This is a sample text that will be split into chunks based on tokens.";
+    fn openai_splitter_1_overlap() -> Result<(), TokenizerError> {
+        let doc = "This is a sample text that will be split into chunks based on tokens.";
         let max_tokens_per_chunk = 4;
         let chunk_overlap = 1;
 
@@ -68,7 +70,7 @@ mod tests {
             model: crate::chatgpt::Model::ChatGPT3_5Turbo,
         };
 
-        let chunks = splitter.split_text(text, max_tokens_per_chunk, chunk_overlap)?;
+        let chunks = splitter.split_text(doc, max_tokens_per_chunk, chunk_overlap)?;
 
         assert_eq!(
             chunks,
@@ -85,8 +87,8 @@ mod tests {
     }
 
     #[test]
-    fn openai_splitter_equal_overlap() -> Result<(), TextSplitError> {
-        let text = "This is a sample text that will be split into chunks based on tokens.";
+    fn openai_splitter_equal_overlap() -> Result<(), TokenizerError> {
+        let doc = "This is a sample text that will be split into chunks based on tokens.";
         let max_tokens_per_chunk = 4;
         let chunk_overlap = max_tokens_per_chunk;
 
@@ -94,7 +96,7 @@ mod tests {
             model: crate::chatgpt::Model::ChatGPT3_5Turbo,
         };
 
-        let chunks = splitter.split_text(text, max_tokens_per_chunk, chunk_overlap)?;
+        let chunks = splitter.split_text(doc, max_tokens_per_chunk, chunk_overlap)?;
 
         assert_eq!(
             chunks,

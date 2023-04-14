@@ -2,23 +2,29 @@ use std::cmp::max;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-pub enum TextSplitError {
+pub enum TokenizerError {
     #[error("Error tokenizing input text")]
     TokenizationError,
-    #[error("Error converting token chunk to string")]
-    ChunkToStringError,
+    #[error("Error stringifying tokens to text")]
+    ToStringError,
 }
 
-pub trait TextSplitter<TokenType: Clone> {
-    fn tokenize(&self, text: &str) -> Result<Vec<TokenType>, TextSplitError>;
-    fn chunk_to_string(&self, chunk_tokens: Vec<TokenType>) -> Result<String, TextSplitError>;
+pub trait Tokenizer<TokenType: Clone> {
+    fn tokenize_str(&self, doc: &str) -> Result<Vec<TokenType>, TokenizerError>;
+    fn to_string(&self, tokens: Vec<TokenType>) -> Result<String, TokenizerError>;
+}
+
+pub trait TextSplitter<TokenType>: Tokenizer<TokenType>
+where
+    TokenType: Clone,
+{
     fn split_text(
         &self,
-        text: &str,
+        doc: &str,
         max_tokens_per_chunk: usize,
         chunk_overlap: usize,
-    ) -> Result<Vec<String>, TextSplitError> {
-        let tokens = self.tokenize(text)?;
+    ) -> Result<Vec<String>, TokenizerError> {
+        let tokens = self.tokenize_str(doc)?;
         let step_size = max(
             max_tokens_per_chunk.checked_sub(chunk_overlap).unwrap_or(1),
             1,
@@ -30,7 +36,7 @@ pub trait TextSplitter<TokenType: Clone> {
             .step_by(step_size)
             .map(|start_idx| {
                 let end_idx = usize::min(start_idx + max_tokens_per_chunk, tokens.len());
-                self.chunk_to_string(tokens[start_idx..end_idx].to_vec())
+                self.to_string(tokens[start_idx..end_idx].to_vec())
             })
             .collect()
     }
@@ -38,13 +44,13 @@ pub trait TextSplitter<TokenType: Clone> {
 
 pub struct NaiveWhitespaceSplitter;
 
-impl TextSplitter<String> for NaiveWhitespaceSplitter {
-    fn tokenize(&self, text: &str) -> Result<Vec<String>, TextSplitError> {
-        Ok(text.split_whitespace().map(|w| w.to_string()).collect())
+impl Tokenizer<String> for NaiveWhitespaceSplitter {
+    fn tokenize_str(&self, doc: &str) -> Result<Vec<String>, TokenizerError> {
+        Ok(doc.split_whitespace().map(|t| t.to_string()).collect())
     }
 
-    fn chunk_to_string(&self, chunk_tokens: Vec<String>) -> Result<String, TextSplitError> {
-        Ok(chunk_tokens
+    fn to_string(&self, tokens: Vec<String>) -> Result<String, TokenizerError> {
+        Ok(tokens
             .iter()
             .map(|token| token.to_string())
             .collect::<Vec<String>>()
@@ -52,19 +58,21 @@ impl TextSplitter<String> for NaiveWhitespaceSplitter {
     }
 }
 
+impl TextSplitter<String> for NaiveWhitespaceSplitter {}
+
 #[cfg(test)]
 mod tests {
-    use super::{NaiveWhitespaceSplitter, TextSplitError, TextSplitter};
+    use super::{NaiveWhitespaceSplitter, TextSplitter, TokenizerError};
 
     #[test]
-    fn whitespace_splitter_no_overlap() -> Result<(), TextSplitError> {
-        let text = "This is a sample text that will be split into chunks based on tokens.";
+    fn whitespace_splitter_no_overlap() -> Result<(), TokenizerError> {
+        let doc = "This is a sample text that will be split into chunks based on tokens.";
         let max_tokens_per_chunk = 4;
         let chunk_overlap = 0;
 
         let splitter = NaiveWhitespaceSplitter;
 
-        let chunks = splitter.split_text(text, max_tokens_per_chunk, chunk_overlap)?;
+        let chunks = splitter.split_text(doc, max_tokens_per_chunk, chunk_overlap)?;
 
         assert_eq!(
             chunks,
@@ -80,14 +88,14 @@ mod tests {
     }
 
     #[test]
-    fn whitespace_splitter_1_overlap() -> Result<(), TextSplitError> {
-        let text = "This is a sample text that will be split into chunks based on tokens.";
+    fn whitespace_splitter_1_overlap() -> Result<(), TokenizerError> {
+        let doc = "This is a sample text that will be split into chunks based on tokens.";
         let max_tokens_per_chunk = 4;
         let chunk_overlap = 1;
 
         let splitter = NaiveWhitespaceSplitter;
 
-        let chunks = splitter.split_text(text, max_tokens_per_chunk, chunk_overlap)?;
+        let chunks = splitter.split_text(doc, max_tokens_per_chunk, chunk_overlap)?;
 
         assert_eq!(
             chunks,
@@ -104,14 +112,14 @@ mod tests {
     }
 
     #[test]
-    fn whitespace_splitter_equal_overlap() -> Result<(), TextSplitError> {
-        let text = "This is a sample text that will be split into chunks based on tokens.";
+    fn whitespace_splitter_equal_overlap() -> Result<(), TokenizerError> {
+        let doc = "This is a sample text that will be split into chunks based on tokens.";
         let max_tokens_per_chunk = 4;
         let chunk_overlap = max_tokens_per_chunk;
 
         let splitter = NaiveWhitespaceSplitter;
 
-        let chunks = splitter.split_text(text, max_tokens_per_chunk, chunk_overlap)?;
+        let chunks = splitter.split_text(doc, max_tokens_per_chunk, chunk_overlap)?;
 
         assert_eq!(
             chunks,
