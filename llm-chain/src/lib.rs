@@ -36,6 +36,8 @@ pub mod parsing;
 #[cfg(feature = "serialization")]
 pub mod tools;
 
+pub mod prompt;
+
 pub use parameters::Parameters;
 
 pub use templates::{PromptTemplate, PromptTemplateError};

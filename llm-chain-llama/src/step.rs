@@ -1,6 +1,6 @@
 #[cfg(feature = "serialization")]
 use llm_chain::serialization::StorableEntity;
-use llm_chain::{traits, Parameters, PromptTemplate, PromptTemplateError};
+use llm_chain::{prompt, traits, Parameters, PromptTemplate, PromptTemplateError};
 #[cfg(feature = "serialization")]
 use serde::{Deserialize, Serialize};
 
@@ -75,9 +75,12 @@ impl Step {
     ///
     /// * `prompt` - The prompt template for the step.
     /// * `config` - An optional configuration for the step. If `None`, the default configuration will be used.
-    pub fn new_with_config(prompt: PromptTemplate, config: Option<LlamaConfig>) -> Self {
+    pub fn new_with_config<P: Into<PromptTemplate>>(
+        prompt: P,
+        config: Option<LlamaConfig>,
+    ) -> Self {
         Self {
-            prompt,
+            prompt: prompt.into(),
             config: config.unwrap_or_default(),
         }
     }
@@ -87,8 +90,29 @@ impl Step {
     /// # Arguments
     ///
     /// * `prompt` - The prompt template for the step.
-    pub fn new(prompt: PromptTemplate) -> Self {
+    pub fn new<P: Into<PromptTemplate>>(prompt: P) -> Self {
         Self::new_with_config(prompt, None)
+    }
+
+    /// Create a new step with the given prompt and default configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `prompt` - The prompt for the step.
+    pub fn for_prompt<P: prompt::Prompt>(prompt: P) -> Self {
+        Self::for_prompt_and_config(prompt, None)
+    }
+
+    /// Create a new step for the given prompt and config
+    ///
+    /// # Arguments
+    /// * `prompt` - The prompt for the step.
+    /// * `config` - The configuration for the step.
+    pub fn for_prompt_and_config<P: prompt::Prompt>(
+        prompt: P,
+        config: Option<LlamaConfig>,
+    ) -> Self {
+        Self::new_with_config(prompt.as_text_prompt_or_convert(), config)
     }
 }
 

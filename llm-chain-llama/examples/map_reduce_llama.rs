@@ -5,8 +5,8 @@ use llm_chain_llama::{Executor, Step};
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
     let exec = Executor::new("model.bin");
-    let map_prompt = Step::new("== ARTICLE ==\n{}== SUMMARY ==\n".into());
-    let reduce_prompt = Step::new("== ARTICLE ==\n{}== SUMMARY ==\n".into());
+    let map_prompt = Step::new("== ARTICLE ==\n{}== SUMMARY ==\n");
+    let reduce_prompt = Step::new("== ARTICLE ==\n{}== SUMMARY ==\n");
     let chain = Chain::new(map_prompt, reduce_prompt);
     let article = include_str!("article_to_summarize.md");
     let docs = vec![Parameters::new_with_text(article)];

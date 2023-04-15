@@ -5,6 +5,7 @@ mod tera;
 mod error;
 pub use error::PromptTemplateError;
 use error::PromptTemplateErrorImpl;
+use std::fmt;
 #[cfg(feature = "serialization")]
 mod io;
 
@@ -30,7 +31,7 @@ use crate::Parameters;
 /// let parameters: Parameters = vec![("name", "World")].into();
 /// assert_eq!(template.format(&parameters).unwrap(), "Hello World!");
 /// ```
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 #[cfg_attr(
     feature = "serialization",
     derive(Serialize, Deserialize),
@@ -83,6 +84,22 @@ impl PromptTemplate {
     pub fn from_file<K: AsRef<std::path::Path>>(path: K) -> Result<PromptTemplate, std::io::Error> {
         io::read_prompt_template_file(path)
     }
+
+    /// Combines two prompt templates into one.
+    /// This is useful for creating a prompt template from multiple sources.
+    /// # Examples
+    /// ```
+    /// use llm_chain::{PromptTemplate, Parameters};
+    /// let template1 = PromptTemplate::tera("Hello {{name}}");
+    /// let template2 = PromptTemplate::new("!");
+    /// let template3 = PromptTemplate::combine(vec![template1, template2]);
+    /// let parameters: Parameters = vec![("name", "World")].into();
+    /// assert_eq!(template3.format(&parameters).unwrap(), "Hello World!");
+    /// ```
+    pub fn combine(parts: Vec<PromptTemplate>) -> PromptTemplate {
+        let res = parts.into_iter().map(|p| p.0).collect();
+        PromptTemplateImpl::combine(res).into()
+    }
 }
 
 impl<T: Into<String>> From<T> for PromptTemplate {
@@ -91,14 +108,21 @@ impl<T: Into<String>> From<T> for PromptTemplate {
     }
 }
 
+impl fmt::Display for PromptTemplate {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 /// The actual implementation of the prompt template. This hides the implementation details from the user.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 #[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
 enum PromptTemplateImpl {
     Static(String),
     Legacy(legacy::PromptTemplate),
     #[cfg(feature = "tera")]
     Tera(String),
+    Combined(Vec<PromptTemplateImpl>),
 }
 
 impl PromptTemplateImpl {
@@ -117,6 +141,13 @@ impl PromptTemplateImpl {
             PromptTemplateImpl::Tera(template) => {
                 tera::render(template, parameters).map_err(|e| e.into())
             }
+            PromptTemplateImpl::Combined(templates) => {
+                let mut result = String::new();
+                for template in templates {
+                    result.push_str(&template.format(parameters)?);
+                }
+                Ok(result)
+            }
         }
     }
 
@@ -127,5 +158,26 @@ impl PromptTemplateImpl {
     #[cfg(feature = "tera")]
     pub fn tera(template: String) -> PromptTemplateImpl {
         PromptTemplateImpl::Tera(template)
+    }
+
+    pub fn combine(templates: Vec<PromptTemplateImpl>) -> PromptTemplateImpl {
+        PromptTemplateImpl::Combined(templates)
+    }
+}
+
+impl fmt::Display for PromptTemplateImpl {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            PromptTemplateImpl::Static(s) => write!(f, "{}", s),
+            PromptTemplateImpl::Legacy(template) => write!(f, "{}", template),
+            #[cfg(feature = "tera")]
+            PromptTemplateImpl::Tera(template) => write!(f, "{}", template),
+            PromptTemplateImpl::Combined(templates) => {
+                for template in templates {
+                    write!(f, "{}", template)?;
+                }
+                Ok(())
+            }
+        }
     }
 }
