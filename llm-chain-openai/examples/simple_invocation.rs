@@ -29,7 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ],
     )
     .to_chain();
-    let res = chain.run(Parameters::new(), &exec).await?.unwrap();
+    let res = chain.run(Parameters::new(), &exec).await?;
     let message_text = res.choices.first().unwrap().message.content.clone();
     println!("{}", &message_text);
     match tool_collection.process_chat_input(&message_text) {

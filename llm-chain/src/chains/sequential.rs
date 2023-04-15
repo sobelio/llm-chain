@@ -4,10 +4,17 @@ use serde::{Deserialize, Serialize};
 use crate::{
     frame::Frame,
     serialization::StorableEntity,
-    traits::{Executor, Step},
+    traits::{Executor, ExecutorError, Step},
     Parameters,
 };
 
+#[derive(thiserror::Error, Debug)]
+pub enum SequentialChainError<Err: ExecutorError> {
+    #[error("ExecutorError: {0}")]
+    ExecutorError(#[from] Err),
+    #[error("The vector of steps was empty")]
+    NoSteps,
+}
 // A sequential chain is a chain where each step is executed in order, with the output of the previous being available to the next.
 pub struct Chain<S: Step> {
     steps: Vec<S>,
@@ -25,7 +32,11 @@ impl<S: Step> Chain<S> {
         &self,
         parameters: Parameters,
         executor: &E,
-    ) -> Result<Option<E::Output>, E::Error> {
+    ) -> Result<E::Output, SequentialChainError<E::Error>> {
+        if self.steps.is_empty() {
+            return Err(SequentialChainError::NoSteps);
+        }
+
         let mut current_params = parameters;
         let mut output: Option<E::Output> = None;
         for step in self.steps.iter() {
@@ -35,7 +46,7 @@ impl<S: Step> Chain<S> {
             current_params = current_params.with_text_from_output(&res).await;
             output = Some(res);
         }
-        Ok(output)
+        Ok(output.expect("No output from chain"))
     }
 }
 
