@@ -143,7 +143,7 @@ impl ChatPromptBuilder {
     }
 
     pub fn add_message(mut self, message: ChatMessage) -> Self {
-        self.messages.get_or_insert_with(|| vec![]).push(message);
+        self.messages.get_or_insert_with(std::vec::Vec::new).push(message);
         self
     }
 

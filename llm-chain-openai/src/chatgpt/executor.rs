@@ -57,7 +57,7 @@ impl traits::Executor for Executor {
     ) -> Result<Self::Output, Self::Error> {
         let client = self.client.clone();
         let res = async move { client.chat().create(input).await }.await;
-        res.map(|x| x.into()).map_err(|e| Error::OpenAIError(e))
+        res.map(|x| x.into()).map_err(Error::OpenAIError)
     }
     fn tokens_used(
         &self,
