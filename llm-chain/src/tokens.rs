@@ -12,7 +12,7 @@ use thiserror::Error;
 #[derive(Clone, Debug, Error)]
 pub enum PromptTokensError {
     /// Indicates that prompt tokens are not accessible for the given step.
-    #[error("The prompt tokens are accessible for this type of step.")]
+    #[error("The prompt tokens are not accessible for this type of step.")]
     NotAvailable,
     /// Indicates that the prompt tokens could not be computed.
     #[error("The prompt tokens could not be computed.")]

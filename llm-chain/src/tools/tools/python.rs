@@ -1,5 +1,6 @@
-use crate::description::{Describe, Format, ToolDescription};
-use crate::tool::{gen_invoke_function, Tool};
+use crate::tools::collection::ToolUseError;
+use crate::tools::description::{Describe, Format, ToolDescription};
+use crate::tools::tool::{gen_invoke_function, Tool};
 use serde::{Deserialize, Serialize};
 use std::process::Command;
 
@@ -45,12 +46,12 @@ impl Describe for PythonToolOutput {
 }
 
 impl PythonTool {
-    fn invoke_typed(&self, input: &PythonToolInput) -> Result<PythonToolOutput, String> {
+    fn invoke_typed(&self, input: &PythonToolInput) -> Result<PythonToolOutput, ToolUseError> {
         let output = Command::new("python3")
             .arg("-c")
             .arg(&input.code)
             .output()
-            .map_err(|_e| "failed to execute process")?;
+            .map_err(|e| ToolUseError::ToolInvocationFailed(e.to_string()))?;
         Ok(PythonToolOutput {
             result: String::from_utf8(output.stdout).unwrap(),
             stderr: String::from_utf8(output.stderr).unwrap(),

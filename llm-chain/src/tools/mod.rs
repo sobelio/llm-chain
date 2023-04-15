@@ -11,12 +11,13 @@
 //! ## Example
 //!
 //! ```rust
-//! use llm_chain_tools::{ToolCollection, create_tool_prompt_segment};
-//! use llm_chain_tools::tools::BashTool;
+//! use llm_chain::tools::{ToolCollection, create_tool_prompt_segment};
+//! use llm_chain::tools::tools::BashTool;
 //! use std::boxed::Box;
 //!
-//! // Create a ToolCollection with some tools.
-//! let mut tc = ToolCollection::new(vec![Box::new(BashTool::new())]);
+//! // Create a ToolCollection with a tool.
+//! let mut tc = ToolCollection::new();
+//! tc.add_tool(BashTool::new());
 //!
 //! // Create a prompt indicating the LLM should use the provided tools.
 //! let prompt = "Find information about Rust programming language.";
@@ -29,11 +30,12 @@
 
 mod collection;
 mod description;
+pub use description::{Describe, Format, ToolDescription};
 mod tool;
 pub mod tools;
-use llm_chain::PromptTemplate;
+use crate::PromptTemplate;
 
-pub use crate::collection::ToolCollection;
+pub use collection::{ToolCollection, ToolUseError};
 pub use tool::Tool;
 
 /// Creates a prompt that indicates the model should use the tools provided.

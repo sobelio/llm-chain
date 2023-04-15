@@ -1,2 +1,10 @@
 [workspace]
-members = ["llm-chain", "llm-chain-openai", "llm-chain-tools", "llm-chain-llama", "llm-chain-llama/sys"]
+members = [
+    "llm-chain",
+    "llm-chain-openai",
+    "llm-chain-llama",
+    "llm-chain-llama/sys",
+]
+
+[workspace.metadata.release]
+shared-version = true

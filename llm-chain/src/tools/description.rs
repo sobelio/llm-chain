@@ -1,13 +1,14 @@
 use serde::{ser::SerializeMap, Serialize, Serializer};
 
+/// Represents a single parameter for a tool.
 #[derive(Clone)]
-/// A description of a parameter for a tool.
 pub struct FormatPart {
     key: String,
     purpose: String,
 }
 
 impl FormatPart {
+    /// Creates a new `FormatPart` with the given key and purpose.
     pub fn new(key: &str, purpose: &str) -> Self {
         FormatPart {
             key: key.to_string(),
@@ -22,11 +23,13 @@ impl<K: Into<String>, P: Into<String>> From<(K, P)> for FormatPart {
     }
 }
 
+/// Represents the format for a tool's input or output.
 pub struct Format {
     parts: Vec<FormatPart>,
 }
 
 impl Format {
+    /// Creates a new `Format` with the given parts.
     pub fn new(parts: Vec<FormatPart>) -> Self {
         Format { parts }
     }
@@ -52,12 +55,13 @@ impl Serialize for Format {
     }
 }
 
+/// A trait to provide a description format for a tool.
 pub trait Describe {
     fn describe() -> Format;
 }
 
+/// Represents the description of a tool, including its name, usage, and input/output formats.
 #[derive(Serialize)]
-/// A description of a tool, used to prompt the model
 pub struct ToolDescription {
     pub(crate) name: String,
     description: String,
@@ -65,10 +69,12 @@ pub struct ToolDescription {
     input_format: Format,
     #[serde(skip)]
     #[allow(dead_code)]
+    /// This will be used in the future.
     output_format: Format,
 }
 
 impl ToolDescription {
+    /// Creates a new `ToolDescription` with the given name, description, context, and formats.
     pub fn new(
         name: &str,
         description: &str,

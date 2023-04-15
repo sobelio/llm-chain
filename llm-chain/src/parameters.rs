@@ -1,3 +1,4 @@
+use crate::output::Output;
 use dynfmt::{Argument, FormatArgs};
 use std::collections::HashMap;
 
@@ -78,6 +79,12 @@ impl Parameters {
     pub fn with_text<K: Into<String>>(&self, text: K) -> Parameters {
         self.with(TEXT_KEY, text)
     }
+    pub async fn with_text_from_output<O: Output>(&self, output: &O) -> Parameters {
+        output
+            .primary_textual_output()
+            .await
+            .map_or(self.clone(), |text| self.with_text(text))
+    }
     /// Combines two sets of parameters, returning a new set of parameters with all the keys from both sets.
     pub fn combine(&self, other: &Parameters) -> Parameters {
         let mut copy = self.clone();
@@ -119,6 +126,15 @@ impl Parameters {
 
     pub fn get_text(&self) -> Option<&String> {
         self.get(TEXT_KEY)
+    }
+
+    #[cfg(feature = "tera")]
+    pub fn to_tera(&self) -> tera::Context {
+        let mut context = tera::Context::new();
+        for (key, value) in self.map.iter() {
+            context.insert(key, value);
+        }
+        context
     }
 }
 

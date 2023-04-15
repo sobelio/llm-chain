@@ -16,6 +16,7 @@
 //!
 
 pub mod chains;
+pub mod vectorstores;
 
 mod parameters;
 #[cfg(feature = "serialization")]
@@ -27,6 +28,14 @@ pub mod frame;
 
 pub mod tokens;
 
+pub mod output;
+
+#[cfg(feature = "serialization")]
+pub mod parsing;
+
+#[cfg(feature = "serialization")]
+pub mod tools;
+
 pub use parameters::Parameters;
 
-pub use templates::PromptTemplate;
+pub use templates::{PromptTemplate, PromptTemplateError};

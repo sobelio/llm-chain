@@ -1,3 +1,5 @@
+use async_trait::async_trait;
+use llm_chain::output;
 use std::fmt::{Display, Formatter};
 
 /// Represents the output from the LLAMA model.
@@ -64,5 +66,12 @@ impl From<&str> for Output {
 impl From<Output> for Box<str> {
     fn from(output: Output) -> Self {
         output.output.into_boxed_str()
+    }
+}
+
+#[async_trait]
+impl output::Output for Output {
+    async fn primary_textual_output_choices(&self) -> Vec<String> {
+        vec![self.output.clone()]
     }
 }
