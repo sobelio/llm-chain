@@ -11,7 +11,7 @@ use llm_chain_llama::{Executor, Step};
 /// For example, if the model is located at "/models/llama"
 /// cargo run --example simple /models/llama
 #[tokio::main(flavor = "current_thread")]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 2 {
         eprintln!("Usage: cargo run --example simple path/to/llama-or-alpaca-model");
@@ -34,6 +34,7 @@ async fn main() {
     .to_chain();
 
     // Execute the chain and print the result
-    let res = chain.run(Parameters::new(), &exec).await.unwrap();
+    let res = chain.run(Parameters::new(), &exec).await?;
     println!("{}", res);
+    Ok(())
 }

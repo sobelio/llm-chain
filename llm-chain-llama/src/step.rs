@@ -1,6 +1,6 @@
 #[cfg(feature = "serialization")]
 use llm_chain::serialization::StorableEntity;
-use llm_chain::{traits, Parameters, PromptTemplate};
+use llm_chain::{traits, Parameters, PromptTemplate, PromptTemplateError};
 #[cfg(feature = "serialization")]
 use serde::{Deserialize, Serialize};
 
@@ -92,10 +92,15 @@ impl Step {
     }
 }
 
+#[derive(thiserror::Error, Debug)]
+#[error(transparent)]
+pub struct Error(#[from] PromptTemplateError);
+impl traits::StepError for Error {}
+
 /// Implements the `Step` trait for the `Step` struct.
 impl traits::Step for Step {
     type Output = LlamaInvocation;
-
+    type Error = Error;
     /// Formats the current step using the given parameters, creating a LlamaInvocation instance.
     ///
     /// # Arguments
@@ -105,9 +110,9 @@ impl traits::Step for Step {
     /// # Returns
     ///
     /// A LlamaInvocation instance with the formatted prompt and configuration.
-    fn format(&self, parameters: &Parameters) -> Self::Output {
-        self.config
-            .to_invocation(&self.prompt.format(parameters).unwrap()) // FIXME: Step.Format needs to be allowed to return error
+    fn format(&self, parameters: &Parameters) -> Result<Self::Output, Self::Error> {
+        let fmt = self.prompt.format(parameters)?;
+        Ok(self.config.to_invocation(&fmt))
     }
 }
 

@@ -4,7 +4,7 @@ use llm_chain::{traits::StepExt, Parameters};
 use llm_chain_llama::{new_instruct_template, Executor, Step};
 
 #[tokio::main(flavor = "current_thread")]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 2 {
         eprintln!("Usage: myprogram path/to/alpaca-model");
@@ -25,7 +25,8 @@ async fn main() {
                 .with("location", "the moon"),
             &exec,
         )
-        .await
-        .unwrap();
+        .await?;
+        
     println!("{:?}", res.to_string());
+    Ok(())
 }

@@ -40,8 +40,8 @@ where
     ///
     /// This function takes a reference to a `Parameters` struct, formats the step with the provided parameters,
     /// and executes it using the associated executor. The result of the execution is returned as `E::Output`.
-    pub async fn format_and_execute(&self, parameters: &Parameters) -> E::Output {
-        let output = self.step.format(parameters);
+    pub async fn format_and_execute(&self, parameters: &Parameters) -> Result<E::Output, E::Error> {
+        let output = self.step.format(parameters)?;
         self.executor.execute(output).await
     }
 }

@@ -10,7 +10,7 @@ use llm_chain_openai::chatgpt::{
 // A simple example generating a prompt with some tools.
 
 #[tokio::main(flavor = "current_thread")]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut tool_collection = ToolCollection::new();
     tool_collection.add_tool(PythonTool::new());
     tool_collection.add_tool(ExitTool::new());
@@ -34,7 +34,7 @@ async fn main() {
     ]);
     for _ in 1..5 {
         let chain = Step::new(Model::ChatGPT3_5Turbo, chat.clone()).to_chain();
-        let res = chain.run(Parameters::new(), &exec).await.unwrap();
+        let res = chain.run(Parameters::new(), &exec).await?;
         let message_text = res.choices.first().unwrap().message.content.clone();
         println!("Assistant: {}", message_text);
         println!("=============");
@@ -64,4 +64,5 @@ async fn main() {
             }
         }
     }
+    Ok(())
 }

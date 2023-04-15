@@ -2,7 +2,10 @@ use super::prompt::ChatPromptTemplate;
 use async_openai::types::CreateChatCompletionRequest;
 #[cfg(feature = "serialization")]
 use llm_chain::serialization::StorableEntity;
-use llm_chain::{traits, Parameters};
+use llm_chain::{
+    traits::{self, StepError},
+    Parameters, PromptTemplateError,
+};
 #[cfg(feature = "serialization")]
 use serde::{Deserialize, Serialize};
 /// The `Model` enum represents the available ChatGPT models that you can use through the OpenAI API. These models have different capabilities and performance characteristics, allowing you to choose the one that best suits your needs.
@@ -60,10 +63,16 @@ impl Step {
     }
 }
 
+#[derive(thiserror::Error, Debug)]
+#[error(transparent)]
+pub struct Error(#[from] PromptTemplateError);
+impl StepError for Error {}
+
 impl traits::Step for Step {
     type Output = CreateChatCompletionRequest;
-    fn format(&self, parameters: &Parameters) -> Self::Output {
-        CreateChatCompletionRequest {
+    type Error = Error;
+    fn format(&self, parameters: &Parameters) -> Result<Self::Output, Self::Error> {
+        Ok(CreateChatCompletionRequest {
             model: self.model.to_string(),
             messages: self.prompt.format(parameters).unwrap(), //
             temperature: None,
@@ -76,7 +85,7 @@ impl traits::Step for Step {
             frequency_penalty: None,
             logit_bias: None,
             user: None,
-        }
+        })
     }
 }
 

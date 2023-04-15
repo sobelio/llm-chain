@@ -6,7 +6,7 @@ use llm_chain_openai::chatgpt::{Executor, Model, Role, Step};
 // A simple example generating a prompt with some tools.
 
 #[tokio::main(flavor = "current_thread")]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut tool_collection = ToolCollection::new();
     tool_collection.add_tool(BashTool::new());
     let template =
@@ -29,11 +29,12 @@ async fn main() {
         ],
     )
     .to_chain();
-    let res = chain.run(Parameters::new(), &exec).await.unwrap();
+    let res = chain.run(Parameters::new(), &exec).await?;
     let message_text = res.choices.first().unwrap().message.content.clone();
     println!("{}", &message_text);
     match tool_collection.process_chat_input(&message_text) {
         Ok(output) => println!("{}", output),
         Err(e) => println!("Error: {}", e),
     }
+    Ok(())
 }
