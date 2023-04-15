@@ -27,5 +27,5 @@ async fn main() {
         )
         .await
         .unwrap();
-    println!("{:?}", res.to_string());
+    println!("{:?}", res.unwrap().to_string());
 }

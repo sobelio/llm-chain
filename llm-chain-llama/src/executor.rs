@@ -6,7 +6,7 @@ use crate::output::Output;
 use async_trait::async_trait;
 
 use llm_chain::tokens::{PromptTokensError, TokenCount};
-use llm_chain::traits::{self};
+use llm_chain::traits::{self, StepError};
 use llm_chain::traits::{Executor as ExecutorTrait, Step as StepTrait};
 use llm_chain::Parameters;
 use llm_chain_llama_sys::llama_context_params;
@@ -135,28 +135,42 @@ impl Executor {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum Error<E: StepError> {
+    #[error("unable to tokenize prompt")]
+    PromptTokensError(PromptTokensError),
+    #[error("unable to format step")]
+    StepError(#[from] E),
+}
+impl<E> traits::ExecutorError for Error<E> where E: StepError {}
+
 // Implement the ExecutorTrait for the Executor, defining methods for handling input and output.
 #[async_trait]
 impl ExecutorTrait for Executor {
     type Step = LLamaStep;
     type Output = Output;
     type Token = i32;
+    type Error = Error<<Self::Step as traits::Step>::Error>;
     // Executes the model asynchronously and returns the output.
     async fn execute(
         &self,
         input: <<Executor as ExecutorTrait>::Step as traits::Step>::Output,
-    ) -> Self::Output {
-        self.run_model(input)
+    ) -> Result<Self::Output, Self::Error> {
+        Ok(self.run_model(input))
     }
     fn tokens_used(
         &self,
         step: &LLamaStep,
         parameters: &Parameters,
     ) -> Result<TokenCount, PromptTokensError> {
-        let input = step.format(parameters);
+        let input = step
+            .format(parameters)
+            .map_err(|_| PromptTokensError::UnableToCompute)?;
         let tokens_used = self.tokenize_str(step, &input.prompt)?.len() as i32;
 
-        let input_with_empty_params = step.format(&Parameters::new_non_strict());
+        let input_with_empty_params = step
+            .format(&Parameters::new_non_strict())
+            .map_err(|_| PromptTokensError::UnableToCompute)?;
         let template_tokens_used = self
             .tokenize_str(step, &input_with_empty_params.prompt)?
             .len() as i32;

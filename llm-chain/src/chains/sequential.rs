@@ -25,17 +25,17 @@ impl<S: Step> Chain<S> {
         &self,
         parameters: Parameters,
         executor: &E,
-    ) -> Option<E::Output> {
+    ) -> Result<Option<E::Output>, E::Error> {
         let mut current_params = parameters;
         let mut output: Option<E::Output> = None;
         for step in self.steps.iter() {
             let frame = Frame::new(executor, step);
-            let res = frame.format_and_execute(&current_params).await;
+            let res = frame.format_and_execute(&current_params).await?;
 
             current_params = current_params.with_text_from_output(&res).await;
             output = Some(res);
         }
-        output
+        Ok(output)
     }
 }
 

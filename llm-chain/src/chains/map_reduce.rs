@@ -8,6 +8,7 @@
 //! to execute map-reduce operations using a provided `Executor`.
 
 use crate::output::Output;
+use crate::traits::ExecutorError;
 use crate::{
     frame::Frame,
     serialization::StorableEntity,
@@ -27,7 +28,10 @@ use thiserror::Error;
 
 /// The `MapReduceChainError` enum represents errors that can occur when executing a map-reduce chain.
 #[derive(Error, Debug)]
-pub enum MapReduceChainError {
+pub enum MapReduceChainError<Err: ExecutorError> {
+    /// An error relating to the operation of the Executor.
+    #[error("ExecutorError: {0}")]
+    ExecutorError(#[from] Err),
     /// An error relating to tokenizing the inputs.
     #[error("TokenizeError: {0}")]
     TokenizeError(#[from] crate::tokens::PromptTokensError),
@@ -64,7 +68,7 @@ impl<S: Step> Chain<S> {
         documents: Vec<Parameters>,
         base_parameters: Parameters,
         executor: &E,
-    ) -> Result<E::Output, MapReduceChainError>
+    ) -> Result<E::Output, MapReduceChainError<E::Error>>
     where
         E: Executor<Step = S>,
     {
@@ -87,6 +91,7 @@ impl<S: Step> Chain<S> {
             .map(|doc| map_frame.format_and_execute(doc))
             .collect();
         let mapped_documents = join_all(futures).await;
+        let mapped_documents = mapped_documents.into_iter().collect::<Result<_, _>>()?;
 
         let mut documents = self
             .combine_documents_up_to::<E, E::Token>(executor, mapped_documents, &base_parameters)
@@ -103,6 +108,7 @@ impl<S: Step> Chain<S> {
                 .collect();
             let futures = tasks.iter().map(|p| reduce_frame.format_and_execute(p));
             let new_docs = join_all(futures).await;
+            let new_docs = new_docs.into_iter().collect::<Result<Vec<_>, _>>()?;
             let n_new_docs = new_docs.len();
             if n_new_docs == 1 {
                 return Ok(new_docs[0].clone());
@@ -118,7 +124,7 @@ impl<S: Step> Chain<S> {
         executor: &E,
         mut v: Vec<<E as Executor>::Output>,
         parameters: &Parameters,
-    ) -> Result<Vec<String>, MapReduceChainError>
+    ) -> Result<Vec<String>, MapReduceChainError<E::Error>>
     where
         E: Executor<Step = S>,
     {

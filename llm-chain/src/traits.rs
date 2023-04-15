@@ -19,11 +19,14 @@ use crate::{
 };
 use async_trait::async_trait;
 
+/// Marker trait for errors in `Step` method. It is needed so the concrete Error can have a derived From<StepFormatError>
+pub trait StepError {}
 /// The `Step` trait represents a single step in a chain. It takes a set of parameters and returns a
 /// formatted prompt that can be used by an executor.
 pub trait Step {
     /// The output type produced by this step.
     type Output: Send;
+    type Error: Send + Debug + Error + StepError;
 
     /// Formats the step given a set of parameters, returning a value that can be used by an
     /// executor.
@@ -34,8 +37,8 @@ pub trait Step {
     ///
     /// # Returns
     ///
-    /// The formatted output of this step.
-    fn format(&self, parameters: &Parameters) -> Self::Output;
+    /// The formatted output of this step or an error if the step could not be formatted.
+    fn format(&self, parameters: &Parameters) -> Result<Self::Output, Self::Error>;
 }
 
 impl<T: ?Sized> StepExt for T where T: Step {}
@@ -56,6 +59,9 @@ pub trait StepExt: Step {
     }
 }
 
+/// Marker trait for errors in `Executor` method. It is needed so the concrete Errors can have a derived From<ExecutorError>
+pub trait ExecutorError {}
+
 #[async_trait]
 /// The `Executor` trait represents an executor that performs a single step in a chain. It takes a
 /// step, executes it, and returns the output.
@@ -65,6 +71,8 @@ pub trait Executor {
 
     /// The output type produced by this executor.
     type Output: Output;
+    /// The error type produced by this executor.
+    type Error: ExecutorError + Debug + Error + From<<Self::Step as Step>::Error>;
 
     /// The token type used by this executor.
     type Token;
@@ -78,7 +86,10 @@ pub trait Executor {
     /// # Returns
     ///
     /// The output produced by the executor.
-    async fn execute(&self, input: <<Self as Executor>::Step as Step>::Output) -> Self::Output;
+    async fn execute(
+        &self,
+        input: <<Self as Executor>::Step as Step>::Output,
+    ) -> Result<Self::Output, Self::Error>;
 
     /// Calculates the number of tokens used by the step given a set of parameters.
     ///
