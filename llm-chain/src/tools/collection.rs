@@ -23,7 +23,7 @@ pub enum ToolUseError {
 
 impl ToolCollection {
     pub fn new() -> Self {
-        Self { tools: Vec::new() }
+        Default::default()
     }
 
     pub fn add_tool<T: Tool + 'static>(&mut self, tool: T) {
@@ -65,6 +65,12 @@ impl ToolCollection {
     pub fn describe(&self) -> String {
         let des: Vec<_> = self.tools.iter().map(|t| t.description()).collect();
         serde_yaml::to_string(&des).unwrap()
+    }
+}
+
+impl Default for ToolCollection {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

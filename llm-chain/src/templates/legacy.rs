@@ -3,7 +3,7 @@ use dynfmt::{Format, SimpleCurlyFormat};
 #[cfg(feature = "serialization")]
 use serde::{Deserialize, Serialize};
 
-fn apply_formatting<'l>(template: &'l str, parameters: &Parameters) -> Result<String, String> {
+fn apply_formatting(template: &str, parameters: &Parameters) -> Result<String, String> {
     SimpleCurlyFormat {}
         .format(template, parameters)
         .map_err(|e| e.to_string())
@@ -38,7 +38,6 @@ impl std::fmt::Display for PromptTemplate {
         write!(f, "{}", self.template)
     }
 }
-
 
 impl PromptTemplate {
     /// Create a new prompt template from a string.
