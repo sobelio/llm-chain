@@ -1,7 +1,10 @@
-use llm_chain::chains::map_reduce::Chain;
-use llm_chain::{prompt, Parameters};
-use llm_chain_llama::{Executor, Step};
 use std::{env, path::Path};
+
+use llm_chain::chains::map_reduce::Chain;
+use llm_chain::{Parameters, default_prompt};
+use llm_chain::prompt::{ExtractiveSummaryChat, DefaultPrompt};
+use llm_chain_llama::{Executor, Step};
+use llm_chain_llama::LlamaConfig;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
@@ -14,13 +17,16 @@ async fn main() {
     let path = Path::new(&args[1]);
     // Initialize the Executor with the model path.
     let exec = Executor::new(path.to_str().unwrap());
-    // Create the prompts
-    let map_prompt = Step::for_prompt(prompt!("== ARTICLE ==\n{{text}}== SUMMARY ==\n"));
-    let reduce_prompt = Step::for_prompt(prompt!("== ARTICLE ==\n{{text}}== FINAL SUMMARY ==\n"));
 
-    let chain = Chain::new(map_prompt, reduce_prompt);
+    // Create the prompts
+    let map_step = Step::for_prompt(default_prompt!(ExtractiveSummaryChat));
+    let reduce_step = Step::for_prompt(default_prompt!(ExtractiveSummaryChat));
+    // println!("{}",default_prompt!(ExtractiveSummaryChat).to_string());
+    // System: You are an extractive summarizer that follows the output pattern
+    // User: Please extract sentences as the summary. The summary should contain {{sentences}} sentences. Document: {{text}}
+    let chain = Chain::new(map_step, reduce_step);
     let article = include_str!("article_to_summarize.md");
     let docs = vec![Parameters::new_with_text(article)];
-    let res = chain.run(docs, Parameters::new(), &exec).await.unwrap();
+    let res = chain.run(docs, Parameters::new().with("sentences", "5"), &exec).await.unwrap();
     println!("{:?}", res);
 }

@@ -13,14 +13,15 @@
 //! println!("{}", chat_prompt);
 //! println!("{}", simple_text);
 //! ```
-pub mod chat;
 mod templates;
-
-pub mod text;
 mod traits;
+pub mod chat;
+pub mod text;
+pub mod defaults;
 
 pub use templates::{PromptTemplate, PromptTemplateError};
 pub use traits::Prompt;
+pub use defaults::{ExtractiveSummaryChat, DefaultPrompt};
 
 /// Creates a `TextPrompt` or a `ChatPrompt` based on the number of arguments provided.
 ///
@@ -56,5 +57,13 @@ macro_rules! prompt {
     };
     ($($extra_tokens:expr),+ $(,)?) => {
         compile_error!("The 'prompt!' macro takes at most 2 arguments.")
+    };
+}
+
+
+#[macro_export]
+macro_rules! default_prompt {
+    ($prompt:ty) => {
+        <$prompt as DefaultPrompt<_>>::as_prompt()
     };
 }
