@@ -11,8 +11,8 @@
 //! ## Example
 //!
 //! ```rust
-//! use llm_chain::tools::{ToolCollection, create_tool_prompt_segment};
-//! use llm_chain::tools::tools::BashTool;
+//! use llm_chain::tools::{ToolCollection, tools::BashTool};
+//! use llm_chain::prompt::PromptTemplate;
 //! use std::boxed::Box;
 //!
 //! // Create a ToolCollection with a tool.
@@ -20,8 +20,8 @@
 //! tc.add_tool(BashTool::new());
 //!
 //! // Create a prompt indicating the LLM should use the provided tools.
-//! let prompt = "Find information about Rust programming language.";
-//! let tool_prompt = create_tool_prompt_segment(&tc, &prompt);
+//! let prompt = PromptTemplate::static_string("Find information about Rust programming language.");
+//! let tool_prompt = PromptTemplate::combine(vec![tc.to_prompt_template(), prompt]);
 //! ```
 //!
 //! ## Modules
@@ -33,25 +33,6 @@ mod description;
 pub use description::{Describe, Format, ToolDescription};
 mod tool;
 pub mod tools;
-use crate::PromptTemplate;
 
 pub use collection::{ToolCollection, ToolUseError};
 pub use tool::Tool;
-
-/// Creates a prompt that indicates the model should use the tools provided.
-///
-/// This function takes a reference to a `ToolCollection` and a `&str` prompt, then generates a `PromptTemplate` that includes a prefix and a description of the tools in the collection. This formatted prompt can be passed to the LLM to request its use of the provided tools.
-///
-/// # Arguments
-///
-/// * `tc`: A reference to a `ToolCollection` containing the tools to be used by the LLM.
-/// * `prompt`: The base prompt to be used in the request.
-///
-/// # Returns
-///
-/// A `PromptTemplate` formatted with the provided tools and prompt.
-pub fn create_tool_prompt_segment(tc: &ToolCollection, prompt: &str) -> PromptTemplate {
-    let prefix = include_str!("./tool_prompt_prefix.txt").to_string();
-    let desc = tc.describe();
-    (prefix + &desc + "\n\n" + prompt).into()
-}

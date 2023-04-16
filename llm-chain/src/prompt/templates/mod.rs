@@ -46,10 +46,15 @@ impl From<PromptTemplateImpl> for PromptTemplate {
 }
 
 impl PromptTemplate {
+    #[deprecated(note = "Use PromptTemplate::tera or llm_chain::prompt! instead")]
     /// Create a new prompt template from a string.
     pub fn new<K: Into<String>>(template: K) -> PromptTemplate {
-        PromptTemplateImpl::new(template).into()
+        Self::legacy(template)
     }
+    pub(crate) fn legacy<K: Into<String>>(template: K) -> PromptTemplate {
+        PromptTemplateImpl::legacy(template).into()
+    }
+
     /// Format the template with the given parameters.
     pub fn format(&self, parameters: &Parameters) -> Result<String, PromptTemplateError> {
         self.0.format(parameters).map_err(|e| e.into())
@@ -104,7 +109,7 @@ impl PromptTemplate {
 
 impl<T: Into<String>> From<T> for PromptTemplate {
     fn from(template: T) -> Self {
-        Self::new(template.into())
+        Self::legacy(template.into())
     }
 }
 
@@ -127,7 +132,7 @@ enum PromptTemplateImpl {
 
 impl PromptTemplateImpl {
     /// Create a new prompt template from a string.
-    pub fn new<K: Into<String>>(template: K) -> PromptTemplateImpl {
+    pub fn legacy<K: Into<String>>(template: K) -> PromptTemplateImpl {
         PromptTemplateImpl::Legacy(legacy::PromptTemplate::new(template))
     }
 
