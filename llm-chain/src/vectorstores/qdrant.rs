@@ -51,24 +51,29 @@ where
     type Error = QdrantError<E::Error>;
 
     async fn add_texts(&self, texts: Vec<String>) -> Result<Vec<String>, Self::Error> {
-        let embedding_vecs = self.embeddings.embed_texts(texts).await?;
+        let embedding_vecs = self.embeddings.embed_texts(texts.clone()).await?;
 
         let ids = (0..embedding_vecs.len())
             .into_iter()
-            .map(|_| Uuid::new_v4())
-            .collect::<Vec<Uuid>>();
-        let points = embedding_vecs
+            .map(|_| Uuid::new_v4().to_string())
+            .collect::<Vec<String>>();
+
+        let points = ids
+            .clone()
             .into_iter()
-            .zip(ids.iter())
-            .map(|(vec, uuid)| PointStruct {
-                id: Some(uuid.to_string().into()),
-                payload: HashMap::new(),
+            .zip(texts.into_iter())
+            .zip(embedding_vecs.into_iter())
+            .map(|((uuid, txt), vec)| PointStruct {
+                id: Some(uuid.into()),
+                payload: HashMap::from([("text".into(), txt.into())]),
                 vectors: Some(Vectors::from(vec)),
             })
             .collect();
+
         self.client
             .upsert_points(self.collection_name.clone(), points, None)
             .await?;
-        Ok(ids.into_iter().map(|u| u.to_string()).collect())
+
+        Ok(ids)
     }
 }
