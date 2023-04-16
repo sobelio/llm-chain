@@ -18,6 +18,7 @@ pub struct LlamaContextParams {
     logits_all: bool,
     vocab_only: bool,
     use_mlock: bool,
+    use_mmap: bool,
     embedding: bool,
 }
 
@@ -41,6 +42,7 @@ impl From<LlamaContextParams> for llama_context_params {
             logits_all: params.logits_all,
             vocab_only: params.vocab_only,
             use_mlock: params.use_mlock,
+            use_mmap: params.use_mmap,
             embedding: params.embedding,
             progress_callback: None,
             progress_callback_user_data: null_mut(),
