@@ -23,6 +23,8 @@ mod parameters;
 pub mod serialization;
 pub mod traits;
 
+pub mod schema;
+
 pub mod frame;
 
 pub mod tokens;
