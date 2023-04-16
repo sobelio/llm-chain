@@ -24,7 +24,6 @@ use std::collections::HashMap;
 #[derive(Clone, Default, Debug)]
 pub struct Parameters {
     map: HashMap<String, String>,
-    non_strict: bool,
 }
 
 const TEXT_KEY: &str = "text";
@@ -36,22 +35,11 @@ impl FormatArgs for Parameters {
         } else {
             self.map.get_index(index)?
         };
-
-        if self.non_strict && res.is_none() {
-            Ok(Some(&""))
-        } else {
-            Ok(res)
-        }
+        Ok(res)
     }
 
     fn get_key(&self, key: &str) -> Result<Option<Argument<'_>>, ()> {
-        let res = self.map.get_key(key)?;
-
-        if self.non_strict && res.is_none() {
-            Ok(Some(&""))
-        } else {
-            Ok(res)
-        }
+        self.map.get_key(key)
     }
 }
 
@@ -64,10 +52,7 @@ impl Parameters {
     pub fn new_with_text<T: Into<String>>(text: T) -> Parameters {
         let mut map = HashMap::new();
         map.insert(TEXT_KEY.to_string(), text.into());
-        Parameters {
-            map,
-            ..Default::default()
-        }
+        Parameters { map }
     }
     /// Copies the parameters and adds a new key-value pair.
     pub fn with<K: Into<String>, V: Into<String>>(&self, key: K, value: V) -> Parameters {
@@ -96,13 +81,6 @@ impl Parameters {
         self.map.get(key)
     }
 
-    pub fn new_non_strict() -> Parameters {
-        Parameters {
-            non_strict: true,
-            ..Default::default()
-        }
-    }
-
     pub fn forked<K, V1, V2>(&self, key: K, a: V1, b: V2) -> (Parameters, Parameters)
     where
         K: Into<String> + Copy,
@@ -128,8 +106,17 @@ impl Parameters {
         self.get(TEXT_KEY)
     }
 
+    /// Returns new `Parameters` with all the values replaced with placeholders.
+    pub fn with_placeholder_values(&self) -> Parameters {
+        let mut copy = self.clone();
+        for (key, value) in copy.map.iter_mut() {
+            *value = format!("{{{}}}", key);
+        }
+        copy
+    }
+
     #[cfg(feature = "tera")]
-    pub fn to_tera(&self) -> tera::Context {
+    pub(crate) fn to_tera(&self) -> tera::Context {
         let mut context = tera::Context::new();
         for (key, value) in self.map.iter() {
             context.insert(key, value);
@@ -152,20 +139,14 @@ impl From<&str> for Parameters {
 
 impl From<HashMap<String, String>> for Parameters {
     fn from(map: HashMap<String, String>) -> Self {
-        Parameters {
-            map,
-            ..Default::default()
-        }
+        Parameters { map }
     }
 }
 
 impl From<Vec<(String, String)>> for Parameters {
     fn from(data: Vec<(String, String)>) -> Self {
         let map: HashMap<String, String> = data.into_iter().collect();
-        Parameters {
-            map,
-            ..Default::default()
-        }
+        Parameters { map }
     }
 }
 
@@ -175,9 +156,6 @@ impl From<Vec<(&str, &str)>> for Parameters {
             .into_iter()
             .map(|(k, v)| (k.to_string(), v.to_string()))
             .collect();
-        Parameters {
-            map,
-            ..Default::default()
-        }
+        Parameters { map }
     }
 }
