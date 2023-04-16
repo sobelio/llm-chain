@@ -716,6 +716,7 @@ pub struct llama_context_params {
     pub f16_kv: bool,
     pub logits_all: bool,
     pub vocab_only: bool,
+    pub use_mmap: bool,
     pub use_mlock: bool,
     pub embedding: bool,
     pub progress_callback: llama_progress_callback,
@@ -796,8 +797,18 @@ fn bindgen_test_layout_llama_context_params() {
         )
     );
     assert_eq!(
-        unsafe { ::std::ptr::addr_of!((*ptr).use_mlock) as usize - ptr as usize },
+        unsafe { ::std::ptr::addr_of!((*ptr).use_mmap) as usize - ptr as usize },
         15usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(llama_context_params),
+            "::",
+            stringify!(use_mmap)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).use_mlock) as usize - ptr as usize },
+        16usize,
         concat!(
             "Offset of field: ",
             stringify!(llama_context_params),
@@ -807,7 +818,7 @@ fn bindgen_test_layout_llama_context_params() {
     );
     assert_eq!(
         unsafe { ::std::ptr::addr_of!((*ptr).embedding) as usize - ptr as usize },
-        16usize,
+        17usize,
         concat!(
             "Offset of field: ",
             stringify!(llama_context_params),
@@ -836,8 +847,20 @@ fn bindgen_test_layout_llama_context_params() {
         )
     );
 }
+pub const llama_ftype_LLAMA_FTYPE_ALL_F32: llama_ftype = 0;
+pub const llama_ftype_LLAMA_FTYPE_MOSTLY_F16: llama_ftype = 1;
+pub const llama_ftype_LLAMA_FTYPE_MOSTLY_Q4_0: llama_ftype = 2;
+pub const llama_ftype_LLAMA_FTYPE_MOSTLY_Q4_1: llama_ftype = 3;
+pub const llama_ftype_LLAMA_FTYPE_MOSTLY_Q4_1_SOME_F16: llama_ftype = 4;
+pub type llama_ftype = ::std::os::raw::c_uint;
 extern "C" {
     pub fn llama_context_default_params() -> llama_context_params;
+}
+extern "C" {
+    pub fn llama_mmap_supported() -> bool;
+}
+extern "C" {
+    pub fn llama_mlock_supported() -> bool;
 }
 extern "C" {
     pub fn llama_init_from_file(
@@ -852,8 +875,25 @@ extern "C" {
     pub fn llama_model_quantize(
         fname_inp: *const ::std::os::raw::c_char,
         fname_out: *const ::std::os::raw::c_char,
-        itype: ::std::os::raw::c_int,
+        ftype: llama_ftype,
     ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn llama_get_kv_cache(ctx: *mut llama_context) -> *const u8;
+}
+extern "C" {
+    pub fn llama_get_kv_cache_size(ctx: *mut llama_context) -> usize;
+}
+extern "C" {
+    pub fn llama_get_kv_cache_token_count(ctx: *mut llama_context) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn llama_set_kv_cache(
+        ctx: *mut llama_context,
+        kv_cache: *const u8,
+        n_size: usize,
+        n_token_count: ::std::os::raw::c_int,
+    );
 }
 extern "C" {
     pub fn llama_eval(
