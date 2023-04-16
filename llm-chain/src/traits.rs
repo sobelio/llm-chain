@@ -46,6 +46,7 @@ impl<T: ?Sized> StepExt for T where T: Step {}
 
 /// The `StepExt` trait extends the functionality of the `Step` trait, providing convenience
 /// methods for working with steps.
+#[async_trait]
 pub trait StepExt: Step {
     /// Converts this step into a sequential chain with a single step.
     ///
@@ -57,6 +58,17 @@ pub trait StepExt: Step {
         Self: Sized,
     {
         sequential::Chain::of_one(self)
+    }
+    async fn run<E: Executor<Step = Self> + Send + Sync>(
+        &self,
+        parameters: &Parameters,
+        executor: &E,
+    ) -> Result<E::Output, E::Error>
+    where
+        Self: Sized,
+    {
+        let output = self.format(parameters)?;
+        executor.execute(output).await
     }
 }
 

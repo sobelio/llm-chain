@@ -169,7 +169,7 @@ impl ExecutorTrait for Executor {
         let tokens_used = self.tokenize_str(step, &input.prompt)?.len() as i32;
 
         let input_with_empty_params = step
-            .format(&Parameters::new_non_strict())
+            .format(&parameters.with_placeholder_values())
             .map_err(|_| PromptTokensError::UnableToCompute)?;
         let template_tokens_used = self
             .tokenize_str(step, &input_with_empty_params.prompt)?

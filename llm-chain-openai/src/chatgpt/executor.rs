@@ -57,7 +57,7 @@ impl traits::Executor for Executor {
     ) -> Result<Self::Output, Self::Error> {
         let client = self.client.clone();
         let res = async move { client.chat().create(input).await }.await;
-        res.map(|x| x.into()).map_err(|e| Error::OpenAIError(e))
+        res.map(|x| x.into()).map_err(Error::OpenAIError)
     }
     fn tokens_used(
         &self,
@@ -65,21 +65,14 @@ impl traits::Executor for Executor {
         parameters: &Parameters,
     ) -> Result<TokenCount, PromptTokensError> {
         let max_tokens = tiktoken_rs::model::get_context_size(&step.model.to_string());
-        let prompt = step.prompt.format(parameters);
-
-        let prompt_with_empty_params = step
-            .prompt
-            .format(&Parameters::new_non_strict())
-            .map_err(|_| PromptTokensError::UnableToCompute)?;
+        let prompt = step.prompt.format(parameters)?;
+        // This approach will break once we add support for non-string valued parameters.
+        let prompt_with_empty_params = step.prompt.format(&parameters.with_placeholder_values())?;
         let num_tokens_with_empty_params =
             num_tokens_from_messages(&step.model.to_string(), &prompt_with_empty_params)
                 .map_err(|_| PromptTokensError::NotAvailable)?;
-
-        let tokens_used = num_tokens_from_messages(
-            &step.model.to_string(),
-            &prompt.map_err(|_| PromptTokensError::UnableToCompute)?,
-        )
-        .map_err(|_| PromptTokensError::NotAvailable)?;
+        let tokens_used = num_tokens_from_messages(&step.model.to_string(), &prompt)
+            .map_err(|_| PromptTokensError::NotAvailable)?;
 
         Ok(TokenCount::new(
             max_tokens as i32,

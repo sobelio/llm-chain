@@ -21,7 +21,6 @@ pub mod vectorstores;
 mod parameters;
 #[cfg(feature = "serialization")]
 pub mod serialization;
-mod templates;
 pub mod traits;
 
 pub mod schema;
@@ -38,6 +37,9 @@ pub mod parsing;
 #[cfg(feature = "serialization")]
 pub mod tools;
 
+pub mod prompt;
+
 pub use parameters::Parameters;
 
-pub use templates::{PromptTemplate, PromptTemplateError};
+#[deprecated(note = "Use llm_chain::prompt! instead")]
+pub use prompt::{PromptTemplate, PromptTemplateError};

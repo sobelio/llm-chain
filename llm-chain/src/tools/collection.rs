@@ -1,8 +1,10 @@
 use super::tool::Tool;
 use crate::parsing::{find_yaml, ExtractionError};
+use crate::prompt::PromptTemplate;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+#[derive(Default)]
 pub struct ToolCollection {
     tools: Vec<Box<dyn Tool>>,
 }
@@ -23,7 +25,7 @@ pub enum ToolUseError {
 
 impl ToolCollection {
     pub fn new() -> Self {
-        Self { tools: Vec::new() }
+        Default::default()
     }
 
     pub fn add_tool<T: Tool + 'static>(&mut self, tool: T) {
@@ -65,6 +67,15 @@ impl ToolCollection {
     pub fn describe(&self) -> String {
         let des: Vec<_> = self.tools.iter().map(|t| t.description()).collect();
         serde_yaml::to_string(&des).unwrap()
+    }
+
+    /// Generate a prompt template for the tool collection. Combine it with a normal prompt template to perform your task.
+    pub fn to_prompt_template(&self) -> PromptTemplate {
+        PromptTemplate::combine(vec![
+            PromptTemplate::static_string(include_str!("./tool_prompt_prefix.txt").to_string()),
+            PromptTemplate::static_string(self.describe()),
+            PromptTemplate::static_string("\n\n"),
+        ])
     }
 }
 

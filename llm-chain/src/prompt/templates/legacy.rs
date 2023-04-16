@@ -3,7 +3,7 @@ use dynfmt::{Format, SimpleCurlyFormat};
 #[cfg(feature = "serialization")]
 use serde::{Deserialize, Serialize};
 
-fn apply_formatting<'l>(template: &'l str, parameters: &Parameters) -> Result<String, String> {
+fn apply_formatting(template: &str, parameters: &Parameters) -> Result<String, String> {
     SimpleCurlyFormat {}
         .format(template, parameters)
         .map_err(|e| e.to_string())
@@ -27,10 +27,16 @@ fn apply_formatting<'l>(template: &'l str, parameters: &Parameters) -> Result<St
 /// let parameters: Parameters = vec![("name", "World")].into();
 /// assert_eq!(template.format(&parameters).unwrap(), "Hello World!");
 /// ```
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 #[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
 pub struct PromptTemplate {
     template: String,
+}
+
+impl std::fmt::Display for PromptTemplate {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.template)
+    }
 }
 
 impl PromptTemplate {

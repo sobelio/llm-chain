@@ -17,6 +17,9 @@ pub enum PromptTokensError {
     /// Indicates that the prompt tokens could not be computed.
     #[error("The prompt tokens could not be computed.")]
     UnableToCompute,
+    /// Indicates that the prompt tokens could not be computed because formatting the prompt failed.
+    #[error("Formatting prompt failed: {0}")]
+    PromptFormatFailed(#[from] crate::prompt::PromptTemplateError),
 }
 
 /// An extension trait for the `Executor` trait that provides additional methods for working

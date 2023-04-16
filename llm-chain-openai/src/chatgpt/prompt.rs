@@ -1,5 +1,9 @@
 use async_openai::types::{ChatCompletionRequestMessage, Role};
-use llm_chain::{Parameters, PromptTemplate, PromptTemplateError};
+use llm_chain::{
+    prompt::chat::{self, ChatRole},
+    prompt::Prompt,
+    Parameters, PromptTemplate, PromptTemplateError,
+};
 #[cfg(feature = "serialization")]
 use serde::{Deserialize, Serialize};
 /// A message prompt template consists of a role and a content. The role is either `User`, `System`, `Assistant`, and the content is a prompt template.
@@ -14,6 +18,24 @@ impl<T: Into<PromptTemplate>> From<(Role, T)> for MessagePromptTemplate {
     fn from((role, content): (Role, T)) -> Self {
         let content: PromptTemplate = content.into();
         Self { role, content }
+    }
+}
+
+fn convert_role(role: chat::ChatRole) -> Role {
+    match role {
+        ChatRole::User => Role::User,
+        ChatRole::Assistant => Role::Assistant,
+        ChatRole::System => Role::System,
+        ChatRole::Other(_s) => Role::User, // other roles are not supported by OpenAI
+    }
+}
+
+impl From<chat::ChatMessage> for MessagePromptTemplate {
+    fn from(message: chat::ChatMessage) -> Self {
+        Self {
+            role: convert_role(message.role()),
+            content: message.content(),
+        }
     }
 }
 
@@ -81,6 +103,15 @@ pub struct ChatPromptTemplate {
 impl ChatPromptTemplate {
     pub fn new(messages: Vec<MessagePromptTemplate>) -> ChatPromptTemplate {
         ChatPromptTemplate { messages }
+    }
+    pub fn for_prompt<P: Prompt>(prompt: &P) -> ChatPromptTemplate {
+        ChatPromptTemplate::new(
+            prompt
+                .as_chat_prompt()
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+        )
     }
     pub fn system_and_user<S: Into<PromptTemplate>, U: Into<PromptTemplate>>(
         system: S,

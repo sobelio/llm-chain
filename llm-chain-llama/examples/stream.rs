@@ -1,6 +1,6 @@
 use std::{env, io::Write, path::Path};
 
-use llm_chain::{traits::StepExt, Parameters, PromptTemplate};
+use llm_chain::{prompt, traits::StepExt, Parameters};
 use llm_chain_llama::{Executor, Step};
 
 /// This example demonstrates how to use the llm-chain-llama crate to generate text using a
@@ -28,10 +28,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     // Create a chain with a single step using a prompt template
-    let chain = Step::new(PromptTemplate::new(
-        "The Colors of the Rainbow are (in order): ",
-    ))
-    .to_chain();
+    let chain = Step::for_prompt(prompt!("The Colors of the Rainbow are (in order): ")).to_chain();
 
     // Execute the chain and print the result
     let res = chain.run(Parameters::new(), &exec).await?;
