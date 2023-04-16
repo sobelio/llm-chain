@@ -48,7 +48,7 @@ macro_rules! prompt {
         llm_chain::prompt::text::TextPrompt::new($single_arg)
     };
     ($system_arg:expr, $user_arg:expr $(,)?) => {
-        ChatPromptBuilder::new()
+        llm_chain::prompt::chat::ChatPrompt::builder()
             .system($system_arg)
             .user($user_arg)
             .build()

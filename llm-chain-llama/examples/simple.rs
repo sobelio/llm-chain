@@ -25,7 +25,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let exec = Executor::new(path.to_str().unwrap());
 
     // Create a chain with a single step using a prompt template
-    let chain = Step::new(PromptTemplate::new(
+    let chain = Step::new(PromptTemplate::tera(
         "The Colors of the Rainbow are (in order): ",
     ))
     .to_chain();

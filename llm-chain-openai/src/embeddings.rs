@@ -53,7 +53,7 @@ impl traits::Embeddings for Embeddings {
             .map(|r| r.data.into_iter())?
             .map(|e| e.embedding)
             .last()
-            .ok_or(OpenAIEmbeddingsError::EmptyResponse.into())
+            .ok_or(OpenAIEmbeddingsError::EmptyResponse)
     }
 }
 

@@ -1,5 +1,9 @@
 use async_openai::types::{ChatCompletionRequestMessage, Role};
-use llm_chain::{prompt, Parameters, PromptTemplate, PromptTemplateError};
+use llm_chain::{
+    prompt::chat::{self, ChatRole},
+    prompt::Prompt,
+    Parameters, PromptTemplate, PromptTemplateError,
+};
 #[cfg(feature = "serialization")]
 use serde::{Deserialize, Serialize};
 /// A message prompt template consists of a role and a content. The role is either `User`, `System`, `Assistant`, and the content is a prompt template.
@@ -17,17 +21,17 @@ impl<T: Into<PromptTemplate>> From<(Role, T)> for MessagePromptTemplate {
     }
 }
 
-fn convert_role(role: prompt::ChatRole) -> Role {
+fn convert_role(role: chat::ChatRole) -> Role {
     match role {
-        prompt::ChatRole::User => Role::User,
-        prompt::ChatRole::Assistant => Role::Assistant,
-        prompt::ChatRole::System => Role::System,
-        prompt::ChatRole::Other(_s) => Role::User, // other roles are not supported by OpenAI
+        ChatRole::User => Role::User,
+        ChatRole::Assistant => Role::Assistant,
+        ChatRole::System => Role::System,
+        ChatRole::Other(_s) => Role::User, // other roles are not supported by OpenAI
     }
 }
 
-impl From<prompt::ChatMessage> for MessagePromptTemplate {
-    fn from(message: prompt::ChatMessage) -> Self {
+impl From<chat::ChatMessage> for MessagePromptTemplate {
+    fn from(message: chat::ChatMessage) -> Self {
         Self {
             role: convert_role(message.role()),
             content: message.content(),
@@ -100,7 +104,7 @@ impl ChatPromptTemplate {
     pub fn new(messages: Vec<MessagePromptTemplate>) -> ChatPromptTemplate {
         ChatPromptTemplate { messages }
     }
-    pub fn for_prompt<P: prompt::Prompt>(prompt: &P) -> ChatPromptTemplate {
+    pub fn for_prompt<P: Prompt>(prompt: &P) -> ChatPromptTemplate {
         ChatPromptTemplate::new(
             prompt
                 .as_chat_prompt()

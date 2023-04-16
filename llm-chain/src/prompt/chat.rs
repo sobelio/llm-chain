@@ -29,13 +29,15 @@ pub struct ChatMessage {
 }
 
 impl ChatMessage {
+    /// Creates a new `ChatMessage` from a role and a string.
     pub fn new<S: Into<String>>(role: ChatRole, content: S) -> Self {
         Self {
             role,
             content: PromptTemplate::tera(content.into()),
         }
     }
-    pub(crate) fn from_template(role: ChatRole, content: PromptTemplate) -> Self {
+    /// Creates a new `ChatMessage` from a role and a prompt template.
+    pub fn from_template(role: ChatRole, content: PromptTemplate) -> Self {
         Self { role, content }
     }
     pub fn role(&self) -> ChatRole {
@@ -49,6 +51,18 @@ impl ChatMessage {
 #[derive(Debug, Builder, Clone)]
 pub struct ChatPrompt {
     messages: Vec<ChatMessage>,
+}
+
+impl ChatPrompt {
+    /// Returns a new `ChatPromptBuilder` for building a `ChatPrompt`.
+    pub fn builder() -> ChatPromptBuilder {
+        ChatPromptBuilder::default()
+    }
+    pub fn to_builder(&self) -> ChatPromptBuilder {
+        let mut cpb = ChatPromptBuilder::default();
+        cpb.messages(self.messages.clone());
+        cpb
+    }
 }
 
 impl Prompt for ChatPrompt {
