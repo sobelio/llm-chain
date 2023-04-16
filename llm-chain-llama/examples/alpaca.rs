@@ -1,7 +1,7 @@
 use std::{env, path::Path};
 
-use llm_chain::{traits::StepExt, Parameters};
-use llm_chain_llama::{new_instruct_template, Executor, Step};
+use llm_chain::{prompt, traits::StepExt, Parameters};
+use llm_chain_llama::{Executor, Step};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -14,19 +14,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let exec = Executor::new(path.to_str().unwrap());
 
     // This is the Alpaca templated used to instruct the user to write a response. As with all LLM-chain templates, {} is used to indicate the main/default parameter.
-    let instr =
-        new_instruct_template("Write a hypothetical weather report for {season} in {location}.");
-    let chain = Step::new(instr).to_chain();
-
-    let res = chain
-        .run(
-            Parameters::new()
-                .with("season", "summer")
-                .with("location", "the moon"),
-            &exec,
-        )
-        .await?;
-
-    println!("{:?}", res.to_string());
+    let res = Step::for_prompt(prompt!(
+        "Write a hypothetical weather report for {season} in {location}."
+    ))
+    .run(
+        &Parameters::new()
+            .with("season", "summer")
+            .with("location", "the moon"),
+        &exec,
+    )
+    .await?;
+    println!("{}", res);
     Ok(())
 }

@@ -1,6 +1,6 @@
 use llm_chain::output::Output;
 use llm_chain::prompt::chat::{ChatMessage, ChatPrompt, ChatRole};
-use llm_chain::tools::tools::{BashTool, ExitTool, PythonTool};
+use llm_chain::tools::tools::{BashTool, ExitTool};
 use llm_chain::tools::ToolCollection;
 use llm_chain::PromptTemplate;
 use llm_chain::{traits::StepExt, Parameters};
