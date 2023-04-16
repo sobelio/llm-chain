@@ -190,7 +190,6 @@ where
             .collect::<Vec<String>>();
 
         let points = embedding_vecs
-            .clone()
             .into_iter()
             .zip(documents.into_iter())
             .zip(ids.iter())
