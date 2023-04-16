@@ -3,7 +3,7 @@ use std::sync::Arc;
 use llm_chain::{traits::VectorStore, vectorstores::qdrant::Qdrant};
 use qdrant_client::{
     prelude::{QdrantClient, QdrantClientConfig},
-    qdrant::{CreateCollection, Distance, VectorParams, VectorsConfig, WithPayloadSelector},
+    qdrant::{CreateCollection, Distance, VectorParams, VectorsConfig},
 };
 
 #[tokio::main(flavor = "current_thread")]
@@ -41,7 +41,13 @@ async fn main() {
     let embeddings = llm_chain_openai::embeddings::Embeddings::default();
 
     // Storing documents
-    let qdrant = Qdrant::new(client.clone(), collection_name.clone(), embeddings);
+    let qdrant: Qdrant<llm_chain_openai::embeddings::Embeddings> = Qdrant::new(
+        client.clone(),
+        collection_name.clone(),
+        embeddings,
+        None,
+        None,
+    );
     let doc_ids = qdrant
         .add_texts(vec![
             "This is an amazing way of writing LLM-powered applications".to_string(),
@@ -56,7 +62,7 @@ async fn main() {
             collection_name,
             &doc_ids.into_iter().map(|id| id.into()).collect(),
             Some(true),
-            None::<WithPayloadSelector>,
+            Some(true),
             None,
         )
         .await

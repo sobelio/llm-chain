@@ -24,6 +24,8 @@ pub mod serialization;
 mod templates;
 pub mod traits;
 
+pub mod schema;
+
 pub mod frame;
 
 pub mod tokens;

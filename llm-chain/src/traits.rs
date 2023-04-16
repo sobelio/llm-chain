@@ -14,6 +14,7 @@ use std::{error::Error, fmt::Debug};
 use crate::{
     chains::sequential,
     output::Output,
+    schema::{Document, EmptyMetadata},
     tokens::{PromptTokensError, TokenCount},
     Parameters,
 };
@@ -150,10 +151,20 @@ pub trait EmbeddingsError {}
 pub trait Embeddings {
     type Error: Debug + Error + EmbeddingsError;
     async fn embed_texts(&self, texts: Vec<String>) -> Result<Vec<Vec<f32>>, Self::Error>;
+    async fn embed_query(&self, query: String) -> Result<Vec<f32>, Self::Error>;
 }
 
 #[async_trait]
-pub trait VectorStore<E: Embeddings> {
+pub trait VectorStore<E, M = EmptyMetadata>
+where
+    E: Embeddings,
+{
     type Error: Debug + Error + From<<E as Embeddings>::Error>;
     async fn add_texts(&self, texts: Vec<String>) -> Result<Vec<String>, Self::Error>;
+    async fn add_documents(&self, documents: Vec<Document<M>>) -> Result<Vec<String>, Self::Error>;
+    async fn similarity_search(
+        &self,
+        query: String,
+        limit: u32,
+    ) -> Result<Vec<Document<M>>, Self::Error>;
 }
