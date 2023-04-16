@@ -5,7 +5,7 @@
 //! prompts stay within the context window size supported by a given model.
 
 use crate::traits::Executor;
-use crate::Parameters;
+use crate::{Parameters, Tokenizer};
 use thiserror::Error;
 
 /// Custom error type for handling prompt token-related errors.
@@ -24,7 +24,7 @@ pub enum PromptTokensError {
 
 /// An extension trait for the `Executor` trait that provides additional methods for working
 /// with token counts.
-pub trait ExecutorTokenCountExt<Step, Output, Token>:
+pub trait ExecutorTokenCountExt<Step, Output, Token: Clone, StepTokenizer>:
     Executor<Step = Step, Output = Output, Token = Token>
 {
     /// Splits a `Parameters` object at the token limit.
@@ -47,11 +47,20 @@ pub trait ExecutorTokenCountExt<Step, Output, Token>:
         if tokens_used.has_tokens_remaining() {
             Ok((doc.clone(), None))
         } else {
-            let tokens = self.tokenize_str(step, text)?;
+            let tokenizer = self.get_tokenizer(step);
+            let tokens = tokenizer
+                .tokenize_str(text)
+                .map_err(|_| PromptTokensError::NotAvailable)?;
             let idx: usize = (tokens_used.max_tokens - tokens_used.template_tokens_used) as usize;
             let (a, b) = tokens.split_at(idx);
-            let a = doc.with_text(self.to_string(step, a)?);
-            let b = self.to_string(step, b)?;
+            let a = doc.with_text(
+                tokenizer
+                    .to_string(a.to_vec())
+                    .map_err(|_| PromptTokensError::UnableToCompute)?,
+            );
+            let b = tokenizer
+                .to_string(b.to_vec())
+                .map_err(|_| PromptTokensError::UnableToCompute)?;
             let b = if b.is_empty() {
                 None
             } else {
@@ -141,7 +150,9 @@ impl TokenCount {
 }
 
 /// An extension trait for the `Executor` trait that provides additional methods for working with tokens
-impl<E, S, O, T> ExecutorTokenCountExt<S, O, T> for E where
-    E: Executor<Step = S, Output = O, Token = T>
+impl<E, S, O, T, N> ExecutorTokenCountExt<S, O, T, N> for E
+where
+    E: Executor<Step = S, Output = O, Token = T>,
+    T: Clone,
 {
 }

@@ -16,7 +16,7 @@ use crate::{
     output::Output,
     schema::{Document, EmptyMetadata},
     tokens::{PromptTokensError, TokenCount},
-    Parameters,
+    Parameters, Tokenizer,
 };
 use async_trait::async_trait;
 
@@ -88,7 +88,11 @@ pub trait Executor {
     type Error: ExecutorError + Debug + Error + From<<Self::Step as Step>::Error>;
 
     /// The token type used by this executor.
-    type Token;
+    type Token: Clone;
+
+    type StepTokenizer<'a>: Tokenizer<Self::Token>
+    where
+        Self: 'a;
 
     /// Executes the given input and returns the resulting output.
     ///
@@ -133,11 +137,11 @@ pub trait Executor {
     /// # Returns
     ///
     /// A `Result` containing a vector of tokens, or an error if there was a problem.
-    fn tokenize_str(
-        &self,
-        step: &Self::Step,
-        doc: &str,
-    ) -> Result<Vec<Self::Token>, PromptTokensError>;
+    // fn tokenize_str(
+    //     &self,
+    //     step: &Self::Step,
+    //     doc: &str,
+    // ) -> Result<Vec<Self::Token>, PromptTokensError>;
 
     /// Converts a slice of tokens into a string based on the step.
     ///
@@ -149,11 +153,14 @@ pub trait Executor {
     /// # Returns
     ///
     /// A `Result` containing a string, or an error if there was a problem.
-    fn to_string(
-        &self,
-        step: &Self::Step,
-        tokens: &[Self::Token],
-    ) -> Result<String, PromptTokensError>;
+    // fn to_string(
+    //     &self,
+    //     step: &Self::Step,
+    //     tokens: &[Self::Token],
+    // ) -> Result<String, PromptTokensError>;
+
+    // Also does this have to be a Result?
+    fn get_tokenizer(&self, step: &Self::Step) -> Self::StepTokenizer<'_>;
 }
 
 /// This marker trait is needed so the concrete VectorStore::Error can have a derived From<Embeddings::Error>
