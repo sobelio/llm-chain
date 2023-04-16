@@ -26,7 +26,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             &exec,
         )
         .await?;
-        
+
     println!("{:?}", res.to_string());
     Ok(())
 }

@@ -189,7 +189,7 @@ where
             .map(|_| Uuid::new_v4().to_string())
             .collect::<Vec<String>>();
 
-        let points = ids
+        let points = embedding_vecs
             .clone()
             .into_iter()
             .zip(documents.into_iter())
