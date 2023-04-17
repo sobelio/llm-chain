@@ -93,6 +93,7 @@ impl Step {
     /// * `prompt` - The prompt template for the step.
     #[deprecated(since = "0.6.0", note = "Use for_prompt instead")]
     pub fn new<P: Into<PromptTemplate>>(prompt: P) -> Self {
+        #[allow(deprecated)]
         Self::new_with_config(prompt, None)
     }
 
