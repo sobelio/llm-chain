@@ -128,38 +128,15 @@ pub trait Executor {
         parameters: &Parameters,
     ) -> Result<TokenCount, PromptTokensError>;
 
-    /// Tokenizes a string based on the step.
+    /// Creates a tokenizer, depending on the model used by `step`.
     ///
     /// # Parameters
-    ///
-    /// * `step`: The step used for tokenization.
-    /// * `doc`: The string to tokenize.
+    ///    
+    /// * `step`: The step to get an associated tokenizer for.
     ///
     /// # Returns
     ///
-    /// A `Result` containing a vector of tokens, or an error if there was a problem.
-    // fn tokenize_str(
-    //     &self,
-    //     step: &Self::Step,
-    //     doc: &str,
-    // ) -> Result<Vec<Self::Token>, PromptTokensError>;
-
-    /// Converts a slice of tokens into a string based on the step.
-    ///
-    /// # Parameters
-    ///
-    /// * `step`: The step used for conversion.
-    /// * `tokens`: The slice of tokens to convert.
-    ///
-    /// # Returns
-    ///
-    /// A `Result` containing a string, or an error if there was a problem.
-    // fn to_string(
-    //     &self,
-    //     step: &Self::Step,
-    //     tokens: &[Self::Token],
-    // ) -> Result<String, PromptTokensError>;
-
+    /// A `Result` containing a tokenizer, or an error if there was a problem.
     fn get_tokenizer(&self, step: &Self::Step) -> Result<Self::StepTokenizer<'_>, TokenizerError>;
 }
 

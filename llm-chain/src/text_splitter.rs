@@ -12,7 +12,26 @@ pub enum TokenizerError {
 }
 
 pub trait Tokenizer<TokenType: Clone> {
+    /// Tokenizes a string.
+    ///
+    /// # Parameters
+    ///    
+    /// * `doc`: The string to tokenize.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing a vector of tokens, or an error if there was a problem.
     fn tokenize_str(&self, doc: &str) -> Result<Vec<TokenType>, TokenizerError>;
+
+    /// Converts a vector of tokens into a string.
+    ///
+    /// # Parameters
+    ///    
+    /// * `tokens`: The slice of tokens to convert.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing a string, or an error if there was a problem.
     fn to_string(&self, tokens: Vec<TokenType>) -> Result<String, TokenizerError>;
 }
 
