@@ -5,11 +5,10 @@ use crate::tokenizer::{embedding_to_output, llama_token_eos, llama_tokenize_help
 use crate::output::Output;
 use async_trait::async_trait;
 
-use llm_chain::text_splitter::TokenizerError;
-use llm_chain::tokens::{PromptTokensError, TokenCount};
+use llm_chain::tokens::{PromptTokensError, TokenCount, Tokenizer, TokenizerError};
 use llm_chain::traits::{self, StepError};
 use llm_chain::traits::{Executor as ExecutorTrait, Step as StepTrait};
-use llm_chain::{Parameters, Tokenizer};
+use llm_chain::Parameters;
 use llm_chain_llama_sys::llama_context_params;
 
 /// Executor is responsible for running the LLAMA model and managing its context.
@@ -223,18 +222,12 @@ impl<'a> LLamaTokenizer<'a> {
 }
 
 impl Tokenizer<i32> for LLamaTokenizer<'_> {
-    fn tokenize_str(
-        &self,
-        doc: &str,
-    ) -> Result<Vec<i32>, llm_chain::text_splitter::TokenizerError> {
+    fn tokenize_str(&self, doc: &str) -> Result<Vec<i32>, TokenizerError> {
         let tokenized = llama_tokenize_helper(self.context, doc, true);
         Ok(tokenized)
     }
 
-    fn to_string(
-        &self,
-        tokens: Vec<i32>,
-    ) -> Result<String, llm_chain::text_splitter::TokenizerError> {
+    fn to_string(&self, tokens: Vec<i32>) -> Result<String, TokenizerError> {
         let output = embedding_to_output(self.context, &tokens);
         Ok(output.to_string())
     }

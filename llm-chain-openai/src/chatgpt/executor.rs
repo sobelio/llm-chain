@@ -1,11 +1,9 @@
 use super::output::Output;
 use super::step::Step;
 use async_openai::error::OpenAIError;
-use llm_chain::text_splitter::TokenizerError;
-use llm_chain::tokens::PromptTokensError;
+use llm_chain::tokens::{PromptTokensError, Tokenizer, TokenizerError};
 use llm_chain::traits;
 use llm_chain::Parameters;
-use llm_chain::Tokenizer;
 
 use async_trait::async_trait;
 use llm_chain::tokens::TokenCount;

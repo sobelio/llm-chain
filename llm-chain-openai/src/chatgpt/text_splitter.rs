@@ -1,5 +1,8 @@
 use super::step::Model;
-use llm_chain::text_splitter::{TextSplitter, Tokenizer, TokenizerError};
+use llm_chain::{
+    text_splitter::TextSplitter,
+    tokens::{Tokenizer, TokenizerError},
+};
 use tiktoken_rs::CoreBPE;
 
 pub struct OpenAITextSplitter {

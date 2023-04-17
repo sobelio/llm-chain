@@ -1,4 +1,5 @@
-use llm_chain::text_splitter::{TextSplitter, Tokenizer, TokenizerError};
+use llm_chain::text_splitter::TextSplitter;
+use llm_chain::tokens::{Tokenizer, TokenizerError};
 
 use crate::{
     context::LLamaContext,

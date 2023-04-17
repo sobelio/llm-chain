@@ -5,7 +5,7 @@
 //! prompts stay within the context window size supported by a given model.
 
 use crate::traits::Executor;
-use crate::{Parameters, Tokenizer};
+use crate::Parameters;
 use thiserror::Error;
 
 /// Custom error type for handling prompt token-related errors.
@@ -159,4 +159,38 @@ where
     E: Executor<Step = S, Output = O, Token = T>,
     T: Clone,
 {
+}
+
+#[derive(Error, Debug)]
+pub enum TokenizerError {
+    #[error("Error tokenizing input text")]
+    TokenizationError,
+    #[error("Error stringifying tokens to text")]
+    ToStringError,
+    #[error("Error creating tokenizer")]
+    TokenizerCreationError,
+}
+
+pub trait Tokenizer<TokenType: Clone> {
+    /// Tokenizes a string.
+    ///
+    /// # Parameters
+    ///    
+    /// * `doc`: The string to tokenize.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing a vector of tokens, or an error if there was a problem.
+    fn tokenize_str(&self, doc: &str) -> Result<Vec<TokenType>, TokenizerError>;
+
+    /// Converts a vector of tokens into a string.
+    ///
+    /// # Parameters
+    ///    
+    /// * `tokens`: The slice of tokens to convert.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing a string, or an error if there was a problem.
+    fn to_string(&self, tokens: Vec<TokenType>) -> Result<String, TokenizerError>;
 }

@@ -15,9 +15,8 @@ use crate::{
     chains::sequential,
     output::Output,
     schema::{Document, EmptyMetadata},
-    text_splitter::TokenizerError,
-    tokens::{PromptTokensError, TokenCount},
-    Parameters, Tokenizer,
+    tokens::{PromptTokensError, TokenCount, Tokenizer, TokenizerError},
+    Parameters,
 };
 use async_trait::async_trait;
 
