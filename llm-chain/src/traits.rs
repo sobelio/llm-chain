@@ -75,6 +75,8 @@ pub trait StepExt: Step {
 /// Marker trait for errors in `Executor` method. It is needed so the concrete Errors can have a derived From<ExecutorError>
 pub trait ExecutorError {}
 
+pub trait Input {}
+
 #[async_trait]
 /// The `Executor` trait represents an executor that performs a single step in a chain. It takes a
 /// step, executes it, and returns the output.
@@ -89,6 +91,9 @@ pub trait Executor {
 
     /// The token type used by this executor.
     type Token;
+
+    /// The input type used by this executor.
+    type Input: Input;
 
     /// Executes the given input and returns the resulting output.
     ///
