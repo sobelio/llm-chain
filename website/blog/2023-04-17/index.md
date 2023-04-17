@@ -1,8 +1,17 @@
 ---
 slug: introducing-llm-chain-v060
-title: Introducing LLM-chain v0.6.0: Powerful Templating and Improved Prompt System
+title: "Introducing LLM-chain v0.6.0: Powerful Templating and Improved Prompt System"
 authors: [whn]
-tags: [llm-chain, update, large language models, rust, tera, templating, prompt system]
+tags:
+  [
+    llm-chain,
+    update,
+    large language models,
+    rust,
+    tera,
+    templating,
+    prompt system,
+  ]
 ---
 
 We are thrilled to announce the release of llm-chain v0.6.0, which introduces significant enhancements to our library. This update focuses on making the llm-chain more robust and versatile, allowing developers to build even more advanced applications with ease.
