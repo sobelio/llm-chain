@@ -5,6 +5,7 @@ use crate::tokenizer::{embedding_to_output, llama_token_eos, llama_tokenize_help
 use crate::output::Output;
 use async_trait::async_trait;
 
+use llm_chain::text_splitter::TokenizerError;
 use llm_chain::tokens::{PromptTokensError, TokenCount};
 use llm_chain::traits::{self, StepError};
 use llm_chain::traits::{Executor as ExecutorTrait, Step as StepTrait};
@@ -168,6 +169,10 @@ impl ExecutorTrait for Executor {
             .format(parameters)
             .map_err(|_| PromptTokensError::UnableToCompute)?;
 
+        let tokenizer = self
+            .get_tokenizer(step)
+            .map_err(|_e| PromptTokensError::UnableToCompute)?;
+
         let tokens_used = tokenizer
             .tokenize_str(&input.prompt)
             .map_err(|_e| PromptTokensError::UnableToCompute)?
@@ -200,8 +205,8 @@ impl ExecutorTrait for Executor {
     //     Ok(output.to_string())
     // }
 
-    fn get_tokenizer(&self, _step: &Self::Step) -> LLamaTokenizer {
-        LLamaTokenizer::new(self)
+    fn get_tokenizer(&self, _step: &Self::Step) -> Result<LLamaTokenizer, TokenizerError> {
+        Ok(LLamaTokenizer::new(self))
     }
 }
 

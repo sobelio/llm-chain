@@ -79,8 +79,8 @@ impl traits::Executor for Executor {
         ))
     }
 
-    fn get_tokenizer(&self, step: &Self::Step) -> OpenAITokenizer {
-        OpenAITokenizer::new(step)
+    fn get_tokenizer(&self, step: &Self::Step) -> Result<OpenAITokenizer, TokenizerError> {
+        Ok(OpenAITokenizer::new(step))
     }
 }
 

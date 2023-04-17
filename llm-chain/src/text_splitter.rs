@@ -7,6 +7,8 @@ pub enum TokenizerError {
     TokenizationError,
     #[error("Error stringifying tokens to text")]
     ToStringError,
+    #[error("Error creating tokenizer")]
+    TokenizerCreationError,
 }
 
 pub trait Tokenizer<TokenType: Clone> {

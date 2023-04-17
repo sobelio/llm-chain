@@ -15,6 +15,7 @@ use crate::{
     chains::sequential,
     output::Output,
     schema::{Document, EmptyMetadata},
+    text_splitter::TokenizerError,
     tokens::{PromptTokensError, TokenCount},
     Parameters, Tokenizer,
 };
@@ -159,8 +160,7 @@ pub trait Executor {
     //     tokens: &[Self::Token],
     // ) -> Result<String, PromptTokensError>;
 
-    // Also does this have to be a Result?
-    fn get_tokenizer(&self, step: &Self::Step) -> Self::StepTokenizer<'_>;
+    fn get_tokenizer(&self, step: &Self::Step) -> Result<Self::StepTokenizer<'_>, TokenizerError>;
 }
 
 /// This marker trait is needed so the concrete VectorStore::Error can have a derived From<Embeddings::Error>

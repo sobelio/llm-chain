@@ -47,10 +47,14 @@ pub trait ExecutorTokenCountExt<Step, Output, Token: Clone, StepTokenizer>:
         if tokens_used.has_tokens_remaining() {
             Ok((doc.clone(), None))
         } else {
-            let tokenizer = self.get_tokenizer(step);
+            let tokenizer = self
+                .get_tokenizer(step)
+                .map_err(|_e| PromptTokensError::UnableToCompute)?;
+
             let tokens = tokenizer
                 .tokenize_str(text)
                 .map_err(|_| PromptTokensError::NotAvailable)?;
+
             let idx: usize = (tokens_used.max_tokens - tokens_used.template_tokens_used) as usize;
             let (a, b) = tokens.split_at(idx);
             let a = doc.with_text(
