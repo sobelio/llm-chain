@@ -11,60 +11,58 @@ Sequential chains in LLM-Chain allow you to execute a series of steps, with the 
 Here's a Rust program that demonstrates how to create a sequential chain:
 
 ```rust
-use llm_chain::chains::sequential::Chain;
-use llm_chain_openai::chatgpt::{Executor, Model, Role, Step};
+use llm_chain::{chains::sequential::Chain, prompt};
+use llm_chain_openai::chatgpt::{Executor, Step};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
+    // Create a new ChatGPT executor with the default settings
     let exec = Executor::new_default();
+
+    // Create a chain of steps with two prompts
     let chain = Chain::new(vec![
-        Step::new(
-            Model::ChatGPT3_5Turbo,
-            [
-                (
-                    Role::System,
-                    "You are a bot for making personalized greetings",
-                ),
-                (
-                    Role::User,
-                    "Make personalized birthday e-mail to the whole company for {name} who has their birthday on {date}. Include their name",
-                ),
-            ],
+        // First step: make a personalized birthday email
+        Step::for_prompt(
+            prompt!("You are a bot for making personalized greetings", "Make personalized birthday e-mail to the whole company for {{name}} who has their birthday on {{date}}. Include their name")
         ),
-        Step::new(
-            Model::ChatGPT3_5Turbo,
-            [
-                (
-                    Role::System,
-                    "You are an assistant for managing social media accounts for a company",
-                ),
-                (
-                    Role::User,
-                    "Summarize this email into a tweet to be sent by the company, use emoji if you can. \n--\n{}",
-                ),
-            ],
-        ),
+
+        // Second step: summarize the email into a tweet. Importantly, the text parameter becomes the result of the previous prompt.
+        Step::for_prompt(
+            prompt!( "You are an assistant for managing social media accounts for a company", "Summarize this email into a tweet to be sent by the company, use emoji if you can. \n--\n{{text}}")
+        )
     ]);
+
+    // Run the chain with the provided parameters
     let res = chain
         .run(
+            // Create a Parameters object with key-value pairs for the placeholders
             vec![("name", "Emil"), ("date", "February 30th 2023")].into(),
             &exec,
         )
         .await
         .unwrap();
+
+    // Print the result to the console
     println!("{:?}", res);
 }
 ```
 
-Let's break down the code and understand the different parts:
+1. We start by importing the necessary modules from the `llm_chain` and `llm_chain_openai` libraries.
+2. The main async function is defined, using Tokio as the runtime.
+3. We create a new `Executor` with the default settings.
+4. We create a `Chain` that contains two steps, each with a different prompt:
 
-1. Build a new Chain by providing a vector of Steps. In this example, we have two steps:
-   a. The first step creates a personalized birthday email for a person named Emil.
-   b. The second step summarizes the email into a tweet, including an emoji if possible.
-   To extend the chain with more steps, simply add additional Steps to the vector. The output of the previous step will be fed into the next step as input.
-2. Create a Parameters object with the necessary values for the placeholders in the prompt templates.
-3. Execute the Chain with the provided parameters and store the result in res.
-4. Print the LLM response to the console.
+   - The first step has a prompt to make a personalized birthday email for a company.
+   - The second step has a prompt to summarize the email into a tweet.
+
+   Both prompts use placeholders (e.g., `{{name}}`, `{{date}}`, and `{{text}}`) that will be replaced with specific values later. Importantly the value of `{{text}}` will replaced by result of the first step in the chain.
+
+5. We run the `Chain` with the provided parameters:
+
+   - We create a `Parameters` object with key-value pairs for the placeholders: `("name", "Emil")` and `("date", "February 30th 2023")`.
+   - We pass the `Parameters` object and the `Executor` to the `run()` method.
+
+6. We unwrap the result and print it to the console.
 
 ## Best Practices and Tips
 
