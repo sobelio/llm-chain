@@ -30,7 +30,7 @@
 
 mod collection;
 mod description;
-pub use description::{Describe, Format, ToolDescription};
+pub use description::{Describe, Format, FormatPart, ToolDescription};
 mod tool;
 pub mod tools;
 
