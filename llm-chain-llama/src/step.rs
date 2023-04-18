@@ -1,6 +1,5 @@
-#[cfg(feature = "serialization")]
-use llm_chain::serialization::StorableEntity;
-use llm_chain::{prompt, traits, Parameters, PromptTemplate, PromptTemplateError};
+
+
 #[cfg(feature = "serialization")]
 use serde::{Deserialize, Serialize};
 
@@ -16,9 +15,8 @@ pub struct LlamaInvocation {
     pub(crate) prompt: String,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 /// LlamaConfig is an overridable collection of configuration parameters for the LLAMA model. It is combined with a prompt to create an invocation.
-#[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
 pub struct LlamaConfig {
     pub n_threads: Option<i32>,
     pub n_tok_predict: Option<usize>,
@@ -44,7 +42,7 @@ impl LlamaConfig {
     /// # Returns
     ///
     /// A LlamaInvocation instance with the specified configuration and prompt.
-    fn to_invocation(&self, prompt: &str) -> LlamaInvocation {
+    pub(crate) fn to_invocation(&self, prompt: &str) -> LlamaInvocation {
         LlamaInvocation {
             n_threads: self.n_threads.unwrap_or(1),
             n_tok_predict: self.n_tok_predict.unwrap_or(0),
@@ -60,6 +58,7 @@ impl LlamaConfig {
         }
     }
 }
+<<<<<<< HEAD
 
 /// A step in a chain of LLAMA invocations. It is a combination of a prompt and a configuration.
 #[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
@@ -153,3 +152,5 @@ impl StorableEntity for Step {
         )]
     }
 }
+=======
+>>>>>>> 766fbbf (Concrete Steps and Prompts)

@@ -4,7 +4,8 @@ use serde::{Deserialize, Serialize};
 use crate::{
     frame::Frame,
     serialization::StorableEntity,
-    traits::{Executor, ExecutorError, Step},
+    step::Step,
+    traits::{Executor, ExecutorError},
     Parameters,
 };
 
@@ -16,19 +17,20 @@ pub enum SequentialChainError<Err: ExecutorError> {
     NoSteps,
 }
 // A sequential chain is a chain where each step is executed in order, with the output of the previous being available to the next.
-pub struct Chain<S: Step> {
-    steps: Vec<S>,
+#[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
+pub struct Chain<E: Executor> {
+    steps: Vec<Step<E>>,
 }
 
-impl<S: Step> Chain<S> {
-    pub fn new(steps: Vec<S>) -> Chain<S> {
+impl<E: Executor> Chain<E> {
+    pub fn new(steps: Vec<Step<E>>) -> Chain<E> {
         Chain { steps }
     }
-    pub fn of_one(step: S) -> Chain<S> {
+    pub fn of_one(step: Step<E>) -> Chain<E> {
         Chain { steps: vec![step] }
     }
 
-    pub async fn run<E: Executor<Step = S>>(
+    pub async fn run(
         &self,
         parameters: Parameters,
         executor: &E,
@@ -50,33 +52,12 @@ impl<S: Step> Chain<S> {
     }
 }
 
-#[cfg(feature = "serialization")]
-impl<S: Step + Serialize> Serialize for Chain<S> {
-    fn serialize<SER>(&self, serializer: SER) -> Result<SER::Ok, SER::Error>
-    where
-        SER: serde::Serializer,
-    {
-        Serialize::serialize(&self.steps, serializer)
-    }
-}
-
-#[cfg(feature = "serialization")]
-impl<'de, S: Step + Deserialize<'de>> Deserialize<'de> for Chain<S> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        Deserialize::deserialize(deserializer).map(|steps| Chain { steps })
-    }
-}
-
-impl<S: Step + StorableEntity> StorableEntity for Chain<S> {
+impl<E: Executor> StorableEntity for Step<E> {
     fn get_metadata() -> Vec<(String, String)> {
-        let mut base = vec![(
+        let base = vec![(
             "chain-type".to_string(),
             "llm-chain::chains::sequential::Chain".to_string(),
         )];
-        base.append(&mut S::get_metadata());
         base
     }
 }

@@ -1,6 +1,8 @@
 //! This module defines the `TextPrompt` struct, which represents a text-only prompt without implying the existence of a chat.
 //! This is useful for non-chat models. As an added benefit, `TextPrompt` can be used in chat models as well.
 
+use serde::{Deserialize, Serialize};
+
 use super::chat::{ChatMessage, ChatRole};
 use super::traits::Prompt;
 use crate::PromptTemplate;
@@ -8,7 +10,7 @@ use std::fmt;
 
 /// Represents a text-only prompt, without implying the existence of a chat. This is useful for non-chat models.
 /// As an added benefit, `TextPrompt` can be used in chat models as well.
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TextPrompt {
     content: PromptTemplate,
 }

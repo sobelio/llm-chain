@@ -4,6 +4,7 @@
 //! primarily focusing on measuring the sizes of prompts. This is useful for ensuring that
 //! prompts stay within the context window size supported by a given model.
 
+use crate::step::Step;
 use crate::traits::Executor;
 use crate::Parameters;
 use thiserror::Error;
@@ -24,9 +25,7 @@ pub enum PromptTokensError {
 
 /// An extension trait for the `Executor` trait that provides additional methods for working
 /// with token counts.
-pub trait ExecutorTokenCountExt<Step, Output, Token>:
-    Executor<Step = Step, Output = Output, Token = Token>
-{
+pub trait ExecutorTokenCountExt<Output, Token>: Executor<Output = Output, Token = Token> {
     /// Splits a `Parameters` object at the token limit.
     ///
     /// This method takes a `Step` and a `Parameters` object, and returns a tuple of `Parameters`
@@ -39,7 +38,7 @@ pub trait ExecutorTokenCountExt<Step, Output, Token>:
     /// Returns a `PromptTokensError` if there is an issue computing the tokens.
     fn split_at_tokens(
         &self,
-        step: &Step,
+        step: &Step<Self>,
         doc: &Parameters,
     ) -> Result<(Parameters, Option<Parameters>), PromptTokensError> {
         let tokens_used = self.tokens_used(step, doc)?;
@@ -68,7 +67,7 @@ pub trait ExecutorTokenCountExt<Step, Output, Token>:
     /// Returns a `PromptTokensError` if there is an issue computing the tokens.
     fn split_to_fit(
         &self,
-        step: &Step,
+        step: &Step<Self>,
         doc: &Parameters,
     ) -> Result<Vec<Parameters>, PromptTokensError> {
         let mut res = Vec::new();
@@ -141,7 +140,4 @@ impl TokenCount {
 }
 
 /// An extension trait for the `Executor` trait that provides additional methods for working with tokens
-impl<E, S, O, T> ExecutorTokenCountExt<S, O, T> for E where
-    E: Executor<Step = S, Output = O, Token = T>
-{
-}
+impl<E, O, T> ExecutorTokenCountExt<O, T> for E where E: Executor<Output = O, Token = T> {}

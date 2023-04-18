@@ -2,7 +2,6 @@ use thiserror::Error;
 
 #[derive(Error, Debug, Clone)]
 pub enum PromptTemplateErrorImpl {
-    #[cfg(feature = "tera")]
     #[error("Tera error: {0}")]
     Tera(String),
     #[error("Unable to load file: {0}")]
@@ -17,7 +16,6 @@ impl From<std::io::Error> for PromptTemplateErrorImpl {
     }
 }
 
-#[cfg(feature = "tera")]
 impl From<tera::Error> for PromptTemplateErrorImpl {
     fn from(error: tera::Error) -> Self {
         PromptTemplateErrorImpl::Tera(error.to_string())

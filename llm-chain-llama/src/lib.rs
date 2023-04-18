@@ -32,4 +32,4 @@ pub use context::LlamaContextParams;
 pub use executor::Executor;
 pub use instruct::new_instruct_template;
 pub use output::Output;
-pub use step::{LlamaConfig, Step};
+pub use step::LlamaConfig;

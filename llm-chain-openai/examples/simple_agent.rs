@@ -2,8 +2,8 @@ use llm_chain::output::Output;
 use llm_chain::prompt::chat::{ChatMessage, ChatPrompt, ChatRole};
 use llm_chain::tools::tools::{BashTool, ExitTool};
 use llm_chain::tools::ToolCollection;
+use llm_chain::Parameters;
 use llm_chain::PromptTemplate;
-use llm_chain::{traits::StepExt, Parameters};
 use llm_chain_openai::chatgpt::{Executor, Step};
 
 // A simple example generating a prompt with some tools.

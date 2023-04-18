@@ -1,5 +1,4 @@
 mod legacy;
-#[cfg(feature = "tera")]
 mod tera;
 
 mod error;
@@ -64,7 +63,6 @@ impl PromptTemplate {
         PromptTemplateImpl::static_string(template.into()).into()
     }
 
-    #[cfg(feature = "tera")]
     /// Creates a prompt template that uses the Tera templating engine.
     /// This is only available if the `tera` feature is enabled, which it is by default.
     /// # Examples
@@ -79,7 +77,6 @@ impl PromptTemplate {
         PromptTemplateImpl::tera(template.into()).into()
     }
 
-    #[cfg(feature = "tera")]
     /// Creates a prompt template from a file. The file should be a text file containing the template as a tera template.
     /// # Examples
     /// ```no_run
@@ -125,7 +122,6 @@ impl fmt::Display for PromptTemplate {
 enum PromptTemplateImpl {
     Static(String),
     Legacy(legacy::PromptTemplate),
-    #[cfg(feature = "tera")]
     Tera(String),
     Combined(Vec<PromptTemplateImpl>),
 }
@@ -142,7 +138,6 @@ impl PromptTemplateImpl {
             PromptTemplateImpl::Legacy(template) => template
                 .format(parameters)
                 .map_err(PromptTemplateErrorImpl::LegacyTemplateError),
-            #[cfg(feature = "tera")]
             PromptTemplateImpl::Tera(template) => {
                 tera::render(template, parameters).map_err(|e| e.into())
             }
@@ -160,7 +155,6 @@ impl PromptTemplateImpl {
         PromptTemplateImpl::Static(template)
     }
 
-    #[cfg(feature = "tera")]
     pub fn tera(template: String) -> PromptTemplateImpl {
         PromptTemplateImpl::Tera(template)
     }
@@ -175,7 +169,6 @@ impl fmt::Display for PromptTemplateImpl {
         match self {
             PromptTemplateImpl::Static(s) => write!(f, "{}", s),
             PromptTemplateImpl::Legacy(template) => write!(f, "{}", template),
-            #[cfg(feature = "tera")]
             PromptTemplateImpl::Tera(template) => write!(f, "{}", template),
             PromptTemplateImpl::Combined(templates) => {
                 for template in templates {

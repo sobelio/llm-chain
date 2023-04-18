@@ -10,19 +10,10 @@
 use crate::output::Output;
 use crate::traits::ExecutorError;
 use crate::{
-    frame::Frame,
-    serialization::StorableEntity,
-    tokens::ExecutorTokenCountExt,
-    tokens::PromptTokensError,
-    traits::{Executor, Step},
-    Parameters,
+    frame::Frame, serialization::StorableEntity, step::Step, tokens::ExecutorTokenCountExt,
+    tokens::PromptTokensError, traits::Executor, Parameters,
 };
 use futures::future::join_all;
-#[cfg(feature = "serialization")]
-use serde::{
-    de::{MapAccess, Visitor},
-    Deserialize,
-};
 
 use thiserror::Error;
 
@@ -43,16 +34,20 @@ pub enum MapReduceChainError<Err: ExecutorError> {
 ///
 /// The struct is generic over the type of the `Step` and provides methods for constructing and
 /// executing the chain using a given `Executor`.
-pub struct Chain<S: Step> {
-    map: S,
-    reduce: S,
+#[cfg_attr(
+    feature = "serialization",
+    derive(serde::Serialize, serde::Deserialize)
+)]
+pub struct Chain<E: Executor> {
+    map: Step<E>,
+    reduce: Step<E>,
 }
 
-impl<S: Step> Chain<S> {
+impl<E: Executor> Chain<E> {
     /// Constructs a new `Chain` with the given `map` and `reduce` steps.
     ///
     /// The `new` function takes two instances of `Step` and returns a new `Chain` instance.
-    pub fn new(map: S, reduce: S) -> Chain<S> {
+    pub fn new(map: Step<E>, reduce: Step<E>) -> Chain<E> {
         Chain { map, reduce }
     }
 
@@ -63,23 +58,19 @@ impl<S: Step> Chain<S> {
     /// and returns the result as an `Option<E::Output>`.
     ///
     /// The function is asynchronous and must be awaited.
-    pub async fn run<E>(
+    pub async fn run(
         &self,
         documents: Vec<Parameters>,
         base_parameters: Parameters,
         executor: &E,
-    ) -> Result<E::Output, MapReduceChainError<E::Error>>
-    where
-        E: Executor<Step = S>,
-    {
+    ) -> Result<E::Output, MapReduceChainError<E::Error>> {
         if documents.is_empty() {
             return Err(MapReduceChainError::InputEmpty);
         }
         let map_frame = Frame::new(executor, &self.map);
         let reduce_frame = Frame::new(executor, &self.reduce);
 
-        let chunked_docs =
-            self.chunk_documents::<E, E::Token>(documents.clone(), executor, &self.map)?;
+        let chunked_docs = self.chunk_documents(documents.clone(), executor, &self.map)?;
 
         // Execute the `map` step for each document, combining the base parameters with each document's parameters.
         let chunked_docs_with_base_parameters: Vec<_> = chunked_docs
@@ -94,7 +85,7 @@ impl<S: Step> Chain<S> {
         let mapped_documents = mapped_documents.into_iter().collect::<Result<_, _>>()?;
 
         let mut documents = self
-            .combine_documents_up_to::<E, E::Token>(executor, mapped_documents, &base_parameters)
+            .combine_documents_up_to(executor, mapped_documents, &base_parameters)
             .await?;
 
         if documents.is_empty() {
@@ -114,20 +105,17 @@ impl<S: Step> Chain<S> {
                 return Ok(new_docs[0].clone());
             }
             documents = self
-                .combine_documents_up_to::<E, E::Token>(executor, new_docs, &base_parameters)
+                .combine_documents_up_to(executor, new_docs, &base_parameters)
                 .await?;
         }
     }
 
-    async fn combine_documents_up_to<E, T>(
+    async fn combine_documents_up_to(
         &self,
         executor: &E,
         mut v: Vec<<E as Executor>::Output>,
         parameters: &Parameters,
-    ) -> Result<Vec<String>, MapReduceChainError<E::Error>>
-    where
-        E: Executor<Step = S>,
-    {
+    ) -> Result<Vec<String>, MapReduceChainError<E::Error>> {
         let mut new_outputs = Vec::new();
         while let Some(current) = v.pop() {
             let mut current_doc = current.primary_textual_output().await.unwrap_or_default();
@@ -154,82 +142,24 @@ impl<S: Step> Chain<S> {
         Ok(new_outputs)
     }
 
-    fn chunk_documents<E, T>(
+    fn chunk_documents(
         &self,
         v: Vec<Parameters>,
         executor: &E,
-        step: &S,
-    ) -> Result<Vec<Parameters>, PromptTokensError>
-    where
-        E: Executor<Step = S>,
-    {
+        step: &Step<E>,
+    ) -> Result<Vec<Parameters>, PromptTokensError> {
         let data: Result<Vec<_>, _> = v.iter().map(|x| executor.split_to_fit(step, x)).collect();
         let data = data?.iter().flatten().cloned().collect();
         Ok(data)
     }
 }
 
-#[cfg(feature = "serialization")]
-impl<'de, S: Step + Deserialize<'de>> Deserialize<'de> for Chain<S> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        struct ChainVisitor<S>(std::marker::PhantomData<S>);
-
-        impl<'de, S: Step + Deserialize<'de>> Visitor<'de> for ChainVisitor<S> {
-            type Value = Chain<S>;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("an object with fields `map` and `reduce`")
-            }
-
-            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-            where
-                A: MapAccess<'de>,
-            {
-                let mut map_value: Option<S> = None;
-                let mut reduce_value: Option<S> = None;
-
-                while let Some(key) = map.next_key()? {
-                    match key {
-                        "map" => {
-                            if map_value.is_some() {
-                                return Err(serde::de::Error::duplicate_field("map"));
-                            }
-                            map_value = Some(map.next_value()?);
-                        }
-                        "reduce" => {
-                            if reduce_value.is_some() {
-                                return Err(serde::de::Error::duplicate_field("reduce"));
-                            }
-                            reduce_value = Some(map.next_value()?);
-                        }
-                        _ => (),
-                    }
-                }
-
-                let map = map_value.ok_or_else(|| serde::de::Error::missing_field("map"))?;
-                let reduce =
-                    reduce_value.ok_or_else(|| serde::de::Error::missing_field("reduce"))?;
-                Ok(Chain { map, reduce })
-            }
-        }
-
-        deserializer.deserialize_struct(
-            "Chain",
-            &["map", "reduce"],
-            ChainVisitor(std::marker::PhantomData),
-        )
-    }
-}
-
 /// Implements the `StorableEntity` trait for the `Chain` struct.
 ///
 /// This implementation provides a method for extracting metadata from a `Chain` instance, in order to identify it
-impl<S> StorableEntity for Chain<S>
+impl<E: Executor> StorableEntity for Chain<E>
 where
-    S: Step + StorableEntity,
+    E: Executor,
 {
     /// Returns metadata about the Chain instance.
     ///
@@ -238,11 +168,10 @@ where
     ///
     /// This method also extracts metadata from the Step instances associated with the Chain.
     fn get_metadata() -> Vec<(String, String)> {
-        let mut base = vec![(
+        let base = vec![(
             "chain-type".to_string(),
             "llm-chain::chains::map_reduce::Chain".to_string(),
         )];
-        base.append(&mut S::get_metadata());
         base
     }
 }

@@ -1,15 +1,23 @@
 use crate::context::{LLamaContext, LlamaContextParams};
-use crate::step::{LlamaInvocation, Step as LLamaStep};
+use crate::step::LlamaInvocation;
 use crate::tokenizer::{embedding_to_output, llama_token_eos, llama_tokenize_helper, tokenize};
+use crate::LlamaConfig;
 
 use crate::output::Output;
 use async_trait::async_trait;
 
+use llm_chain::step::{Step, StepError};
 use llm_chain::tokens::{PromptTokensError, TokenCount};
-use llm_chain::traits::{self, StepError};
-use llm_chain::traits::{Executor as ExecutorTrait, Step as StepTrait};
-use llm_chain::Parameters;
+use llm_chain::traits::{Executor as ExecutorTrait, ExecutorError};
+use llm_chain::{Parameters, PromptTemplateError};
 use llm_chain_llama_sys::llama_context_params;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExecutorOptions {
+    model_path: Option<String>,
+    context_params: Option<LlamaContextParams>,
+}
 
 /// Executor is responsible for running the LLAMA model and managing its context.
 pub struct Executor {
@@ -136,44 +144,60 @@ impl Executor {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum Error<E: StepError> {
+pub enum Error {
     #[error("unable to tokenize prompt")]
     PromptTokensError(PromptTokensError),
     #[error("unable to format step")]
-    StepError(#[from] E),
+    StepError(#[from] StepError),
+    #[error("unable to format prompt: {0}")]
+    PromptTemplateError(#[from] PromptTemplateError),
 }
-impl<E> traits::ExecutorError for Error<E> where E: StepError {}
+
+impl ExecutorError for Error {}
 
 // Implement the ExecutorTrait for the Executor, defining methods for handling input and output.
 #[async_trait]
 impl ExecutorTrait for Executor {
-    type Step = LLamaStep;
     type Output = Output;
     type Token = i32;
-    type Error = Error<<Self::Step as traits::Step>::Error>;
+    type Error = Error;
+    type PerInvocationOptions = LlamaConfig;
+    type PerExecutorOptions = ExecutorOptions;
     // Executes the model asynchronously and returns the output.
     async fn execute(
         &self,
-        input: <<Executor as ExecutorTrait>::Step as traits::Step>::Output,
+        step: &Step<Self>,
+        parameters: &Parameters,
     ) -> Result<Self::Output, Self::Error> {
-        Ok(self.run_model(input))
+        let config = match step.options() {
+            Some(options) => options.clone(),
+            None => LlamaConfig::default(),
+        };
+        let formatted_prompts = step
+            .prompt()
+            .as_text_prompt_or_convert()
+            .format(parameters)?;
+        let invocation = config.to_invocation(&formatted_prompts);
+        Ok(self.run_model(invocation))
     }
     fn tokens_used(
         &self,
-        step: &LLamaStep,
+        step: &Step<Self>,
         parameters: &Parameters,
     ) -> Result<TokenCount, PromptTokensError> {
         let input = step
+            .prompt()
+            .as_text_prompt_or_convert()
             .format(parameters)
             .map_err(|_| PromptTokensError::UnableToCompute)?;
-        let tokens_used = self.tokenize_str(step, &input.prompt)?.len() as i32;
+        let tokens_used = self.tokenize_str(step, &input)?.len() as i32;
 
         let input_with_empty_params = step
+            .prompt()
+            .as_text_prompt_or_convert()
             .format(&parameters.with_placeholder_values())
             .map_err(|_| PromptTokensError::UnableToCompute)?;
-        let template_tokens_used = self
-            .tokenize_str(step, &input_with_empty_params.prompt)?
-            .len() as i32;
+        let template_tokens_used = self.tokenize_str(step, &input_with_empty_params)?.len() as i32;
 
         let max_tokens = self.max_tokens();
         Ok(TokenCount::new(
@@ -183,12 +207,12 @@ impl ExecutorTrait for Executor {
         ))
     }
 
-    fn tokenize_str(&self, _step: &LLamaStep, doc: &str) -> Result<Vec<i32>, PromptTokensError> {
+    fn tokenize_str(&self, _step: &Step<Self>, doc: &str) -> Result<Vec<i32>, PromptTokensError> {
         let tokenized = llama_tokenize_helper(&self.context, doc, true);
         Ok(tokenized)
     }
 
-    fn to_string(&self, _step: &LLamaStep, tokens: &[i32]) -> Result<String, PromptTokensError> {
+    fn to_string(&self, _step: &Step<Self>, tokens: &[i32]) -> Result<String, PromptTokensError> {
         let output = embedding_to_output(&self.context, tokens);
         Ok(output.to_string())
     }

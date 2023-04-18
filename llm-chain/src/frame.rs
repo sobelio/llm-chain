@@ -7,6 +7,7 @@
 //! The `Frame` struct is generic over the `Step` and `Executor` types, ensuring that it can work with any
 //! combination of types that implement the required traits.
 
+use crate::step::Step;
 use crate::traits;
 use crate::Parameters;
 
@@ -14,25 +15,23 @@ use crate::Parameters;
 ///
 /// It is designed to provide a simple interface for working with different chain types and handling common
 /// behavior for formatting and executing steps.
-pub struct Frame<'l, E, S>
+pub struct Frame<'l, E>
 where
-    E: traits::Executor<Step = S>,
-    S: traits::Step,
+    E: traits::Executor,
 {
     executor: &'l E,
-    step: &'l S,
+    step: &'l Step<E>,
 }
 
-impl<'l, E, S> Frame<'l, E, S>
+impl<'l, E> Frame<'l, E>
 where
-    E: traits::Executor<Step = S>,
-    S: traits::Step,
+    E: traits::Executor,
 {
     /// Constructs a new `Frame` with the given `Executor` and `Step`.
     ///
     /// The `new` function takes two references to an `Executor` and a `Step`, respectively, and returns
     /// a new `Frame` instance.
-    pub fn new(executor: &'l E, step: &'l S) -> Self {
+    pub fn new(executor: &'l E, step: &'l Step<E>) -> Self {
         Self { executor, step }
     }
 
@@ -41,7 +40,6 @@ where
     /// This function takes a reference to a `Parameters` struct, formats the step with the provided parameters,
     /// and executes it using the associated executor. The result of the execution is returned as `E::Output`.
     pub async fn format_and_execute(&self, parameters: &Parameters) -> Result<E::Output, E::Error> {
-        let output = self.step.format(parameters)?;
-        self.executor.execute(output).await
+        self.executor.execute(self.step, parameters).await
     }
 }

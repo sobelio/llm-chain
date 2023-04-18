@@ -19,8 +19,10 @@ mod templates;
 pub mod text;
 mod traits;
 
+use serde::{Deserialize, Serialize};
 pub use templates::{PromptTemplate, PromptTemplateError};
-pub use traits::Prompt;
+
+use self::traits::Prompt as PromptTrait;
 
 /// Creates a `TextPrompt` or a `ChatPrompt` based on the number of arguments provided.
 ///
@@ -48,13 +50,75 @@ macro_rules! prompt {
         llm_chain::prompt::text::TextPrompt::new($single_arg)
     };
     ($system_arg:expr, $user_arg:expr $(,)?) => {
-        llm_chain::prompt::chat::ChatPrompt::builder()
-            .system($system_arg)
-            .user($user_arg)
-            .build()
-            .unwrap()
+        llm_chain::prompt::Prompt::new_from_chat_prompt(
+            llm_chain::prompt::chat::ChatPrompt::builder()
+                .system($system_arg)
+                .user($user_arg)
+                .build()
+                .unwrap(), // This unwrap is safe because we know that the builder will always succeed
+        )
     };
     ($($extra_tokens:expr),+ $(,)?) => {
         compile_error!("The 'prompt!' macro takes at most 2 arguments.")
     };
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct Prompt(PromptImpl);
+
+impl Prompt {
+    pub fn new_from_text_prompt(text_prompt: text::TextPrompt) -> Self {
+        Self(PromptImpl::TextPrompt(text_prompt))
+    }
+    pub fn new_from_chat_prompt(chat_prompt: chat::ChatPrompt) -> Self {
+        Self(PromptImpl::ChatPrompt(chat_prompt))
+    }
+    pub fn as_chat_prompt(&self) -> Vec<chat::ChatMessage> {
+        self.0.as_chat_prompt()
+    }
+
+    pub fn as_text_prompt(&self) -> Option<&PromptTemplate> {
+        self.0.as_text_prompt()
+    }
+
+    pub fn as_text_prompt_or_convert(&self) -> PromptTemplate {
+        if let Some(template) = self.as_text_prompt() {
+            template.clone()
+        } else {
+            // We need to interperse the chat messages with newlines and also include the Role in each line
+            let mut templates = Vec::with_capacity(self.as_chat_prompt().len() * 3);
+            for message in self.as_chat_prompt() {
+                templates.push(PromptTemplate::static_string(format!(
+                    "{}: ",
+                    message.role()
+                )));
+                templates.push(message.content());
+                templates.push(PromptTemplate::static_string("\n"));
+            }
+            PromptTemplate::combine(templates)
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum PromptImpl {
+    ChatPrompt(chat::ChatPrompt),
+    TextPrompt(text::TextPrompt),
+}
+
+impl traits::Prompt for PromptImpl {
+    fn as_chat_prompt(&self) -> Vec<chat::ChatMessage> {
+        match &self {
+            PromptImpl::ChatPrompt(chat_prompt) => chat_prompt.as_chat_prompt(),
+            PromptImpl::TextPrompt(text_prompt) => text_prompt.as_chat_prompt(),
+        }
+    }
+
+    fn as_text_prompt(&self) -> Option<&PromptTemplate> {
+        match &self {
+            PromptImpl::TextPrompt(text_prompt) => text_prompt.as_text_prompt(),
+            PromptImpl::ChatPrompt(chat_prompt) => chat_prompt.as_text_prompt(),
+        }
+    }
 }

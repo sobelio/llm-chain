@@ -5,11 +5,12 @@ use llm_chain_llama_sys::{
     llama_context, llama_context_default_params, llama_context_params, llama_eval, llama_free,
     llama_init_from_file, llama_sample_top_p_top_k, llama_token, llama_token_to_str,
 };
+use serde::{Deserialize, Serialize};
 
 use crate::step::LlamaInvocation;
 
 // Represents the configuration parameters for a LLamaContext.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LlamaContextParams {
     n_ctx: i32,
     n_parts: i32,
