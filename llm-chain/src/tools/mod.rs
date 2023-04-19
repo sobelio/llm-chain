@@ -21,7 +21,7 @@
 //!
 //! // Create a prompt indicating the LLM should use the provided tools.
 //! let prompt = PromptTemplate::static_string("Find information about Rust programming language.");
-//! let tool_prompt = PromptTemplate::combine(vec![tc.to_prompt_template(), prompt]);
+//! let tool_prompt = PromptTemplate::combine(vec![tc.to_prompt_template().unwrap(), prompt]);
 //! ```
 //!
 //! ## Modules
@@ -30,9 +30,12 @@
 
 mod collection;
 mod description;
+#[cfg(feature = "multitool_default")]
+pub mod multitool_default;
 pub use description::{Describe, Format, FormatPart, ToolDescription};
+pub mod multitool;
 mod tool;
 pub mod tools;
 
 pub use collection::{ToolCollection, ToolUseError};
-pub use tool::Tool;
+pub use tool::{Tool, ToolError};

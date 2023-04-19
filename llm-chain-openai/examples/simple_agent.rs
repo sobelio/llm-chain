@@ -1,19 +1,28 @@
 use llm_chain::output::Output;
 use llm_chain::prompt::chat::{ChatMessage, ChatPrompt, ChatRole};
-use llm_chain::tools::tools::{BashTool, ExitTool};
-use llm_chain::tools::ToolCollection;
-use llm_chain::PromptTemplate;
+use llm_chain::tools::tools::{BashTool, BashToolError, ExitTool, ExitToolError};
+use llm_chain::tools::{Tool, ToolCollection, ToolDescription, ToolError};
+use llm_chain::{multitool, PromptTemplate};
 use llm_chain::{traits::StepExt, Parameters};
 use llm_chain_openai::chatgpt::{Executor, Step};
+use thiserror::Error;
 
 // A simple example generating a prompt with some tools.
+multitool!(
+    MyMultitool,
+    MyMultitoolError,
+    BashTool,
+    BashToolError,
+    ExitTool,
+    ExitToolError
+);
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut tool_collection = ToolCollection::new();
-    tool_collection.add_tool(BashTool::new());
-    tool_collection.add_tool(ExitTool::new());
-    let tool_prompt = tool_collection.to_prompt_template();
+    let mut tool_collection = ToolCollection::<MyMultitool>::new();
+    tool_collection.add_tool(BashTool::new().into());
+    tool_collection.add_tool(ExitTool::new().into());
+    let tool_prompt = tool_collection.to_prompt_template().unwrap();
     let template = PromptTemplate::combine(vec![
         tool_prompt,
         PromptTemplate::tera("You may ONLY use one tool at a time. Please perform the following task: {{task}}. Once you have read the IP Address you may trigger ExitTool. -- Do not do this before you know the ip address. do not ask for more tasks."),

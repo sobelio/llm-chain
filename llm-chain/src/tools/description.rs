@@ -1,7 +1,7 @@
 use serde::{ser::SerializeMap, Serialize, Serializer};
 
 /// Represents a single parameter for a tool.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct FormatPart {
     pub key: String,
     pub purpose: String,
@@ -24,6 +24,7 @@ impl<K: Into<String>, P: Into<String>> From<(K, P)> for FormatPart {
 }
 
 /// Represents the format for a tool's input or output.
+#[derive(Debug)]
 pub struct Format {
     pub parts: Vec<FormatPart>,
 }
@@ -61,7 +62,7 @@ pub trait Describe {
 }
 
 /// Represents the description of a tool, including its name, usage, and input/output formats.
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct ToolDescription {
     pub name: String,
     pub description: String,

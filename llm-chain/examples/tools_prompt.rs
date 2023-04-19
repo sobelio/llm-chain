@@ -9,7 +9,7 @@ fn main() {
 
     #[cfg(feature = "tera")]
     let prompt = PromptTemplate::combine(vec![
-        tool_collection.to_prompt_template(),
+        tool_collection.to_prompt_template().unwrap(),
         PromptTemplate::tera("Please perform the following task: {{text}}"),
     ]);
     #[cfg(not(feature = "tera"))]
