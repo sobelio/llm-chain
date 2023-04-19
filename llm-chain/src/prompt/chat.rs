@@ -30,12 +30,21 @@ pub struct ChatMessage {
 
 impl ChatMessage {
     /// Creates a new `ChatMessage` from a role and a string.
+    #[cfg(feature = "tera")]
     pub fn new<S: Into<String>>(role: ChatRole, content: S) -> Self {
         Self {
             role,
             content: PromptTemplate::tera(content.into()),
         }
     }
+    #[cfg(not(feature = "tera"))]
+    pub fn new<S: Into<String>>(role: ChatRole, content: S) -> Self {
+        Self {
+            role,
+            content: PromptTemplate::legacy(content.into()),
+        }
+    }
+
     /// Creates a new `ChatMessage` from a role and a prompt template.
     pub fn from_template(role: ChatRole, content: PromptTemplate) -> Self {
         Self { role, content }

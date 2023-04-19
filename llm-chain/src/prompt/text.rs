@@ -27,9 +27,16 @@ impl TextPrompt {
     ///
     /// let text_prompt = TextPrompt::new("Hello, {{name}}!");
     /// ```
+    #[cfg(feature = "tera")]
     pub fn new<S: Into<String>>(content: S) -> Self {
         Self {
             content: PromptTemplate::tera(content.into()),
+        }
+    }
+    #[cfg(not(feature = "tera"))]
+    pub fn new<S: Into<String>>(content: S) -> Self {
+        Self {
+            content: PromptTemplate::legacy(content.into()),
         }
     }
 }

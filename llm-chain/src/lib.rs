@@ -31,10 +31,8 @@ pub mod tokens;
 
 pub mod output;
 
-#[cfg(feature = "serialization")]
 pub mod parsing;
 
-#[cfg(feature = "serialization")]
 pub mod tools;
 
 pub mod prompt;

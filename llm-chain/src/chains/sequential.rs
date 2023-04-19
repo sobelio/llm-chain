@@ -3,10 +3,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     frame::Frame,
-    serialization::StorableEntity,
     traits::{Executor, ExecutorError, Step},
     Parameters,
 };
+
+#[cfg(feature = "serialization")]
+use crate::serialization::StorableEntity;
 
 #[derive(thiserror::Error, Debug)]
 pub enum SequentialChainError<Err: ExecutorError> {
@@ -70,6 +72,7 @@ impl<'de, S: Step + Deserialize<'de>> Deserialize<'de> for Chain<S> {
     }
 }
 
+#[cfg(feature = "serialization")]
 impl<S: Step + StorableEntity> StorableEntity for Chain<S> {
     fn get_metadata() -> Vec<(String, String)> {
         let mut base = vec![(

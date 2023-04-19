@@ -51,7 +51,7 @@ impl PromptTemplate {
     pub fn new<K: Into<String>>(template: K) -> PromptTemplate {
         Self::legacy(template)
     }
-    pub(crate) fn legacy<K: Into<String>>(template: K) -> PromptTemplate {
+    pub fn legacy<K: Into<String>>(template: K) -> PromptTemplate {
         PromptTemplateImpl::legacy(template).into()
     }
 
