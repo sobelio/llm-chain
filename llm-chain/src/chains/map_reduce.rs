@@ -11,11 +11,11 @@ use crate::output::Output;
 use crate::traits::ExecutorError;
 use crate::{
     frame::Frame,
-    tokens::ExecutorTokenCountExt,
     tokens::PromptTokensError,
     traits::{Executor, Step},
     Parameters,
 };
+use crate::{tokens, traits};
 use futures::future::join_all;
 #[cfg(feature = "serialization")]
 use serde::{
@@ -156,16 +156,26 @@ impl<S: Step> Chain<S> {
         Ok(new_outputs)
     }
 
-    fn chunk_documents<E, T>(
+    fn chunk_documents<'a, E, T>(
         &self,
         v: Vec<Parameters>,
         executor: &E,
         step: &S,
     ) -> Result<Vec<Parameters>, PromptTokensError>
     where
-        E: Executor<Step = S>,
+        E: Executor<Step = S> + 'a,
     {
-        let data: Result<Vec<_>, _> = v.iter().map(|x| executor.split_to_fit(step, x)).collect();
+        let data: Result<Vec<_>, _> = v
+            .iter()
+            .map(|x| {
+                <E as tokens::ExecutorTokenCountExt<
+                    S,
+                    <E as traits::Executor>::Output,
+                    <E as traits::Executor>::Token,
+                    <E as traits::Executor>::StepTokenizer<'a>,
+                >>::split_to_fit(executor, step, x)
+            })
+            .collect();
         let data = data?.iter().flatten().cloned().collect();
         Ok(data)
     }

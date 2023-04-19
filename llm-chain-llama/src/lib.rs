@@ -26,6 +26,7 @@ mod executor;
 mod instruct;
 mod output;
 mod step;
+mod text_splitter;
 mod tokenizer;
 
 pub use context::LlamaContextParams;
@@ -33,3 +34,4 @@ pub use executor::Executor;
 pub use instruct::new_instruct_template;
 pub use output::Output;
 pub use step::{LlamaConfig, Step};
+pub use text_splitter::LLamaTextSplitter;
