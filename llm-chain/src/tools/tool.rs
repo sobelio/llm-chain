@@ -12,7 +12,7 @@ macro_rules! gen_invoke_function {
 }
 pub(crate) use gen_invoke_function;
 
-/// Marker trait is required so we do not use ToolUseError in our trait; this will allow users to easily define their own tools with their own errors
+/// Marker trait for Tool errors. It is needed so the concrete Errors can have a derived From<ToolError>
 pub trait ToolError {}
 
 /// The `Tool` trait defines an interface for tools that can be added to a `ToolCollection`.
