@@ -12,11 +12,19 @@ use crate::traits::ExecutorError;
 use crate::{
     frame::Frame, serialization::StorableEntity, step::Step, tokens::ExecutorTokenCountExt,
     tokens::PromptTokensError, traits::Executor, Parameters,
+    frame::Frame,
+    tokens::ExecutorTokenCountExt,
+    tokens::PromptTokensError,
+    traits::{Executor, Step},
+    Parameters,
 };
 use futures::future::join_all;
 use serde::de::{Deserializer, MapAccess};
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use serde::Deserialize;
+
+#[cfg(feature = "serialization")]
+use crate::serialization::StorableEntity;
 
 use thiserror::Error;
 

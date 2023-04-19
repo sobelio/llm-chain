@@ -10,6 +10,9 @@ use crate::{
     Parameters,
 };
 
+#[cfg(feature = "serialization")]
+use crate::serialization::StorableEntity;
+
 #[derive(thiserror::Error, Debug)]
 pub enum SequentialChainError<Err: ExecutorError> {
     #[error("ExecutorError: {0}")]

@@ -6,9 +6,16 @@ use llm_chain::{Parameters, PromptTemplate};
 fn main() {
     let mut tool_collection = ToolCollection::new();
     tool_collection.add_tool(BashTool::new());
+
+    #[cfg(feature = "tera")]
     let prompt = PromptTemplate::combine(vec![
         tool_collection.to_prompt_template(),
         PromptTemplate::tera("Please perform the following task: {{text}}"),
+    ]);
+    #[cfg(not(feature = "tera"))]
+    let prompt = PromptTemplate::combine(vec![
+        tool_collection.to_prompt_template(),
+        PromptTemplate::legacy("Please perform the following task: {{text}}"),
     ]);
 
     println!(

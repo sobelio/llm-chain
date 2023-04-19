@@ -4,3 +4,4 @@ model.bin
 build/
 chain
 mydata.yaml
+.idea/
