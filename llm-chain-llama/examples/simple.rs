@@ -1,6 +1,6 @@
 use std::{env, path::Path};
 
-use llm_chain::{prompt, traits::StepExt, Parameters};
+use llm_chain::{prompt, Parameters};
 use llm_chain_llama::{Executor, Step};
 
 /// This example demonstrates how to use the llm-chain-llama crate to generate text using a

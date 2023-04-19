@@ -1,7 +1,7 @@
 use std::{env, io::Write, path::Path};
 
-use llm_chain::{prompt, traits::StepExt, Parameters};
-use llm_chain_llama::{Executor, Step};
+use llm_chain::{prompt, step::Step, Parameters};
+use llm_chain_llama::Executor;
 
 /// This example demonstrates how to use the llm-chain-llama crate to generate text using a
 /// LLaMA model.

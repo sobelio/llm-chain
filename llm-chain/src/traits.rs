@@ -40,9 +40,9 @@ pub trait Input {}
 /// step, executes it, and returns the output.
 pub trait Executor: Sized {
     /// The per-invocation options type used by this executor. These are the options you can send to each step.
-    type PerInvocationOptions: Clone + Send + Sync + Serialize + DeserializeOwned;
+    type PerInvocationOptions: Clone + Send + Sync + Serialize + DeserializeOwned + Debug;
     /// The per-executor options type used by this executor. These are the options you can send to the executor and can't be set per step.
-    type PerExecutorOptions: Clone + Send + Sync + Serialize + DeserializeOwned;
+    type PerExecutorOptions: Clone + Send + Sync + Serialize + DeserializeOwned + Debug;
 
     /// The output type produced by this executor.
     type Output: Output;

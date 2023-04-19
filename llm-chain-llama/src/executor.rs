@@ -1,7 +1,7 @@
 use crate::context::{LLamaContext, LlamaContextParams};
+use crate::step::LlamaConfig;
 use crate::step::LlamaInvocation;
 use crate::tokenizer::{embedding_to_output, llama_token_eos, llama_tokenize_helper, tokenize};
-use crate::LlamaConfig;
 
 use crate::output::Output;
 use async_trait::async_trait;

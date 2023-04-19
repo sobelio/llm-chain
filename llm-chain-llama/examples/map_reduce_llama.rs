@@ -1,6 +1,6 @@
 use llm_chain::chains::map_reduce::Chain;
-use llm_chain::{prompt, Parameters};
-use llm_chain_llama::{Executor, Step};
+use llm_chain::{prompt, step::Step, Parameters};
+use llm_chain_llama::Executor;
 use std::{env, path::Path};
 
 #[tokio::main(flavor = "current_thread")]

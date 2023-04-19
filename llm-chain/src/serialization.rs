@@ -12,7 +12,7 @@
 //!
 //!```rust
 //! use serde::{Deserialize, Serialize};
-//! use llm_chain::serialization::{Envelope, StorableEntity, IoExt};
+//! use llm_chain::serialization::{Envelope, StorableEntity};
 //!
 //! #[derive(Debug, Clone, Serialize, Deserialize)]
 //! struct MyData {
@@ -168,12 +168,8 @@ where
 }
 
 /// An entity that can be stored in an envelope.
-pub trait StorableEntity {
+pub trait StorableEntity: Serialize + DeserializeOwned {
     fn get_metadata() -> Vec<(String, String)>;
-}
-
-/// Extension methods for entities that can be stored in an envelope. Makes it easy to read them from the file system.
-pub trait IoExt: StorableEntity + Serialize + DeserializeOwned {
     fn to_envelope(self) -> Envelope<Self>
     where
         Self: Sized,
@@ -197,5 +193,3 @@ pub trait IoExt: StorableEntity + Serialize + DeserializeOwned {
         Envelope::new(self).write_file_sync(path)
     }
 }
-
-impl<T: StorableEntity + Serialize + DeserializeOwned> IoExt for T {}

@@ -1,4 +1,3 @@
-#[cfg(feature = "serialization")]
 use serde::{Deserialize, Serialize};
 /// The `Model` enum represents the available ChatGPT models that you can use through the OpenAI API. These models have different capabilities and performance characteristics, allowing you to choose the one that best suits your needs.
 ///

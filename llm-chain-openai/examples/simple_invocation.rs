@@ -1,10 +1,11 @@
 use llm_chain::output::Output;
 use llm_chain::prompt::chat::{ChatMessage, ChatPrompt, ChatRole};
+use llm_chain::step::Step;
 use llm_chain::tools::tools::BashTool;
 use llm_chain::tools::ToolCollection;
+use llm_chain::Parameters;
 use llm_chain::PromptTemplate;
-use llm_chain::{traits::StepExt, Parameters};
-use llm_chain_openai::chatgpt::{Executor, Step};
+use llm_chain_openai::chatgpt::Executor;
 // A simple example generating a prompt with some tools.
 
 #[tokio::main(flavor = "current_thread")]
@@ -27,7 +28,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build()
         .unwrap();
 
-    let result = Step::for_prompt(prompt)
+    let result = Step::for_prompt(prompt.into())
         .run(&Parameters::new().with("task", task), &exec)
         .await?;
 

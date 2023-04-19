@@ -27,10 +27,7 @@ impl Executor {
     /// Creates a new executor with the given client.
     pub fn new(client: async_openai::Client) -> Self {
         let client = Arc::new(client);
-        Self {
-            client,
-            ..Default::default()
-        }
+        Self { client }
     }
     /// Creates a new executor with the default client, which uses the `OPENAI_API_KEY` environment variable.
     pub fn new_default() -> Self {

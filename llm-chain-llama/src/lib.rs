@@ -32,4 +32,6 @@ pub use context::LlamaContextParams;
 pub use executor::Executor;
 pub use instruct::new_instruct_template;
 pub use output::Output;
-pub use step::LlamaConfig;
+
+#[deprecated(note = "Use llm_chain::step::Step instead", since = "0.7.0")]
+pub use llm_chain::step::Step;

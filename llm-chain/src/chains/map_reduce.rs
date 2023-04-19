@@ -14,6 +14,9 @@ use crate::{
     tokens::PromptTokensError, traits::Executor, Parameters,
 };
 use futures::future::join_all;
+use serde::de::{Deserializer, MapAccess};
+use serde::ser::{Serialize, SerializeStruct, Serializer};
+use serde::Deserialize;
 
 use thiserror::Error;
 
@@ -34,10 +37,6 @@ pub enum MapReduceChainError<Err: ExecutorError> {
 ///
 /// The struct is generic over the type of the `Step` and provides methods for constructing and
 /// executing the chain using a given `Executor`.
-#[cfg_attr(
-    feature = "serialization",
-    derive(serde::Serialize, serde::Deserialize)
-)]
 pub struct Chain<E: Executor> {
     map: Step<E>,
     reduce: Step<E>,
@@ -153,6 +152,71 @@ impl<E: Executor> Chain<E> {
         Ok(data)
     }
 }
+
+// Your custom Serialize implementation for Chain
+impl<E: Executor> Serialize for Chain<E> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut s = serializer.serialize_struct("Chain", 2)?;
+        s.serialize_field("map", &self.map)?;
+        s.serialize_field("reduce", &self.reduce)?;
+        s.end()
+    }
+}
+
+struct ChainVisitor<E: Executor>(std::marker::PhantomData<E>);
+
+impl<'de, E: Executor> serde::de::Visitor<'de> for ChainVisitor<E> {
+    type Value = Chain<E>;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("a struct containing map and reduce fields")
+    }
+
+    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        let mut map_field: Option<Step<E>> = None;
+        let mut reduce_field: Option<Step<E>> = None;
+
+        while let Some(key) = map.next_key()? {
+            match key {
+                "map" => {
+                    if map_field.is_some() {
+                        return Err(serde::de::Error::duplicate_field("map"));
+                    }
+                    map_field = Some(map.next_value()?);
+                }
+                "reduce" => {
+                    if reduce_field.is_some() {
+                        return Err(serde::de::Error::duplicate_field("reduce"));
+                    }
+                    reduce_field = Some(map.next_value()?);
+                }
+                _ => return Err(serde::de::Error::unknown_field(key, FIELDS)),
+            }
+        }
+
+        let map = map_field.ok_or_else(|| serde::de::Error::missing_field("map"))?;
+        let reduce = reduce_field.ok_or_else(|| serde::de::Error::missing_field("reduce"))?;
+
+        Ok(Chain { map, reduce })
+    }
+}
+
+impl<'de, E: Executor> Deserialize<'de> for Chain<E> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_struct("Chain", FIELDS, ChainVisitor(std::marker::PhantomData))
+    }
+}
+
+const FIELDS: &[&str] = &["map", "reduce"];
 
 /// Implements the `StorableEntity` trait for the `Chain` struct.
 ///

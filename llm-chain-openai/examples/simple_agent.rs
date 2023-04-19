@@ -1,10 +1,11 @@
 use llm_chain::output::Output;
 use llm_chain::prompt::chat::{ChatMessage, ChatPrompt, ChatRole};
+use llm_chain::step::Step;
 use llm_chain::tools::tools::{BashTool, ExitTool};
 use llm_chain::tools::ToolCollection;
 use llm_chain::Parameters;
 use llm_chain::PromptTemplate;
-use llm_chain_openai::chatgpt::{Executor, Step};
+use llm_chain_openai::chatgpt::Executor;
 
 // A simple example generating a prompt with some tools.
 
@@ -28,7 +29,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap();
     let params = Parameters::new().with("task", task);
     for _ in 1..5 {
-        let res = Step::for_prompt(chat.clone()).run(&params, &exec).await?;
+        let res = Step::for_prompt(chat.clone().into())
+            .run(&params, &exec)
+            .await?;
         let message_text = res.primary_textual_output().await.unwrap();
         println!("Assistant: {}", message_text);
         println!("=============");

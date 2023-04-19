@@ -5,10 +5,8 @@ mod error;
 pub use error::PromptTemplateError;
 use error::PromptTemplateErrorImpl;
 use std::fmt;
-#[cfg(feature = "serialization")]
 mod io;
 
-#[cfg(feature = "serialization")]
 use serde::{Deserialize, Serialize};
 
 use crate::Parameters;
@@ -30,12 +28,16 @@ use crate::Parameters;
 /// let parameters: Parameters = vec![("name", "World")].into();
 /// assert_eq!(template.format(&parameters).unwrap(), "Hello World!");
 /// ```
-#[derive(Clone, Debug)]
-#[cfg_attr(
-    feature = "serialization",
-    derive(Serialize, Deserialize),
-    serde(transparent)
-)]
+/// ## Tera
+/// ```rust
+/// use llm_chain::prompt::PromptTemplate;
+/// use llm_chain::Parameters;
+/// let template: PromptTemplate = PromptTemplate::tera("Hello {{name}}!");
+/// let parameters: Parameters = vec![("name", "World")].into();
+/// assert_eq!(template.format(&parameters).unwrap(), "Hello World!");
+/// ```
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(transparent)]
 pub struct PromptTemplate(PromptTemplateImpl);
 
 impl From<PromptTemplateImpl> for PromptTemplate {
@@ -117,8 +119,7 @@ impl fmt::Display for PromptTemplate {
 }
 
 /// The actual implementation of the prompt template. This hides the implementation details from the user.
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 enum PromptTemplateImpl {
     Static(String),
     Legacy(legacy::PromptTemplate),

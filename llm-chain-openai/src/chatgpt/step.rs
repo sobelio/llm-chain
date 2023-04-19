@@ -1,13 +1,10 @@
-use super::prompt::ChatPromptTemplate;
 use async_openai::types::CreateChatCompletionRequest;
-#[cfg(feature = "serialization")]
 use llm_chain::serialization::StorableEntity;
 use llm_chain::{
     prompt,
     traits::{self, StepError},
     Parameters, PromptTemplateError,
 };
-#[cfg(feature = "serialization")]
 use serde::{Deserialize, Serialize};
 /// The `Model` enum represents the available ChatGPT models that you can use through the OpenAI API. These models have different capabilities and performance characteristics, allowing you to choose the one that best suits your needs.
 ///
@@ -24,7 +21,7 @@ use serde::{Deserialize, Serialize};
 /// let custom_model = Model::Other("your_custom_model_name".to_string());
 /// ```
 ///
-#[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
+#[derive(Serialize, Deserialize)]
 pub enum Model {
     ChatGPT3_5Turbo,
     Other(String),
@@ -52,7 +49,7 @@ impl ToString for Model {
 ///
 /// let chat_gpt_step = Step::new(model, prompt);
 /// ```
-#[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
+#[derive(Serialize, Deserialize)]
 pub struct Step {
     pub(crate) model: Model,
     pub(crate) prompt: ChatPromptTemplate,
@@ -98,7 +95,6 @@ impl traits::Step for Step {
     }
 }
 
-#[cfg(feature = "serialization")]
 impl StorableEntity for Step {
     fn get_metadata() -> Vec<(String, String)> {
         vec![

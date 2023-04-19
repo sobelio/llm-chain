@@ -19,10 +19,12 @@ mod templates;
 pub mod text;
 mod traits;
 
+use std::fmt::Display;
+
 use serde::{Deserialize, Serialize};
 pub use templates::{PromptTemplate, PromptTemplateError};
 
-use self::traits::Prompt as PromptTrait;
+use self::{chat::ChatPrompt, traits::Prompt as PromptTrait};
 
 /// Creates a `TextPrompt` or a `ChatPrompt` based on the number of arguments provided.
 ///
@@ -38,16 +40,18 @@ use self::traits::Prompt as PromptTrait;
 /// use llm_chain::prompt::chat::{ChatPromptBuilder, ChatPrompt};
 /// use llm_chain::prompt;
 ///
-/// let text_prompt: TextPrompt = prompt!("Hello {{name}}!");
+/// let text_prompt = prompt!("Hello {{name}}!");
 /// assert_eq!(format!("{}", text_prompt), "Hello {{name}}!");
 ///
-/// let chat_prompt: ChatPrompt = prompt!("You are a helpful assistant.", "What is the meaning of life?");
+/// let chat_prompt = prompt!("You are a helpful assistant.", "What is the meaning of life?");
 /// assert_eq!(format!("{}", chat_prompt), "System: You are a helpful assistant.\nUser: What is the meaning of life?\n");
 /// ```
 #[macro_export]
 macro_rules! prompt {
     ($single_arg:expr) => {
-        llm_chain::prompt::text::TextPrompt::new($single_arg)
+        llm_chain::prompt::Prompt::new_from_text_prompt(
+            llm_chain::prompt::text::TextPrompt::new($single_arg)
+        )
     };
     ($system_arg:expr, $user_arg:expr $(,)?) => {
         llm_chain::prompt::Prompt::new_from_chat_prompt(
@@ -101,6 +105,15 @@ impl Prompt {
     }
 }
 
+impl Display for Prompt {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self.0 {
+            PromptImpl::ChatPrompt(chat_prompt) => write!(f, "{}", chat_prompt),
+            PromptImpl::TextPrompt(text_prompt) => write!(f, "{}", text_prompt),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PromptImpl {
     ChatPrompt(chat::ChatPrompt),
@@ -120,5 +133,17 @@ impl traits::Prompt for PromptImpl {
             PromptImpl::TextPrompt(text_prompt) => text_prompt.as_text_prompt(),
             PromptImpl::ChatPrompt(chat_prompt) => chat_prompt.as_text_prompt(),
         }
+    }
+}
+
+impl From<ChatPrompt> for Prompt {
+    fn from(chat_prompt: ChatPrompt) -> Self {
+        Self(PromptImpl::ChatPrompt(chat_prompt))
+    }
+}
+
+impl From<text::TextPrompt> for Prompt {
+    fn from(text_prompt: text::TextPrompt) -> Self {
+        Self(PromptImpl::TextPrompt(text_prompt))
     }
 }
