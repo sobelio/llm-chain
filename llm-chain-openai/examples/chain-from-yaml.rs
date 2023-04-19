@@ -28,3 +28,8 @@ async fn main() {
         .unwrap();
     println!("{}", res);
 }
+
+#[cfg(not(feature = "serialization"))]
+fn main() {
+    println!("This example requires the `serialization` feature");
+}

@@ -15,7 +15,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tool_collection.add_tool(BashTool::new());
 
     let template = PromptTemplate::combine(vec![
-        tool_collection.to_prompt_template(),
+        tool_collection.to_prompt_template().unwrap(),
         PromptTemplate::tera("Please perform the following task: {{task}}."),
     ]);
 

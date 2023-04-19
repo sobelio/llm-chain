@@ -4,6 +4,6 @@
 mod bash;
 mod exit;
 mod python;
-pub use bash::BashTool;
-pub use exit::ExitTool;
-pub use python::PythonTool;
+pub use bash::{BashTool, BashToolError};
+pub use exit::{ExitTool, ExitToolError};
+pub use python::{PythonTool, PythonToolError};

@@ -12,6 +12,7 @@ use crate::traits::ExecutorError;
 use crate::{
     frame::Frame,
     serialization::StorableEntity,
+    tokens::ExecutorTokenCountExt,
     tokens::PromptTokensError,
     traits::{Executor, Step},
     Parameters,
@@ -23,6 +24,9 @@ use serde::{
     de::{MapAccess, Visitor},
     Deserialize,
 };
+
+#[cfg(feature = "serialization")]
+use crate::serialization::StorableEntity;
 
 use thiserror::Error;
 
@@ -237,6 +241,7 @@ impl<'de, S: Step + Deserialize<'de>> Deserialize<'de> for Chain<S> {
 /// Implements the `StorableEntity` trait for the `Chain` struct.
 ///
 /// This implementation provides a method for extracting metadata from a `Chain` instance, in order to identify it
+#[cfg(feature = "serialization")]
 impl<S> StorableEntity for Chain<S>
 where
     S: Step + StorableEntity,

@@ -13,15 +13,13 @@ To help you get started, here is an example demonstrating how to use `llm-chain`
 
 ```rust
 let exec = Executor::new_default();
-let chain = Step::new(
-    Model::ChatGPT3_5Turbo,
-    [
-        (Role::System, "You are a bot for making personalized greetings"),
-        (Role::User, "Make a personalized greet for Joe"),
-    ]
-).to_chain();
-let res = chain.run(Parameters::new(), &exec).await.unwrap();
-println!("{:?}", res);
+let res = Step::for_prompt(prompt!(
+    "You are a robot assistant for making personalized greetings",
+    "Make a personalized greeting for Joe"
+))
+.run(&Parameters::new(), &exec)
+.await?;
+println!("{}", res);
 ```
 
 [➡️ **tutorial: get started with llm-chain**](https://sobelio.github.io/llm-chain/docs/getting-started-tutorial/index)

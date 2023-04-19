@@ -75,6 +75,7 @@ impl Step {
     ///
     /// * `prompt` - The prompt template for the step.
     /// * `config` - An optional configuration for the step. If `None`, the default configuration will be used.
+    #[deprecated(since = "0.6.0", note = "Use for_rust_prompt instead")]
     pub fn new_with_config<P: Into<PromptTemplate>>(
         prompt: P,
         config: Option<LlamaConfig>,
@@ -90,7 +91,9 @@ impl Step {
     /// # Arguments
     ///
     /// * `prompt` - The prompt template for the step.
+    #[deprecated(since = "0.6.0", note = "Use for_prompt instead")]
     pub fn new<P: Into<PromptTemplate>>(prompt: P) -> Self {
+        #[allow(deprecated)]
         Self::new_with_config(prompt, None)
     }
 
@@ -112,6 +115,7 @@ impl Step {
         prompt: P,
         config: Option<LlamaConfig>,
     ) -> Self {
+        #[allow(deprecated)]
         Self::new_with_config(prompt.as_text_prompt_or_convert(), config)
     }
 }

@@ -58,11 +58,13 @@ pub struct Step {
     pub(crate) prompt: ChatPromptTemplate,
 }
 impl Step {
+    #[deprecated(since = "0.6.0", note = "Use `for_prompt_and_model` instead")]
     pub fn new<P: Into<ChatPromptTemplate>>(model: Model, prompt: P) -> Step {
         let prompt = prompt.into();
         Step { model, prompt }
     }
     pub fn for_prompt_and_model<P: prompt::Prompt>(model: Model, prompt: P) -> Step {
+        #[allow(deprecated)]
         Self::new(model, prompt.as_chat_prompt())
     }
     pub fn for_prompt<P: prompt::Prompt>(prompt: P) -> Step {

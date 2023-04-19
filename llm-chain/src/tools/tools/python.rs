@@ -1,8 +1,8 @@
-use crate::tools::collection::ToolUseError;
 use crate::tools::description::{Describe, Format, ToolDescription};
-use crate::tools::tool::{gen_invoke_function, Tool};
+use crate::tools::tool::{gen_invoke_function, Tool, ToolError};
 use serde::{Deserialize, Serialize};
 use std::process::Command;
+use thiserror::Error;
 
 pub struct PythonTool {}
 
@@ -45,13 +45,22 @@ impl Describe for PythonToolOutput {
     }
 }
 
+#[derive(Debug, Error)]
+pub enum PythonToolError {
+    #[error(transparent)]
+    YamlError(#[from] serde_yaml::Error),
+    #[error(transparent)]
+    IOError(#[from] std::io::Error),
+}
+
+impl ToolError for PythonToolError {}
+
 impl PythonTool {
-    fn invoke_typed(&self, input: &PythonToolInput) -> Result<PythonToolOutput, ToolUseError> {
+    fn invoke_typed(&self, input: &PythonToolInput) -> Result<PythonToolOutput, PythonToolError> {
         let output = Command::new("python3")
             .arg("-c")
             .arg(&input.code)
-            .output()
-            .map_err(|e| ToolUseError::ToolInvocationFailed(e.to_string()))?;
+            .output()?;
         Ok(PythonToolOutput {
             result: String::from_utf8(output.stdout).unwrap(),
             stderr: String::from_utf8(output.stderr).unwrap(),
@@ -60,6 +69,7 @@ impl PythonTool {
 }
 
 impl Tool for PythonTool {
+    type Error = PythonToolError;
     gen_invoke_function!();
     fn description(&self) -> ToolDescription {
         ToolDescription::new(

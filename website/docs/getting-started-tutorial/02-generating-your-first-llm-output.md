@@ -16,45 +16,29 @@ First, let's start by writing a simple Rust program that generates an LLM output
 
 ```rust
 // Import the required traits and structs from llm-chain and our openai driver
-use llm_chain::{traits::StepExt, Parameters};
-use llm_chain_openai::chatgpt::{Executor, Model, Role, Step};
+use llm_chain::{prompt, traits::StepExt, Parameters};
+use llm_chain_openai::chatgpt::{Executor, Step};
 
-// Declare the main async function using Tokio as the runtime
+// Declare an async main function
 #[tokio::main(flavor = "current_thread")]
-async fn main() {
-    // Create a new Executor with the default settings
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create a new ChatGPT executor
     let exec = Executor::new_default();
-
-    // Build a new Step with the ChatGPT3-5Turbo model and a set of messages with roles
-    let chain = Step::new(
-        Model::ChatGPT3_5Turbo,
-        [
-            (
-                // Define a system role with an instruction for the LLM
-                Role::System,
-                "You are a bot for making personalized greetings",
-            ),
-            (
-                // Define a user role with a request for the LLM
-                Role::User,
-                "Make a personalized greet for Joe",
-            ),
-        ],
-    ).to_chain();
-    // Convert the Step into a Chain, which can be executed
-
-    // Execute the Chain and store the result in `res`
-    let res = chain.run(Parameters::new(), &exec).await.unwrap();
-
-    // Print the LLM response to the console
-    println!("{:?}", res);
+    // Create our prompt...
+    let res = Step::for_prompt(prompt!(
+        "You are a robot assistant for making personalized greetings",
+        "Make a personalized greeting for Joe"
+    ))
+    .run(&Parameters::new(), &exec) // ...and run it
+    .await?;
+    println!("{}", res);
+    Ok(())
 }
-
 ```
 
 ## Understanding LLM Response
 
-When you run the program, you'll receive an LLM response, which is the standard output from OpenAI's ChatGPT API. The response contains the generated text and other metadata.
+When you run the program, you'll receive an LLM response. The response contains the generated text and other metadata.
 
 ## Error Handling and Common Issues
 

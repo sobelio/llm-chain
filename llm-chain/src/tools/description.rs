@@ -1,10 +1,10 @@
 use serde::{ser::SerializeMap, Serialize, Serializer};
 
 /// Represents a single parameter for a tool.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct FormatPart {
-    key: String,
-    purpose: String,
+    pub key: String,
+    pub purpose: String,
 }
 
 impl FormatPart {
@@ -24,8 +24,9 @@ impl<K: Into<String>, P: Into<String>> From<(K, P)> for FormatPart {
 }
 
 /// Represents the format for a tool's input or output.
+#[derive(Debug)]
 pub struct Format {
-    parts: Vec<FormatPart>,
+    pub parts: Vec<FormatPart>,
 }
 
 impl Format {
@@ -61,16 +62,16 @@ pub trait Describe {
 }
 
 /// Represents the description of a tool, including its name, usage, and input/output formats.
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct ToolDescription {
-    pub(crate) name: String,
-    description: String,
-    description_context: String,
-    input_format: Format,
-    #[serde(skip)]
-    #[allow(dead_code)]
+    pub name: String,
+    pub description: String,
+    pub description_context: String,
+    pub input_format: Format,
+    // #[serde(skip)]
+    // #[allow(dead_code)]
     /// This will be used in the future.
-    output_format: Format,
+    pub output_format: Format,
 }
 
 impl ToolDescription {
