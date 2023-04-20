@@ -24,6 +24,8 @@ use std::fmt::Display;
 use serde::{Deserialize, Serialize};
 pub use templates::{PromptTemplate, PromptTemplateError};
 
+use crate::{step::Step, traits::Executor, Parameters};
+
 use self::{chat::ChatPrompt, traits::Prompt as PromptTrait};
 
 /// Creates a `TextPrompt` or a `ChatPrompt` based on the number of arguments provided.
@@ -102,6 +104,16 @@ impl Prompt {
             }
             PromptTemplate::combine(templates)
         }
+    }
+
+    pub async fn run<E: Executor>(
+        &self,
+        parameters: &Parameters,
+        executor: &E,
+    ) -> Result<E::Output, E::Error> {
+        Step::for_prompt(self.clone())
+            .run(parameters, executor)
+            .await
     }
 }
 

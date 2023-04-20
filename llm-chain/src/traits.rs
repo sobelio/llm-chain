@@ -30,19 +30,31 @@ use serde::{de::DeserializeOwned, Serialize};
 )]
 pub trait StepExt {}
 
+#[derive(thiserror::Error, Debug)]
+#[error("unable to create executor")]
+pub enum ExecutorCreationError {
+    #[error("unable to create executor: {0}")]
+    InnerError(#[from] Box<dyn Error + Send + Sync>),
+    #[error("Field must be set: {0}")]
+    FieldRequiredError(String),
+}
+
 /// Marker trait for errors in `Executor` method. It is needed so the concrete Errors can have a derived From<ExecutorError>
 pub trait ExecutorError {}
 
 pub trait Input {}
+
+/// The `Options` trait represents an options type that is used to customize the behavior of a step or executor.
+pub trait Options: Clone + Send + Sync + Serialize + DeserializeOwned + Debug {}
 
 #[async_trait]
 /// The `Executor` trait represents an executor that performs a single step in a chain. It takes a
 /// step, executes it, and returns the output.
 pub trait Executor: Sized {
     /// The per-invocation options type used by this executor. These are the options you can send to each step.
-    type PerInvocationOptions: Clone + Send + Sync + Serialize + DeserializeOwned + Debug;
+    type PerInvocationOptions: Options;
     /// The per-executor options type used by this executor. These are the options you can send to the executor and can't be set per step.
-    type PerExecutorOptions: Clone + Send + Sync + Serialize + DeserializeOwned + Debug;
+    type PerExecutorOptions: Options;
 
     /// The output type produced by this executor.
     type Output: Output;
@@ -51,6 +63,27 @@ pub trait Executor: Sized {
 
     /// The token type used by this executor.
     type Token;
+
+    /// Create a new executor with the given executor options and invocation options. If you don't need to set any options, you can use the `new` method instead.
+    /// # Parameters
+    /// * `executor_options`: The options to set for the executor.
+    /// * `invocation_options`: The default options to set for each invocation.
+    fn new_with_options(
+        executor_options: Option<Self::PerExecutorOptions>,
+        invocation_options: Option<Self::PerInvocationOptions>,
+    ) -> Result<Self, ExecutorCreationError>;
+
+    fn new() -> Result<Self, ExecutorCreationError> {
+        Self::new_with_options(None, None)
+    }
+
+    #[deprecated(
+        since = "0.7.0",
+        note = "Use new() instead, this call has an unsafe unwrap"
+    )]
+    fn new_with_default() -> Self {
+        Self::new().unwrap()
+    }
 
     /// Executes the given input and returns the resulting output.
     ///

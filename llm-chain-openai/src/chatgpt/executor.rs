@@ -5,7 +5,7 @@ use super::Model;
 use async_openai::error::OpenAIError;
 use llm_chain::step::{Step, StepError};
 use llm_chain::tokens::PromptTokensError;
-use llm_chain::traits::ExecutorError;
+use llm_chain::traits::{ExecutorCreationError, ExecutorError};
 use llm_chain::Parameters;
 use llm_chain::{traits, PromptTemplateError};
 
@@ -20,19 +20,23 @@ use std::sync::Arc;
 /// The executor for the ChatGPT model. This executor uses the `async_openai` crate to communicate with the OpenAI API.
 #[derive(Clone, Default)]
 pub struct Executor {
+    /// The client used to communicate with the OpenAI API.
     client: Arc<async_openai::Client>,
+    /// The per-invocation options for this executor.
+    per_invocation_options: Option<PerInvocation>,
 }
 
 impl Executor {
     /// Creates a new executor with the given client.
-    pub fn new(client: async_openai::Client) -> Self {
+    pub fn for_client(
+        client: async_openai::Client,
+        per_invocation_options: Option<PerInvocation>,
+    ) -> Self {
         let client = Arc::new(client);
-        Self { client }
-    }
-    /// Creates a new executor with the default client, which uses the `OPENAI_API_KEY` environment variable.
-    pub fn new_default() -> Self {
-        let client = async_openai::Client::new();
-        Self::new(client)
+        Self {
+            client,
+            per_invocation_options,
+        }
     }
 
     fn get_bpe_from_model(
@@ -69,6 +73,24 @@ impl traits::Executor for Executor {
     type Output = Output;
     type Token = usize;
     type Error = Error;
+
+    fn new_with_options(
+        executor_options: Option<Self::PerExecutorOptions>,
+        invocation_options: Option<Self::PerInvocationOptions>,
+    ) -> Result<Self, ExecutorCreationError> {
+        let mut client = async_openai::Client::new();
+        if let Some(executor_options) = executor_options {
+            if let Some(api_key) = executor_options.api_key {
+                client = client.with_api_key(api_key)
+            }
+        }
+        let client = Arc::new(client);
+        Ok(Self {
+            client,
+            per_invocation_options: invocation_options,
+        })
+    }
+
     async fn execute(
         &self,
         step: &Step<Self>,

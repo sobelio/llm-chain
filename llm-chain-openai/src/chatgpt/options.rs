@@ -1,3 +1,4 @@
+use llm_chain::traits;
 use serde::{Deserialize, Serialize};
 /// The `Model` enum represents the available ChatGPT models that you can use through the OpenAI API. These models have different capabilities and performance characteristics, allowing you to choose the one that best suits your needs.
 ///
@@ -41,5 +42,11 @@ pub struct PerInvocation {
     pub(crate) model: Option<Model>,
 }
 
+impl traits::Options for PerInvocation {}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct PerExecutor {}
+pub struct PerExecutor {
+    pub(crate) api_key: Option<String>,
+}
+
+impl traits::Options for PerExecutor {}

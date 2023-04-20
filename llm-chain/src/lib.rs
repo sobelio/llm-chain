@@ -42,3 +42,5 @@ pub use parameters::Parameters;
 pub use prompt::{PromptTemplate, PromptTemplateError};
 
 pub mod step;
+
+pub mod executor;
