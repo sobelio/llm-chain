@@ -1,6 +1,6 @@
-use crate::context::{LLamaContext, LlamaContextParams};
-use crate::step::LlamaConfig;
-use crate::step::LlamaInvocation;
+use crate::context::{ContextParams, LLamaContext};
+use crate::options::PerInvocation;
+use crate::options::{LlamaInvocation, PerExecutor};
 use crate::tokenizer::{embedding_to_output, llama_token_eos, llama_tokenize_helper, tokenize};
 
 use crate::output::Output;
@@ -8,51 +8,28 @@ use async_trait::async_trait;
 
 use llm_chain::step::{Step, StepError};
 use llm_chain::tokens::{PromptTokensError, TokenCount};
-use llm_chain::traits::{Executor as ExecutorTrait, ExecutorError};
+use llm_chain::traits::{Executor as ExecutorTrait, ExecutorCreationError, ExecutorError};
 use llm_chain::{Parameters, PromptTemplateError};
 use llm_chain_llama_sys::llama_context_params;
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ExecutorOptions {
-    model_path: Option<String>,
-    context_params: Option<LlamaContextParams>,
-}
-
 /// Executor is responsible for running the LLAMA model and managing its context.
 pub struct Executor {
     context: LLamaContext,
-    context_params: Option<LlamaContextParams>,
+    options: Option<PerExecutor>,
     callback: Option<fn(&Output)>,
+    invocation_options: Option<PerInvocation>,
 }
 
 impl Executor {
-    /// Creates a new executor with the given client and optional context parameters.
-    pub fn new_with_config(
-        model_path: &str,
-        context_params: Option<LlamaContextParams>,
-        callback: Option<fn(&Output)>,
-    ) -> Self {
-        let context = LLamaContext::from_file_and_params(model_path, &context_params);
-        Self {
-            context,
-            context_params,
-            callback,
-        }
+    pub fn with_callback(mut self, callback: fn(&Output)) -> Self {
+        self.callback = Some(callback);
+        self
     }
-
-    // Creates a new executor with callback for the given model with default context parameters.
-    pub fn new_with_callback(model_path: &str, callback: fn(&Output)) -> Self {
-        Self::new_with_config(model_path, None, Some(callback))
-    }
-
-    /// Creates a new executor for the given model with default context parameters.
-    pub fn new(model_path: &str) -> Self {
-        Self::new_with_config(model_path, None, None)
-    }
-
     fn context_params(&self) -> llama_context_params {
-        LlamaContextParams::or_default(&self.context_params)
+        let cp = self
+            .options
+            .as_ref()
+            .and_then(|p| p.context_params.as_ref());
+        ContextParams::or_default(cp)
     }
 }
 
@@ -161,8 +138,31 @@ impl ExecutorTrait for Executor {
     type Output = Output;
     type Token = i32;
     type Error = Error;
-    type PerInvocationOptions = LlamaConfig;
-    type PerExecutorOptions = ExecutorOptions;
+    type PerInvocationOptions = PerInvocation;
+    type PerExecutorOptions = PerExecutor;
+    fn new_with_options(
+        executor_options: Option<Self::PerExecutorOptions>,
+        invocation_options: Option<Self::PerInvocationOptions>,
+    ) -> Result<Executor, ExecutorCreationError> {
+        let context_params = match executor_options.as_ref() {
+            Some(options) => options.context_params.clone(),
+            None => None,
+        };
+        let model_path = executor_options
+            .as_ref()
+            .and_then(|x| x.model_path.clone())
+            .or_else(|| std::env::var("LLAMA_MODEL_PATH").ok())
+            .ok_or(ExecutorCreationError::FieldRequiredError(
+                "model_path".to_string(),
+            ))?;
+        Ok(Self {
+            context: LLamaContext::from_file_and_params(&model_path, context_params.as_ref()),
+            options: executor_options,
+            callback: None,
+            invocation_options,
+        })
+    }
+
     // Executes the model asynchronously and returns the output.
     async fn execute(
         &self,
@@ -171,7 +171,7 @@ impl ExecutorTrait for Executor {
     ) -> Result<Self::Output, Self::Error> {
         let config = match step.options() {
             Some(options) => options.clone(),
-            None => LlamaConfig::default(),
+            None => self.invocation_options.clone().unwrap_or_default(),
         };
         let formatted_prompts = step
             .prompt()

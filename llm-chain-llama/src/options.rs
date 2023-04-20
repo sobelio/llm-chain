@@ -1,4 +1,7 @@
+use llm_chain::traits;
 use serde::{Deserialize, Serialize};
+
+use crate::context::ContextParams;
 
 /// Represents a concrete call to the LLM model, with all the parameters specified, and no implicit behavior.
 pub struct LlamaInvocation {
@@ -14,7 +17,7 @@ pub struct LlamaInvocation {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 /// LlamaConfig is an overridable collection of configuration parameters for the LLAMA model. It is combined with a prompt to create an invocation.
-pub struct LlamaConfig {
+pub struct PerInvocation {
     pub n_threads: Option<i32>,
     pub n_tok_predict: Option<usize>,
     pub top_k: Option<i32>,
@@ -24,7 +27,9 @@ pub struct LlamaConfig {
     pub stop_sequence: Option<String>,
 }
 
-impl LlamaConfig {
+impl traits::Options for PerInvocation {}
+
+impl PerInvocation {
     /// Creates a new LlamaConfig instance with default values.
     pub fn new() -> Self {
         Self::default()
@@ -55,3 +60,21 @@ impl LlamaConfig {
         }
     }
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PerExecutor {
+    pub(crate) model_path: Option<String>,
+    pub(crate) context_params: Option<ContextParams>,
+}
+
+impl PerExecutor {
+    pub fn new() -> Self {
+        Self::default()
+    }
+    pub fn with_model_path(mut self, model_path: &str) -> Self {
+        self.model_path = Some(model_path.to_string());
+        self
+    }
+}
+
+impl traits::Options for PerExecutor {}
