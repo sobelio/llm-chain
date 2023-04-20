@@ -2,11 +2,12 @@ use llm_chain::chains::sequential::Chain;
 use llm_chain::prompt;
 use llm_chain::serialization::StorableEntity;
 use llm_chain::step::Step;
+use llm_chain::traits::Executor as ExecutorTrait;
 use llm_chain_openai::chatgpt::Executor;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let chatgpt = Executor::new_default();
+    let chatgpt = Executor::new()?;
     let mut path = std::env::temp_dir();
     path.push("chain-from-yaml.yaml");
     let path = path.to_str().unwrap();

@@ -3,9 +3,10 @@ use llm_chain::prompt::chat::{ChatMessage, ChatPrompt, ChatRole};
 use llm_chain::step::Step;
 use llm_chain::tools::tools::{BashTool, ExitTool};
 use llm_chain::tools::ToolCollection;
-use llm_chain::Parameters;
+use llm_chain::traits::Executor as ExecutorTrait;
+use llm_chain::{Parameters, executor};
 use llm_chain::PromptTemplate;
-use llm_chain_openai::chatgpt::Executor;
+
 
 // A simple example generating a prompt with some tools.
 
@@ -20,7 +21,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         PromptTemplate::tera("You may ONLY use one tool at a time. Please perform the following task: {{task}}. Once you have read the IP Address you may trigger ExitTool. -- Do not do this before you know the ip address. do not ask for more tasks."),
     ]);
     let task = "Figure out my IP address";
-    let exec = Executor::new_default();
+    let exec = executor!()?;
 
     let mut chat = ChatPrompt::builder()
         .system("You are an automated agent for performing tasks. Your output must always be YAML.")
