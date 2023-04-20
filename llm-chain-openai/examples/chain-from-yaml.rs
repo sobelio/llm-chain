@@ -27,8 +27,3 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("{}", res);
     Ok(())
 }
-
-#[cfg(not(feature = "serialization"))]
-fn main() {
-    println!("This example requires the `serialization` feature");
-}
