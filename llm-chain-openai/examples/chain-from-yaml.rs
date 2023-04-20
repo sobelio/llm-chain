@@ -12,11 +12,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     path.push("chain-from-yaml.yaml");
     let path = path.to_str().unwrap();
 
-<<<<<<< HEAD
     let chain_to_write: Chain<Executor> = Step::for_prompt(prompt!(
-=======
-    let chain_to_write = Step::for_prompt(prompt!(
->>>>>>> 2fbaff0 (Add for_prompt_stream method to openai Step.)
         "You are a bot for making personalized greetings",
         "Make a personalized greet for Joe"
     ))

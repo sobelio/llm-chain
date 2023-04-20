@@ -28,13 +28,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build()
         .unwrap();
 
-<<<<<<< HEAD
     let result = Step::for_prompt(prompt.into())
         .run(&parameters!("task" => task), &exec)
-=======
-    let result = Step::for_prompt(prompt)
-        .run(&Parameters::new().with("task", task), &exec)
->>>>>>> 2fbaff0 (Add for_prompt_stream method to openai Step.)
         .await?;
 
     println!("{}", result);

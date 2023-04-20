@@ -54,13 +54,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap();
     let params = parameters!("task" => task);
     for _ in 1..5 {
-<<<<<<< HEAD
         let res = Step::for_prompt(chat.clone().into())
             .run(&params, &exec)
             .await?;
-=======
-        let res = Step::for_prompt(chat.clone()).run(&params, &exec).await?;
->>>>>>> 2fbaff0 (Add for_prompt_stream method to openai Step.)
         let message_text = res.primary_textual_output().await.unwrap();
         println!("Assistant: {}", message_text);
         println!("=============");
