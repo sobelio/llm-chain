@@ -158,7 +158,7 @@ impl ExecutorTrait for Executor {
             .and_then(|x| x.model_path.clone())
             .or_else(|| std::env::var("LLAMA_MODEL_PATH").ok())
             .ok_or(ExecutorCreationError::FieldRequiredError(
-                "model_path".to_string(),
+                "model_path, ensure to provide the parameter or set `LLAMA_MODEL_PATH` environment variable ".to_string(),
             ))?;
         Ok(Self {
             context: LLamaContext::from_file_and_params(&model_path, context_params.as_ref()),
