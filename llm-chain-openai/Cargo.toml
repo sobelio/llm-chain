@@ -24,4 +24,4 @@ thiserror = "1.0.40"
 tokio = "1.27.0"
 qdrant-client = "1.1.1"
 serde_yaml = { version = "0.9.21" }
-llm-chain = { path = "../llm-chain", version = "0.6.2" }
+llm-chain = { path = "../llm-chain" }
