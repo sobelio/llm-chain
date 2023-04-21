@@ -37,7 +37,8 @@ impl ToString for Model {
     }
 }
 
-/// The `PerInvocation` struct contains options that can be specified for each ChatGPT invocation. Currently, it only supports specifying a `Model`.
+/// The `PerInvocation` struct contains options that can be specified for each ChatGPT invocation.
+/// Currently, it only supports specifying a `Model`.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PerInvocation {
     pub(crate) model: Option<Model>,
@@ -45,7 +46,8 @@ pub struct PerInvocation {
 
 impl traits::Options for PerInvocation {}
 
-/// The `PerExecutor` struct contains options that can be specified for the ChatGPT `Executor`. Currently, it only supports specifying an `api_key`.
+/// The `PerExecutor` struct contains options that can be specified for the ChatGPT `Executor`.
+/// Currently, it only supports specifying an `api_key`.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PerExecutor {
     pub(crate) api_key: Option<String>,

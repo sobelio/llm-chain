@@ -19,7 +19,7 @@ use tiktoken_rs::async_openai::num_tokens_from_messages;
 
 use std::sync::Arc;
 
-/// The executor for the ChatGPT model. This executor uses the `async_openai` crate to communicate with the OpenAI API.
+/// The `Executor` struct for the ChatGPT model. This executor uses the `async_openai` crate to communicate with the OpenAI API.
 #[derive(Clone, Default)]
 pub struct Executor {
     /// The client used to communicate with the OpenAI API.
@@ -29,7 +29,7 @@ pub struct Executor {
 }
 
 impl Executor {
-    /// Creates a new executor with the given client.
+    /// Creates a new `Executor` with the given client.
     pub fn for_client(
         client: async_openai::Client,
         per_invocation_options: Option<PerInvocation>,
@@ -40,6 +40,7 @@ impl Executor {
             per_invocation_options,
         }
     }
+
     fn get_model_from_step(&self, step: &Step<Self>) -> Model {
         step.options()
             .or(self.per_invocation_options.as_ref())
@@ -66,6 +67,7 @@ impl traits::Executor for Executor {
     type Output = Output;
     type Token = usize;
     type Error = Error;
+    type StepTokenizer<'a> = OpenAITokenizer;
 
     fn new_with_options(
         executor_options: Option<Self::PerExecutorOptions>,
@@ -83,19 +85,19 @@ impl traits::Executor for Executor {
             per_invocation_options: invocation_options,
         })
     }
-    type StepTokenizer<'a> = OpenAITokenizer;
+
     async fn execute(
         &self,
         step: &Step<Self>,
         parameters: &Parameters,
     ) -> Result<Self::Output, Self::Error> {
         let client = self.client.clone();
-
         let model = self.get_model_from_step(step);
         let input = create_chat_completion_request(&model, step.prompt(), parameters)?;
         let res = async move { client.chat().create(input).await }.await?;
         Ok(res.into())
     }
+
     fn tokens_used(
         &self,
         step: &Step<Self>,
@@ -103,7 +105,6 @@ impl traits::Executor for Executor {
     ) -> Result<TokenCount, PromptTokensError> {
         let model = self.get_model_from_step(step);
         let model_s = model.to_string();
-
         let max_tokens = tiktoken_rs::model::get_context_size(&model_s);
         let prompt = step.prompt();
         let completion_req = create_chat_completion_request(&model, prompt, parameters)?;
@@ -123,6 +124,7 @@ impl traits::Executor for Executor {
             num_tokens_with_empty_params as i32,
         ))
     }
+
     fn get_tokenizer(
         &self,
         step: &llm_chain::step::Step<Self>,

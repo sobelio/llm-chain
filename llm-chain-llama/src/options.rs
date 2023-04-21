@@ -1,4 +1,3 @@
-use llm_chain::traits;
 use serde::{Deserialize, Serialize};
 
 use crate::context::ContextParams;
@@ -27,15 +26,13 @@ pub struct PerInvocation {
     pub stop_sequence: Option<String>,
 }
 
-impl traits::Options for PerInvocation {}
-
 impl PerInvocation {
-    /// Creates a new LlamaConfig instance with default values.
+    /// Creates a new `PerInvocation` instance with default values.
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Converts the current LlamaConfig instance to a LlamaInvocation instance, using the given prompt.
+    /// Converts the current `PerInvocation` instance to a LlamaInvocation instance, using the given prompt.
     ///
     /// # Arguments
     ///
@@ -61,20 +58,43 @@ impl PerInvocation {
     }
 }
 
+/// `PerExecutor` represents a collection of configuration parameters for the executor of the LLAMA model.
+/// It contains optional fields for the model path and context parameters.
+///
+/// # Examples
+///
+/// ```
+/// let executor = PerExecutor::new().with_model_path("path/to/model");
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PerExecutor {
+    /// Optional path to the LLAMA model.
     pub(crate) model_path: Option<String>,
+    /// Optional context parameters for the LLAMA model.
     pub(crate) context_params: Option<ContextParams>,
 }
 
 impl PerExecutor {
+    /// Creates a new `PerExecutor` instance with default values.
+    ///
+    /// # Returns
+    ///
+    /// A `PerExecutor` instance with default values for the model path and context parameters.
     pub fn new() -> Self {
         Self::default()
     }
+
+    /// Sets the model path for the current `PerExecutor` instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `model_path` - The path to the LLAMA model.
+    ///
+    /// # Returns
+    ///
+    /// A new `PerExecutor` instance with the updated model path.
     pub fn with_model_path(mut self, model_path: &str) -> Self {
         self.model_path = Some(model_path.to_string());
         self
     }
 }
-
-impl traits::Options for PerExecutor {}
