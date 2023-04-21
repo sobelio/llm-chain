@@ -5,7 +5,7 @@
 //! prompts stay within the context window size supported by a given model.
 
 use crate::traits::Executor;
-use crate::Parameters;
+use crate::{Parameters, TextSplitter};
 use thiserror::Error;
 
 /// Custom error type for handling prompt token-related errors.
@@ -27,54 +27,13 @@ pub enum PromptTokensError {
 pub trait ExecutorTokenCountExt<Step, Output, Token: Clone, StepTokenizer>:
     Executor<Step = Step, Output = Output, Token = Token>
 {
-    /// Splits a `Parameters` object at the token limit.
-    ///
-    /// This method takes a `Step` and a `Parameters` object, and returns a tuple of `Parameters`
-    /// objects. The first element of the tuple contains the input `Parameters` object, and the
-    /// second element contains an `Option<Parameters>` that represents the remainder if the input
-    /// text exceeded the token limit.
-    ///
-    /// # Errors
-    ///
-    /// Returns a `PromptTokensError` if there is an issue computing the tokens.
-    fn split_at_tokens(
-        &self,
-        step: &Step,
-        doc: &Parameters,
-    ) -> Result<(Parameters, Option<Parameters>), PromptTokensError> {
-        let tokens_used = self.tokens_used(step, doc)?;
-        let text = doc.get_text().ok_or(PromptTokensError::UnableToCompute)?;
-        if tokens_used.has_tokens_remaining() {
-            Ok((doc.clone(), None))
-        } else {
-            let tokenizer = self
-                .get_tokenizer(step)
-                .map_err(|_e| PromptTokensError::UnableToCompute)?;
-
-            let tokens = tokenizer
-                .tokenize_str(text)
-                .map_err(|_| PromptTokensError::NotAvailable)?;
-
-            let idx: usize = (tokens_used.max_tokens - tokens_used.template_tokens_used) as usize;
-            let (a, b) = tokens.split_at(idx);
-            let a = doc.with_text(
-                tokenizer
-                    .to_string(a.to_vec())
-                    .map_err(|_| PromptTokensError::UnableToCompute)?,
-            );
-            let b = tokenizer
-                .to_string(b.to_vec())
-                .map_err(|_| PromptTokensError::UnableToCompute)?;
-            let b = if b.is_empty() {
-                None
-            } else {
-                Some(doc.with_text(b))
-            };
-            Ok((a, b))
-        }
-    }
     /// Splits a `Parameters` object into multiple smaller `Parameters` objects that fit within
     /// the context window size supported by the given model.
+    ///
+    /// # Arguments
+    /// * `step` - The step that will process the Parameters. Has impact on tokenizer & text splitter used
+    /// * `doc` - The parameter object to split into multiple, smaller, parameters
+    /// * `chunk_overlap` - The amount of tokens each split part should overlap with previous & next chunk
     ///
     /// # Errors
     ///
@@ -83,19 +42,29 @@ pub trait ExecutorTokenCountExt<Step, Output, Token: Clone, StepTokenizer>:
         &self,
         step: &Step,
         doc: &Parameters,
+        chunk_overlap: Option<usize>,
     ) -> Result<Vec<Parameters>, PromptTokensError> {
-        let mut res = Vec::new();
-        let mut remainder = doc.clone();
-        loop {
-            let (a, b) = self.split_at_tokens(step, &remainder)?;
-            res.push(a);
-            if let Some(new_remainder) = b {
-                remainder = new_remainder;
-            } else {
-                break;
-            }
-        }
-        Ok(res)
+        let splitter = self
+            .get_text_splitter(step)
+            .map_err(|_e| PromptTokensError::UnableToCompute)?;
+
+        let text = doc.get_text().ok_or(PromptTokensError::UnableToCompute)?;
+
+        let max_tokens = self
+            .max_tokens_allowed(step)
+            .try_into()
+            .map_err(|_| PromptTokensError::UnableToCompute)?;
+
+        let chunk_overlap = chunk_overlap.unwrap_or(0);
+
+        let split_params = splitter
+            .split_text(text, max_tokens, chunk_overlap)
+            .map_err(|_e| PromptTokensError::UnableToCompute)?
+            .into_iter()
+            .map(Parameters::new_with_text)
+            .collect();
+
+        Ok(split_params)
     }
 }
 

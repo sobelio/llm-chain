@@ -24,6 +24,7 @@ use serde::{Deserialize, Serialize};
 /// let custom_model = Model::Other("your_custom_model_name".to_string());
 /// ```
 ///
+#[derive(Clone)]
 #[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
 pub enum Model {
     ChatGPT3_5Turbo,
