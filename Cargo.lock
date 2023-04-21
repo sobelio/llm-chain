@@ -160,9 +160,9 @@ checksum = "a4a4ddaa51a5bc52a6948f74c06d20aaaddb71924eab79b8c97a8c556e942d6a"
 
 [[package]]
 name = "bindgen"
-version = "0.64.0"
+version = "0.65.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c4243e6031260db77ede97ad86c27e501d646a27ab57b59a574f725d98ab1fb4"
+checksum = "cfdf7b466f9a4903edc73f95d6d2bcd5baf8ae620638762244d3f60143643cc5"
 dependencies = [
  "bitflags",
  "cexpr",
@@ -171,12 +171,13 @@ dependencies = [
  "lazycell",
  "log",
  "peeking_take_while",
+ "prettyplease 0.2.4",
  "proc-macro2",
  "quote",
  "regex",
  "rustc-hash",
  "shlex",
- "syn 1.0.109",
+ "syn 2.0.15",
  "which",
 ]
 
@@ -1475,6 +1476,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "prettyplease"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1ceca8aaf45b5c46ec7ed39fff75f57290368c1846d33d24a122ca81416ab058"
+dependencies = [
+ "proc-macro2",
+ "syn 2.0.15",
+]
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.56"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1506,7 +1517,7 @@ dependencies = [
  "log",
  "multimap",
  "petgraph",
- "prettyplease",
+ "prettyplease 0.1.25",
  "prost",
  "prost-types",
  "regex",
@@ -2246,7 +2257,7 @@ version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5bf5e9b9c0f7e0a7c027dcfaba7b2c60816c7049171f679d99ee2ff65d0de8c4"
 dependencies = [
- "prettyplease",
+ "prettyplease 0.1.25",
  "proc-macro2",
  "prost-build",
  "quote",
