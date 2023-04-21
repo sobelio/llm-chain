@@ -1,6 +1,6 @@
 use std::io::Write;
 
-use llm_chain::{executor, prompt, Parameters};
+use llm_chain::{executor, parameters, prompt};
 
 /// This example demonstrates how to use the llm-chain-llama crate to generate text using a
 /// LLaMA model.
@@ -17,7 +17,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     let res = prompt!("The Colors of the Rainbow are (in order): ")
-        .run(&Parameters::new(), &exec)
+        .run(&parameters!(), &exec)
         .await?;
     println!("{}", res);
     Ok(())

@@ -1,6 +1,6 @@
 use llm_chain::chains::map_reduce::Chain;
-use llm_chain::{executor, prompt, Parameters};
-use llm_chain_openai::chatgpt::{Step};
+use llm_chain::{executor, parameters, prompt, Parameters};
+use llm_chain_openai::chatgpt::Step;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -26,7 +26,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let article = include_str!("article_to_summarize.md");
 
     // Create a vector with the Parameters object containing the text of the article
-    let docs = vec![Parameters::new_with_text(article)];
+    let docs = vec![parameters!(article)];
 
     // Run the chain with the provided documents and an empty Parameters object for the "reduce" step
     let res = chain.run(docs, Parameters::new(), &exec).await.unwrap();

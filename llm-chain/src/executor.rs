@@ -6,7 +6,8 @@
 ///
 /// # Usage
 ///
-/// ```norun
+/// ```ignore
+/// # use llm_chain::executor;
 /// executor!(); // Creates a ChatGPT executor with default options.
 /// ```
 ///

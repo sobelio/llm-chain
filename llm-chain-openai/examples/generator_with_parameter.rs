@@ -1,5 +1,4 @@
-use llm_chain::{executor, prompt, step::Step, Parameters};
-
+use llm_chain::{executor, parameters, prompt, step::Step, Parameters};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -12,13 +11,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ));
 
     // A greeting for emil!
-    let res = step.run(&Parameters::new_with_text("Emil"), &exec).await?;
+    let res = step.run(&parameters!("Emil"), &exec).await?;
     println!("{}", res);
 
     // A greeting for you
-    let res = step
-        .run(&Parameters::new_with_text("Your Name Here"), &exec)
-        .await?;
+    let res = step.run(&parameters!("Your Name Here"), &exec).await?;
 
     println!("{}", res);
 
