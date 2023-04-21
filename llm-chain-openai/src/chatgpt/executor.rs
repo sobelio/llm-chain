@@ -50,6 +50,7 @@ impl Executor {
 
     fn get_model_from_step(&self, step: &Step<Self>) -> Model {
         step.options()
+            .or_else(|| self.per_invocation_options.as_ref())
             .and_then(|opts| opts.model.clone())
             .unwrap_or_default()
     }
@@ -97,6 +98,7 @@ impl traits::Executor for Executor {
         parameters: &Parameters,
     ) -> Result<Self::Output, Self::Error> {
         let client = self.client.clone();
+
         let model = self.get_model_from_step(step);
         let input = create_chat_completion_request(&model, step.prompt(), parameters)?;
         let res = async move { client.chat().create(input).await }.await?;
