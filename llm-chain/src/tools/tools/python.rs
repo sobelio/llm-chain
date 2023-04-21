@@ -1,5 +1,6 @@
 use crate::tools::description::{Describe, Format, ToolDescription};
-use crate::tools::tool::{gen_invoke_function, Tool, ToolError};
+use crate::tools::tool::{Tool, ToolError};
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::process::Command;
 use thiserror::Error;
@@ -55,8 +56,13 @@ pub enum PythonToolError {
 
 impl ToolError for PythonToolError {}
 
-impl PythonTool {
-    fn invoke_typed(&self, input: &PythonToolInput) -> Result<PythonToolOutput, PythonToolError> {
+#[async_trait]
+impl Tool for PythonTool {
+    type Input = PythonToolInput;
+    type Output = PythonToolOutput;
+    type Error = PythonToolError;
+
+    async fn invoke_typed(&self, input: &Self::Input) -> Result<Self::Output, Self::Error> {
         let output = Command::new("python3")
             .arg("-c")
             .arg(&input.code)
@@ -66,11 +72,7 @@ impl PythonTool {
             stderr: String::from_utf8(output.stderr).unwrap(),
         })
     }
-}
 
-impl Tool for PythonTool {
-    type Error = PythonToolError;
-    gen_invoke_function!();
     fn description(&self) -> ToolDescription {
         ToolDescription::new(
             "PythonTool",

@@ -1,5 +1,6 @@
 use crate::tools::description::{Describe, Format, ToolDescription};
-use crate::tools::tool::{gen_invoke_function, Tool, ToolError};
+use crate::tools::tool::{Tool, ToolError};
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -51,17 +52,15 @@ pub enum ExitToolError {
 
 impl ToolError for ExitToolError {}
 
-impl ExitTool {
+#[async_trait]
+impl Tool for ExitTool {
+    type Input = ExitToolInput;
+    type Output = ExitToolOutput;
+    type Error = ExitToolError;
     /// Invokes the `ExitTool` with the provided input.
-    fn invoke_typed(&self, input: &ExitToolInput) -> Result<ExitToolOutput, ExitToolError> {
+    async fn invoke_typed(&self, input: &ExitToolInput) -> Result<ExitToolOutput, ExitToolError> {
         std::process::exit(input.status_code);
     }
-}
-
-impl Tool for ExitTool {
-    type Error = ExitToolError;
-    gen_invoke_function!();
-
     /// Returns a `ToolDescription` for `ExitTool`.
     fn description(&self) -> ToolDescription {
         ToolDescription::new(
