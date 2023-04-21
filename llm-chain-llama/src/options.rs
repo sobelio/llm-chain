@@ -1,3 +1,4 @@
+use llm_chain::traits::Options;
 use serde::{Deserialize, Serialize};
 
 use crate::context::ContextParams;
@@ -25,6 +26,8 @@ pub struct PerInvocation {
     pub repeat_penalty: Option<f32>,
     pub stop_sequence: Option<String>,
 }
+
+impl Options for PerInvocation {}
 
 impl PerInvocation {
     /// Creates a new `PerInvocation` instance with default values.
@@ -98,3 +101,4 @@ impl PerExecutor {
         self
     }
 }
+impl Options for PerExecutor {}

@@ -165,7 +165,7 @@ impl<E: Executor> Chain<E> {
                     <E as traits::Executor>::Output,
                     <E as traits::Executor>::Token,
                     <E as traits::Executor>::StepTokenizer<'a>,
-                >>::split_to_fit(executor, step, x)
+                >>::split_to_fit(executor, step, x, None)
             })
             .collect();
         let data = data?.iter().flatten().cloned().collect();

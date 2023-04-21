@@ -2,6 +2,7 @@ use crate::context::{ContextParams, LLamaContext};
 use crate::options::PerInvocation;
 use crate::options::{LlamaInvocation, PerExecutor};
 use crate::tokenizer::{embedding_to_output, llama_token_eos, llama_tokenize_helper, tokenize};
+use crate::LLamaTextSplitter;
 
 use crate::output::Output;
 use async_trait::async_trait;
@@ -32,6 +33,10 @@ impl Executor {
             .as_ref()
             .and_then(|p| p.context_params.as_ref());
         ContextParams::or_default(cp)
+    }
+
+    pub(crate) fn get_context(&self) -> &LLamaContext {
+        &self.context
     }
 }
 
@@ -116,10 +121,6 @@ impl Executor {
     fn run_model(&self, input: LlamaInvocation) -> Output {
         run_model(&self.context, input, self.context_params(), &self.callback)
     }
-
-    fn max_tokens(&self) -> i32 {
-        self.context_params().n_ctx
-    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -140,6 +141,7 @@ impl ExecutorTrait for Executor {
     type Output = Output;
     type Token = i32;
     type StepTokenizer<'a> = LLamaTokenizer<'a>;
+    type TextSplitter<'a> = LLamaTextSplitter<'a>;
     type Error = Error;
     type PerInvocationOptions = PerInvocation;
     type PerExecutorOptions = PerExecutor;
@@ -210,7 +212,7 @@ impl ExecutorTrait for Executor {
             .map_err(|_e| PromptTokensError::UnableToCompute)?
             .len() as i32;
 
-        let max_tokens = self.max_tokens();
+        let max_tokens = self.max_tokens_allowed(step);
         Ok(TokenCount::new(
             max_tokens,
             tokens_used,
@@ -218,11 +220,16 @@ impl ExecutorTrait for Executor {
         ))
     }
 
-    fn get_tokenizer(
-        &self,
-        _step: &llm_chain::step::Step<Self>,
-    ) -> Result<LLamaTokenizer, TokenizerError> {
+    fn max_tokens_allowed(&self, _step: &Step<Self>) -> i32 {
+        self.context_params().n_ctx
+    }
+
+    fn get_tokenizer(&self, _step: &Step<Self>) -> Result<LLamaTokenizer, TokenizerError> {
         Ok(LLamaTokenizer::new(self))
+    }
+
+    fn get_text_splitter(&self, _step: &Step<Self>) -> Result<Self::TextSplitter<'_>, Self::Error> {
+        Ok(LLamaTextSplitter::new(self))
     }
 }
 

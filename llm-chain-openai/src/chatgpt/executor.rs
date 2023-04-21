@@ -2,6 +2,7 @@ use super::options::PerInvocation;
 use super::output::Output;
 use super::prompt::create_chat_completion_request;
 use super::Model;
+use super::OpenAITextSplitter;
 use async_openai::error::OpenAIError;
 use llm_chain::step::{Step, StepError};
 use llm_chain::tokens::PromptTokensError;
@@ -66,8 +67,9 @@ impl traits::Executor for Executor {
 
     type Output = Output;
     type Token = usize;
-    type Error = Error;
     type StepTokenizer<'a> = OpenAITokenizer;
+    type TextSplitter<'a> = OpenAITextSplitter;
+    type Error = Error;
 
     fn new_with_options(
         executor_options: Option<Self::PerExecutorOptions>,
@@ -105,7 +107,7 @@ impl traits::Executor for Executor {
     ) -> Result<TokenCount, PromptTokensError> {
         let model = self.get_model_from_step(step);
         let model_s = model.to_string();
-        let max_tokens = tiktoken_rs::model::get_context_size(&model_s);
+        let max_tokens = self.max_tokens_allowed(step);
         let prompt = step.prompt();
         let completion_req = create_chat_completion_request(&model, prompt, parameters)?;
         // This approach will break once we add support for non-string valued parameters.
@@ -119,19 +121,31 @@ impl traits::Executor for Executor {
             .map_err(|_| PromptTokensError::NotAvailable)?;
 
         Ok(TokenCount::new(
-            max_tokens as i32,
+            max_tokens,
             tokens_used as i32,
             num_tokens_with_empty_params as i32,
         ))
     }
 
-    fn get_tokenizer(
-        &self,
-        step: &llm_chain::step::Step<Self>,
-    ) -> Result<OpenAITokenizer, TokenizerError> {
-        Ok(OpenAITokenizer::new(
-            &step.options().cloned().unwrap_or_default(),
-        ))
+    /// Get the context size from the model or return default context size
+    fn max_tokens_allowed(&self, step: &Step<Self>) -> i32 {
+        let model = self.get_model_from_step(step);
+        tiktoken_rs::model::get_context_size(&model.to_string())
+            .try_into()
+            .unwrap_or(4096)
+    }
+
+    fn get_tokenizer(&self, step: &Step<Self>) -> Result<OpenAITokenizer, TokenizerError> {
+        let opts = step
+            .options()
+            .or(self.per_invocation_options.as_ref())
+            .cloned()
+            .unwrap_or_default();
+        Ok(OpenAITokenizer::new(&opts))
+    }
+
+    fn get_text_splitter(&self, step: &Step<Self>) -> Result<Self::TextSplitter<'_>, Self::Error> {
+        Ok(OpenAITextSplitter::new(self.get_model_from_step(step)))
     }
 }
 
