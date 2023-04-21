@@ -1,6 +1,7 @@
 use llm_chain::text_splitter::TextSplitter;
 use llm_chain::tokens::{Tokenizer, TokenizerError};
 
+use crate::Executor;
 use crate::{
     context::LLamaContext,
     tokenizer::{embedding_to_output, llama_tokenize_helper},
@@ -8,6 +9,14 @@ use crate::{
 
 pub struct LLamaTextSplitter<'a> {
     context: &'a LLamaContext,
+}
+
+impl<'a> LLamaTextSplitter<'a> {
+    pub fn new(exec: &'a Executor) -> Self {
+        Self {
+            context: exec.get_context(),
+        }
+    }
 }
 
 impl<'a> Tokenizer<i32> for LLamaTextSplitter<'a> {

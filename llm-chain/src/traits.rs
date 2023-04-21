@@ -16,7 +16,7 @@ use crate::{
     output::Output,
     schema::{Document, EmptyMetadata},
     tokens::{PromptTokensError, TokenCount, Tokenizer, TokenizerError},
-    Parameters,
+    Parameters, TextSplitter,
 };
 use async_trait::async_trait;
 
@@ -94,6 +94,10 @@ pub trait Executor {
     where
         Self: 'a;
 
+    type TextSplitter<'a>: TextSplitter<Self::Token>
+    where
+        Self: 'a;
+
     /// Executes the given input and returns the resulting output.
     ///
     /// # Parameters
@@ -127,6 +131,16 @@ pub trait Executor {
         parameters: &Parameters,
     ) -> Result<TokenCount, PromptTokensError>;
 
+    /// Returns the maximum number of input tokens allowed by the model used in step.
+    ///
+    /// # Parameters
+    ///
+    /// * `step`: The step to get token allowance for.
+    ///
+    /// # Returns
+    /// The max token count for the step
+    fn max_tokens_allowed(&self, step: &Self::Step) -> i32;
+
     /// Creates a tokenizer, depending on the model used by `step`.
     ///
     /// # Parameters
@@ -137,6 +151,16 @@ pub trait Executor {
     ///
     /// A `Result` containing a tokenizer, or an error if there was a problem.
     fn get_tokenizer(&self, step: &Self::Step) -> Result<Self::StepTokenizer<'_>, TokenizerError>;
+
+    /// Creates a text splitter, depending on the model used by 'step'
+    ///
+    /// # Parameters
+    ///
+    /// * `step` The step to get an associated text splitter for.
+    ///
+    /// # Returns
+    /// A `Result` containing a text splitter, or an error if there was a problem.
+    fn get_text_splitter(&self, step: &Self::Step) -> Result<Self::TextSplitter<'_>, Self::Error>;
 }
 
 /// This marker trait is needed so the concrete VectorStore::Error can have a derived From<Embeddings::Error>

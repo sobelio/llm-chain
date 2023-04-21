@@ -1,5 +1,6 @@
 use super::output::Output;
 use super::step::Step;
+use super::OpenAITextSplitter;
 use async_openai::error::OpenAIError;
 use llm_chain::tokens::{PromptTokensError, Tokenizer, TokenizerError};
 use llm_chain::traits;
@@ -45,8 +46,9 @@ impl traits::Executor for Executor {
     type Step = Step;
     type Output = Output;
     type Token = usize;
-    type Error = Error<<Step as traits::Step>::Error>;
     type StepTokenizer<'a> = OpenAITokenizer;
+    type TextSplitter<'a> = OpenAITextSplitter;
+    type Error = Error<<Step as traits::Step>::Error>;
     async fn execute(
         &self,
         input: <<Executor as traits::Executor>::Step as traits::Step>::Output,
@@ -60,7 +62,7 @@ impl traits::Executor for Executor {
         step: &Step,
         parameters: &Parameters,
     ) -> Result<TokenCount, PromptTokensError> {
-        let max_tokens = tiktoken_rs::model::get_context_size(&step.model.to_string());
+        let max_tokens = self.max_tokens_allowed(step);
         let prompt = step.prompt.format(parameters)?;
         // This approach will break once we add support for non-string valued parameters.
         let prompt_with_empty_params = step.prompt.format(&parameters.with_placeholder_values())?;
@@ -71,14 +73,25 @@ impl traits::Executor for Executor {
             .map_err(|_| PromptTokensError::NotAvailable)?;
 
         Ok(TokenCount::new(
-            max_tokens as i32,
+            max_tokens,
             tokens_used as i32,
             num_tokens_with_empty_params as i32,
         ))
     }
 
+    /// Get the context size from the model or return default context size
+    fn max_tokens_allowed(&self, step: &Self::Step) -> i32 {
+        tiktoken_rs::model::get_context_size(&step.model.to_string())
+            .try_into()
+            .unwrap_or(4096)
+    }
+
     fn get_tokenizer(&self, step: &Self::Step) -> Result<OpenAITokenizer, TokenizerError> {
         Ok(OpenAITokenizer::new(step))
+    }
+
+    fn get_text_splitter(&self, step: &Self::Step) -> Result<Self::TextSplitter<'_>, Self::Error> {
+        Ok(OpenAITextSplitter::new(step.model.clone()))
     }
 }
 
