@@ -1,51 +1,38 @@
-use crate::context::{LLamaContext, LlamaContextParams};
-use crate::step::{LlamaInvocation, Step as LLamaStep};
+use crate::context::{ContextParams, LLamaContext};
+use crate::options::PerInvocation;
+use crate::options::{LlamaInvocation, PerExecutor};
 use crate::tokenizer::{embedding_to_output, llama_token_eos, llama_tokenize_helper, tokenize};
 use crate::LLamaTextSplitter;
 
 use crate::output::Output;
 use async_trait::async_trait;
 
-use llm_chain::tokens::{PromptTokensError, TokenCount, Tokenizer, TokenizerError};
-use llm_chain::traits::{self, StepError};
-use llm_chain::traits::{Executor as ExecutorTrait, Step as StepTrait};
+use llm_chain::step::{Step, StepError};
+use llm_chain::tokens::{PromptTokensError, TokenCount};
+use llm_chain::tokens::{Tokenizer, TokenizerError};
+use llm_chain::traits::{Executor as ExecutorTrait, ExecutorCreationError, ExecutorError};
 use llm_chain::Parameters;
+use llm_chain::PromptTemplateError;
 use llm_chain_llama_sys::llama_context_params;
-
 /// Executor is responsible for running the LLAMA model and managing its context.
 pub struct Executor {
     context: LLamaContext,
-    context_params: Option<LlamaContextParams>,
+    options: Option<PerExecutor>,
     callback: Option<fn(&Output)>,
+    invocation_options: Option<PerInvocation>,
 }
 
 impl Executor {
-    /// Creates a new executor with the given client and optional context parameters.
-    pub fn new_with_config(
-        model_path: &str,
-        context_params: Option<LlamaContextParams>,
-        callback: Option<fn(&Output)>,
-    ) -> Self {
-        let context = LLamaContext::from_file_and_params(model_path, &context_params);
-        Self {
-            context,
-            context_params,
-            callback,
-        }
+    pub fn with_callback(mut self, callback: fn(&Output)) -> Self {
+        self.callback = Some(callback);
+        self
     }
-
-    // Creates a new executor with callback for the given model with default context parameters.
-    pub fn new_with_callback(model_path: &str, callback: fn(&Output)) -> Self {
-        Self::new_with_config(model_path, None, Some(callback))
-    }
-
-    /// Creates a new executor for the given model with default context parameters.
-    pub fn new(model_path: &str) -> Self {
-        Self::new_with_config(model_path, None, None)
-    }
-
     fn context_params(&self) -> llama_context_params {
-        LlamaContextParams::or_default(&self.context_params)
+        let cp = self
+            .options
+            .as_ref()
+            .and_then(|p| p.context_params.as_ref());
+        ContextParams::or_default(cp)
     }
 
     pub(crate) fn get_context(&self) -> &LLamaContext {
@@ -137,54 +124,91 @@ impl Executor {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum Error<E: StepError> {
+pub enum Error {
     #[error("unable to tokenize prompt")]
     PromptTokensError(PromptTokensError),
     #[error("unable to format step")]
-    StepError(#[from] E),
+    StepError(#[from] StepError),
+    #[error("unable to format prompt: {0}")]
+    PromptTemplateError(#[from] PromptTemplateError),
 }
-impl<E> traits::ExecutorError for Error<E> where E: StepError {}
+
+impl ExecutorError for Error {}
 
 // Implement the ExecutorTrait for the Executor, defining methods for handling input and output.
 #[async_trait]
 impl ExecutorTrait for Executor {
-    type Step = LLamaStep;
     type Output = Output;
     type Token = i32;
     type StepTokenizer<'a> = LLamaTokenizer<'a>;
     type TextSplitter<'a> = LLamaTextSplitter<'a>;
-    type Error = Error<<Self::Step as traits::Step>::Error>;
+    type Error = Error;
+    type PerInvocationOptions = PerInvocation;
+    type PerExecutorOptions = PerExecutor;
+    fn new_with_options(
+        executor_options: Option<Self::PerExecutorOptions>,
+        invocation_options: Option<Self::PerInvocationOptions>,
+    ) -> Result<Executor, ExecutorCreationError> {
+        let context_params = match executor_options.as_ref() {
+            Some(options) => options.context_params.clone(),
+            None => None,
+        };
+        let model_path = executor_options
+            .as_ref()
+            .and_then(|x| x.model_path.clone())
+            .or_else(|| std::env::var("LLAMA_MODEL_PATH").ok())
+            .ok_or(ExecutorCreationError::FieldRequiredError(
+                "model_path, ensure to provide the parameter or set `LLAMA_MODEL_PATH` environment variable ".to_string(),
+            ))?;
+        Ok(Self {
+            context: LLamaContext::from_file_and_params(&model_path, context_params.as_ref()),
+            options: executor_options,
+            callback: None,
+            invocation_options,
+        })
+    }
     // Executes the model asynchronously and returns the output.
     async fn execute(
         &self,
-        input: <<Executor as ExecutorTrait>::Step as traits::Step>::Output,
+        step: &Step<Self>,
+        parameters: &Parameters,
     ) -> Result<Self::Output, Self::Error> {
-        Ok(self.run_model(input))
+        let config = match step.options() {
+            Some(options) => options.clone(),
+            None => self.invocation_options.clone().unwrap_or_default(),
+        };
+        let formatted_prompts = step
+            .prompt()
+            .as_text_prompt_or_convert()
+            .format(parameters)?;
+        let invocation = config.to_invocation(&formatted_prompts);
+        Ok(self.run_model(invocation))
     }
     fn tokens_used(
         &self,
-        step: &LLamaStep,
+        step: &Step<Self>,
         parameters: &Parameters,
     ) -> Result<TokenCount, PromptTokensError> {
+        let tokenizer = self.get_tokenizer(step)?;
         let input = step
+            .prompt()
+            .as_text_prompt_or_convert()
             .format(parameters)
             .map_err(|_| PromptTokensError::UnableToCompute)?;
 
-        let tokenizer = self
-            .get_tokenizer(step)
-            .map_err(|_e| PromptTokensError::UnableToCompute)?;
-
         let tokens_used = tokenizer
-            .tokenize_str(&input.prompt)
+            .tokenize_str(&input)
             .map_err(|_e| PromptTokensError::UnableToCompute)?
             .len() as i32;
 
         let input_with_empty_params = step
+            .prompt()
+            .as_text_prompt_or_convert()
             .format(&parameters.with_placeholder_values())
             .map_err(|_| PromptTokensError::UnableToCompute)?;
 
         let template_tokens_used = tokenizer
-            .tokenize_str(&input_with_empty_params.prompt)
+            .tokenize_str(&input_with_empty_params)
             .map_err(|_e| PromptTokensError::UnableToCompute)?
             .len() as i32;
 
@@ -196,15 +220,15 @@ impl ExecutorTrait for Executor {
         ))
     }
 
-    fn max_tokens_allowed(&self, _step: &Self::Step) -> i32 {
+    fn max_tokens_allowed(&self, _step: &Step<Self>) -> i32 {
         self.context_params().n_ctx
     }
 
-    fn get_tokenizer(&self, _step: &Self::Step) -> Result<LLamaTokenizer, TokenizerError> {
+    fn get_tokenizer(&self, _step: &Step<Self>) -> Result<LLamaTokenizer, TokenizerError> {
         Ok(LLamaTokenizer::new(self))
     }
 
-    fn get_text_splitter(&self, _step: &Self::Step) -> Result<Self::TextSplitter<'_>, Self::Error> {
+    fn get_text_splitter(&self, _step: &Step<Self>) -> Result<Self::TextSplitter<'_>, Self::Error> {
         Ok(LLamaTextSplitter::new(self))
     }
 }

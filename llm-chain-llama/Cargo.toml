@@ -13,16 +13,12 @@ authors = [
 readme = "./README.md"
 repository = "https://github.com/sobelio/llm-chain/"
 
-[features]
-default = ["serialization"]
-serialization = ["llm-chain/serialization", "dep:serde"]
-
 [dependencies]
 anyhow = "1.0.70"
 async-trait = "0.1.68"
 llm-chain-llama-sys = { path = "./sys", version = "0.6" }
 llm-chain = { path = "../llm-chain", version = "0.6.2" }
-serde = { version = "1.0.160", optional = true, features = ["derive"] }
+serde = { version = "1.0.160", features = ["derive"] }
 thiserror = "1.0.40"
 
 [dev-dependencies]

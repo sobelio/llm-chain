@@ -1,8 +1,9 @@
-use super::Prompt;
+use super::traits::Prompt;
 use crate::PromptTemplate;
 use derive_builder::Builder;
+use serde::{Deserialize, Serialize};
 use std::fmt;
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum ChatRole {
     User,
     Assistant,
@@ -21,7 +22,7 @@ impl fmt::Display for ChatRole {
     }
 }
 
-#[derive(Debug, Builder, Clone)]
+#[derive(Debug, Builder, Clone, Serialize, Deserialize)]
 #[builder(setter(into))]
 pub struct ChatMessage {
     role: ChatRole,
@@ -57,7 +58,7 @@ impl ChatMessage {
     }
 }
 
-#[derive(Debug, Builder, Clone)]
+#[derive(Debug, Builder, Clone, Serialize, Deserialize)]
 pub struct ChatPrompt {
     messages: Vec<ChatMessage>,
 }

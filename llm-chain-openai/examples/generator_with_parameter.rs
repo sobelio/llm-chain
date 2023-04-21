@@ -1,10 +1,10 @@
-use llm_chain::{prompt, traits::StepExt, Parameters};
-use llm_chain_openai::chatgpt::{Executor, Step};
+use llm_chain::{executor, prompt, step::Step, Parameters};
+
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create a new ChatGPT executor
-    let exec = Executor::new_default();
+    let exec = executor!()?;
     // Create our step containing our prompt template
     let step = Step::for_prompt(prompt!(
         "You are a bot for making personalized greetings",

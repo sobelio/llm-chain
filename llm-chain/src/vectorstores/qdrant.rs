@@ -27,8 +27,8 @@ impl TryFrom<Value> for EmptyMetadata {
     }
 }
 
-impl Into<Value> for EmptyMetadata {
-    fn into(self) -> Value {
+impl From<EmptyMetadata> for Value {
+    fn from(_val: EmptyMetadata) -> Self {
         Value {
             kind: Some(qdrant_client::qdrant::value::Kind::NullValue(0)),
         }
@@ -238,8 +238,7 @@ where
                         fields: vec![
                             self.content_payload_key.clone(),
                             self.metadata_payload_key.clone(),
-                        ]
-                        .into(),
+                        ],
                     })),
                 }),
                 params: None,

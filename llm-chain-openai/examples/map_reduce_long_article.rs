@@ -1,11 +1,11 @@
 use llm_chain::chains::map_reduce::Chain;
-use llm_chain::{prompt, Parameters};
-use llm_chain_openai::chatgpt::{Executor, Step};
+use llm_chain::{executor, prompt, Parameters};
+use llm_chain_openai::chatgpt::{Step};
 
 #[tokio::main(flavor = "current_thread")]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create a new ChatGPT executor with the default settings
-    let exec = Executor::new_default();
+    let exec = executor!()?;
 
     // Create the "map" step to summarize an article into bullet points
     let map_prompt = Step::for_prompt(prompt!(
@@ -33,4 +33,5 @@ async fn main() {
 
     // Print the result to the console
     println!("{}", res);
+    Ok(())
 }

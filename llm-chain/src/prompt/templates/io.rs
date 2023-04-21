@@ -4,7 +4,6 @@ use std::path::Path;
 
 use super::PromptTemplate;
 
-#[cfg(feature = "tera")]
 /// Reads a prompt template from a file.
 pub fn read_prompt_template_file<P: AsRef<Path>>(
     path: P,

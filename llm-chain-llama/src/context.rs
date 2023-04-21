@@ -1,16 +1,18 @@
 use std::{ffi::CStr, ptr::null_mut};
 
 use anyhow::Result;
+use llm_chain::traits;
 use llm_chain_llama_sys::{
     llama_context, llama_context_default_params, llama_context_params, llama_eval, llama_free,
     llama_init_from_file, llama_sample_top_p_top_k, llama_token, llama_token_to_str,
 };
+use serde::{Deserialize, Serialize};
 
-use crate::step::LlamaInvocation;
+use crate::options::LlamaInvocation;
 
 // Represents the configuration parameters for a LLamaContext.
-#[derive(Debug, Clone)]
-pub struct LlamaContextParams {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ContextParams {
     n_ctx: i32,
     n_parts: i32,
     seed: i32,
@@ -22,9 +24,9 @@ pub struct LlamaContextParams {
     embedding: bool,
 }
 
-impl LlamaContextParams {
+impl ContextParams {
     // Returns the default parameters or the user-specified parameters.
-    pub(crate) fn or_default(params: &Option<LlamaContextParams>) -> llama_context_params {
+    pub(crate) fn or_default(params: Option<&ContextParams>) -> llama_context_params {
         match params {
             Some(params) => params.clone().into(),
             None => unsafe { llama_context_default_params() },
@@ -32,8 +34,8 @@ impl LlamaContextParams {
     }
 }
 
-impl From<LlamaContextParams> for llama_context_params {
-    fn from(params: LlamaContextParams) -> Self {
+impl From<ContextParams> for llama_context_params {
+    fn from(params: ContextParams) -> Self {
         llama_context_params {
             n_ctx: params.n_ctx,
             n_parts: params.n_parts,
@@ -50,6 +52,8 @@ impl From<LlamaContextParams> for llama_context_params {
     }
 }
 
+impl traits::Options for ContextParams {}
+
 // Represents the LLamaContext which wraps FFI calls to the llama.cpp library.
 pub(crate) struct LLamaContext {
     ctx: *mut llama_context,
@@ -57,8 +61,8 @@ pub(crate) struct LLamaContext {
 
 impl LLamaContext {
     // Creates a new LLamaContext from the specified file and configuration parameters.
-    pub fn from_file_and_params(path: &str, params: &Option<LlamaContextParams>) -> Self {
-        let params = LlamaContextParams::or_default(params);
+    pub fn from_file_and_params(path: &str, params: Option<&ContextParams>) -> Self {
+        let params = ContextParams::or_default(params);
         let ctx = unsafe { llama_init_from_file(path.as_ptr() as *const i8, params) };
         Self { ctx }
     }

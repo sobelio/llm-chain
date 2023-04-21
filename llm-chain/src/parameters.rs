@@ -115,7 +115,6 @@ impl Parameters {
         copy
     }
 
-    #[cfg(feature = "tera")]
     pub(crate) fn to_tera(&self) -> tera::Context {
         let mut context = tera::Context::new();
         for (key, value) in self.map.iter() {

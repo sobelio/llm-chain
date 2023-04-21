@@ -1,6 +1,5 @@
 use crate::Parameters;
 use dynfmt::{Format, SimpleCurlyFormat};
-#[cfg(feature = "serialization")]
 use serde::{Deserialize, Serialize};
 
 fn apply_formatting(template: &str, parameters: &Parameters) -> Result<String, String> {
@@ -27,8 +26,7 @@ fn apply_formatting(template: &str, parameters: &Parameters) -> Result<String, S
 /// let parameters: Parameters = vec![("name", "World")].into();
 /// assert_eq!(template.format(&parameters).unwrap(), "Hello World!");
 /// ```
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PromptTemplate {
     template: String,
 }

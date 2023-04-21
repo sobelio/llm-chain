@@ -24,14 +24,18 @@
 mod context;
 mod executor;
 mod instruct;
+mod options;
 mod output;
-mod step;
 mod text_splitter;
 mod tokenizer;
 
-pub use context::LlamaContextParams;
+pub use context::ContextParams;
 pub use executor::Executor;
 pub use instruct::new_instruct_template;
+pub use options::PerExecutor;
+pub use options::PerInvocation;
 pub use output::Output;
-pub use step::{LlamaConfig, Step};
+
+#[deprecated(note = "Use llm_chain::step::Step instead", since = "0.7.0")]
+pub use llm_chain::step::Step;
 pub use text_splitter::LLamaTextSplitter;

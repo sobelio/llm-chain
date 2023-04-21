@@ -1,10 +1,14 @@
+use llm_chain::executor;
+use llm_chain::multitool;
 use llm_chain::output::Output;
 use llm_chain::prompt::chat::{ChatMessage, ChatPrompt, ChatRole};
+use llm_chain::step::Step;
 use llm_chain::tools::tools::{BashTool, BashToolError, ExitTool, ExitToolError};
-use llm_chain::tools::{Tool, ToolCollection, ToolDescription, ToolError};
-use llm_chain::{multitool, PromptTemplate};
-use llm_chain::{traits::StepExt, Parameters};
-use llm_chain_openai::chatgpt::{Executor, Step};
+use llm_chain::tools::ToolCollection;
+use llm_chain::tools::{Tool, ToolDescription, ToolError};
+use llm_chain::traits::Executor as ExecutorTrait;
+use llm_chain::Parameters;
+use llm_chain::PromptTemplate;
 use thiserror::Error;
 
 // A simple example generating a prompt with some tools.
@@ -28,7 +32,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         PromptTemplate::tera("You may ONLY use one tool at a time. Please perform the following task: {{task}}. Once you have read the IP Address you may trigger ExitTool. -- Do not do this before you know the ip address. do not ask for more tasks."),
     ]);
     let task = "Figure out my IP address";
-    let exec = Executor::new_default();
+    let exec = executor!()?;
 
     let mut chat = ChatPrompt::builder()
         .system("You are an automated agent for performing tasks. Your output must always be YAML.")
@@ -37,7 +41,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap();
     let params = Parameters::new().with("task", task);
     for _ in 1..5 {
-        let res = Step::for_prompt(chat.clone()).run(&params, &exec).await?;
+        let res = Step::for_prompt(chat.clone().into())
+            .run(&params, &exec)
+            .await?;
         let message_text = res.primary_textual_output().await.unwrap();
         println!("Assistant: {}", message_text);
         println!("=============");

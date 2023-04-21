@@ -11,15 +11,13 @@ readme = "../docs/README.md"
 repository = "https://github.com/sobelio/llm-chain/"
 
 [features]
-default = ["serialization"]
-serialization = ["dep:serde", "llm-chain/serialization"]
 
 [dependencies]
 futures = "0.3.28"
 async-openai = "0.10.3"
 async-trait = "0.1.68"
 llm-chain = { path = "../llm-chain", version = "0.6.2", default-features = false }
-serde = { version = "1.0.160", optional = true }
+serde = { version = "1.0.160" }
 tiktoken-rs = { version = "0.4.1", features = ["async-openai"] }
 thiserror = "1.0.40"
 [dev-dependencies]

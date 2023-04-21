@@ -1,10 +1,11 @@
+use llm_chain::traits::Executor as ExecutorTrait;
 use llm_chain::{chains::sequential::Chain, prompt};
 use llm_chain_openai::chatgpt::{Executor, Step};
 
 #[tokio::main(flavor = "current_thread")]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create a new ChatGPT executor with the default settings
-    let exec = Executor::new_default();
+    let exec = Executor::new()?;
 
     // Create a chain of steps with two prompts
     let chain = Chain::new(vec![
@@ -31,4 +32,5 @@ async fn main() {
 
     // Print the result to the console
     println!("{:?}", res);
+    Ok(())
 }

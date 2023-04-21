@@ -1,15 +1,12 @@
 mod legacy;
-#[cfg(feature = "tera")]
 mod tera;
 
 mod error;
 pub use error::PromptTemplateError;
 use error::PromptTemplateErrorImpl;
 use std::fmt;
-#[cfg(feature = "serialization")]
 mod io;
 
-#[cfg(feature = "serialization")]
 use serde::{Deserialize, Serialize};
 
 use crate::Parameters;
@@ -31,12 +28,16 @@ use crate::Parameters;
 /// let parameters: Parameters = vec![("name", "World")].into();
 /// assert_eq!(template.format(&parameters).unwrap(), "Hello World!");
 /// ```
-#[derive(Clone, Debug)]
-#[cfg_attr(
-    feature = "serialization",
-    derive(Serialize, Deserialize),
-    serde(transparent)
-)]
+/// ## Tera
+/// ```rust
+/// use llm_chain::prompt::PromptTemplate;
+/// use llm_chain::Parameters;
+/// let template: PromptTemplate = PromptTemplate::tera("Hello {{name}}!");
+/// let parameters: Parameters = vec![("name", "World")].into();
+/// assert_eq!(template.format(&parameters).unwrap(), "Hello World!");
+/// ```
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(transparent)]
 pub struct PromptTemplate(PromptTemplateImpl);
 
 impl From<PromptTemplateImpl> for PromptTemplate {
@@ -64,7 +65,6 @@ impl PromptTemplate {
         PromptTemplateImpl::static_string(template.into()).into()
     }
 
-    #[cfg(feature = "tera")]
     /// Creates a prompt template that uses the Tera templating engine.
     /// This is only available if the `tera` feature is enabled, which it is by default.
     /// # Examples
@@ -79,7 +79,6 @@ impl PromptTemplate {
         PromptTemplateImpl::tera(template.into()).into()
     }
 
-    #[cfg(feature = "tera")]
     /// Creates a prompt template from a file. The file should be a text file containing the template as a tera template.
     /// # Examples
     /// ```no_run
@@ -120,12 +119,10 @@ impl fmt::Display for PromptTemplate {
 }
 
 /// The actual implementation of the prompt template. This hides the implementation details from the user.
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 enum PromptTemplateImpl {
     Static(String),
     Legacy(legacy::PromptTemplate),
-    #[cfg(feature = "tera")]
     Tera(String),
     Combined(Vec<PromptTemplateImpl>),
 }
@@ -142,7 +139,6 @@ impl PromptTemplateImpl {
             PromptTemplateImpl::Legacy(template) => template
                 .format(parameters)
                 .map_err(PromptTemplateErrorImpl::LegacyTemplateError),
-            #[cfg(feature = "tera")]
             PromptTemplateImpl::Tera(template) => {
                 tera::render(template, parameters).map_err(|e| e.into())
             }
@@ -160,7 +156,6 @@ impl PromptTemplateImpl {
         PromptTemplateImpl::Static(template)
     }
 
-    #[cfg(feature = "tera")]
     pub fn tera(template: String) -> PromptTemplateImpl {
         PromptTemplateImpl::Tera(template)
     }
@@ -175,7 +170,6 @@ impl fmt::Display for PromptTemplateImpl {
         match self {
             PromptTemplateImpl::Static(s) => write!(f, "{}", s),
             PromptTemplateImpl::Legacy(template) => write!(f, "{}", template),
-            #[cfg(feature = "tera")]
             PromptTemplateImpl::Tera(template) => write!(f, "{}", template),
             PromptTemplateImpl::Combined(templates) => {
                 for template in templates {

@@ -19,7 +19,6 @@ pub mod chains;
 pub mod vectorstores;
 
 mod parameters;
-#[cfg(feature = "serialization")]
 pub mod serialization;
 pub mod traits;
 
@@ -45,3 +44,7 @@ pub use text_splitter::{NaiveWhitespaceSplitter, TextSplitter};
 
 #[deprecated(note = "Use llm_chain::prompt! instead")]
 pub use prompt::{PromptTemplate, PromptTemplateError};
+
+pub mod step;
+
+pub mod executor;

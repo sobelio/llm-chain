@@ -4,8 +4,8 @@
 //! primarily focusing on measuring the sizes of prompts. This is useful for ensuring that
 //! prompts stay within the context window size supported by a given model.
 
-use crate::traits::Executor;
-use crate::{Parameters, TextSplitter};
+use crate::step::Step;
+use crate::{traits, Parameters, TextSplitter};
 use thiserror::Error;
 
 /// Custom error type for handling prompt token-related errors.
@@ -20,12 +20,14 @@ pub enum PromptTokensError {
     /// Indicates that the prompt tokens could not be computed because formatting the prompt failed.
     #[error("Formatting prompt failed: {0}")]
     PromptFormatFailed(#[from] crate::prompt::PromptTemplateError),
+    #[error("Tokenizer error: {0}")]
+    TokenizerError(#[from] crate::tokens::TokenizerError),
 }
 
 /// An extension trait for the `Executor` trait that provides additional methods for working
 /// with token counts.
-pub trait ExecutorTokenCountExt<Step, Output, Token: Clone, StepTokenizer>:
-    Executor<Step = Step, Output = Output, Token = Token>
+pub trait ExecutorTokenCountExt<Output, Token: Clone, StepTokenizer>:
+    traits::Executor<Output = Output, Token = Token>
 {
     /// Splits a `Parameters` object into multiple smaller `Parameters` objects that fit within
     /// the context window size supported by the given model.
@@ -40,7 +42,7 @@ pub trait ExecutorTokenCountExt<Step, Output, Token: Clone, StepTokenizer>:
     /// Returns a `PromptTokensError` if there is an issue computing the tokens.
     fn split_to_fit(
         &self,
-        step: &Step,
+        step: &Step<Self>,
         doc: &Parameters,
         chunk_overlap: Option<usize>,
     ) -> Result<Vec<Parameters>, PromptTokensError> {
@@ -123,14 +125,14 @@ impl TokenCount {
 }
 
 /// An extension trait for the `Executor` trait that provides additional methods for working with tokens
-impl<E, S, O, T, N> ExecutorTokenCountExt<S, O, T, N> for E
+impl<E, O, T, N> ExecutorTokenCountExt<O, T, N> for E
 where
-    E: Executor<Step = S, Output = O, Token = T>,
+    E: traits::Executor<Output = O, Token = T>,
     T: Clone,
 {
 }
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Clone)]
 pub enum TokenizerError {
     #[error("Error tokenizing input text")]
     TokenizationError,
