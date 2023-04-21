@@ -42,7 +42,7 @@ impl Executor {
     }
     fn get_model_from_step(&self, step: &Step<Self>) -> Model {
         step.options()
-            .or_else(|| self.per_invocation_options.as_ref())
+            .or(self.per_invocation_options.as_ref())
             .and_then(|opts| opts.model.clone())
             .unwrap_or_default()
     }
@@ -128,7 +128,7 @@ impl traits::Executor for Executor {
         step: &llm_chain::step::Step<Self>,
     ) -> Result<OpenAITokenizer, TokenizerError> {
         Ok(OpenAITokenizer::new(
-            &step.options().map(|x| x.clone()).unwrap_or_default(),
+            &step.options().cloned().unwrap_or_default(),
         ))
     }
 }
