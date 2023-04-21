@@ -1,8 +1,10 @@
-use crate::tools::collection::ToolUseError;
 use crate::tools::description::{Describe, Format, ToolDescription};
-use crate::tools::tool::{gen_invoke_function, Tool};
+use crate::tools::tool::{gen_invoke_function, Tool, ToolError};
 use serde::{Deserialize, Serialize};
+use std::num::TryFromIntError;
 use std::process::Command;
+use std::string::FromUtf8Error;
+use thiserror::Error;
 
 /// A tool that executes a bash command.
 pub struct BashTool {}
@@ -48,23 +50,40 @@ impl Describe for BashToolOutput {
     }
 }
 
+#[derive(Debug, Error)]
+pub enum BashToolError {
+    #[error(transparent)]
+    YamlError(#[from] serde_yaml::Error),
+    #[error(transparent)]
+    IOError(#[from] std::io::Error),
+    #[error("Type `isize` overflowed when reading output status code {0}")]
+    OutputStatusCodeOverflow(#[from] TryFromIntError),
+    #[error("Received a None status code, which means the program was exited by signal")]
+    ProcessTerminatedBySignal,
+    #[error(transparent)]
+    FromUtf8Error(#[from] FromUtf8Error),
+}
+
+impl ToolError for BashToolError {}
+
 impl BashTool {
-    fn invoke_typed(&self, input: &BashToolInput) -> Result<BashToolOutput, ToolUseError> {
-        let output = Command::new("bash")
-            .arg("-c")
-            .arg(&input.cmd)
-            .output()
-            .map_err(|e| ToolUseError::ToolInvocationFailed(e.to_string()))?;
+    fn invoke_typed(&self, input: &BashToolInput) -> Result<BashToolOutput, BashToolError> {
+        let output = Command::new("bash").arg("-c").arg(&input.cmd).output()?;
 
         Ok(BashToolOutput {
-            status: output.status.code().unwrap() as isize,
-            stderr: String::from_utf8(output.stderr).unwrap(),
-            stdout: String::from_utf8(output.stdout).unwrap(),
+            status: output
+                .status
+                .code()
+                .ok_or(BashToolError::ProcessTerminatedBySignal)?
+                .try_into()?,
+            stderr: String::from_utf8(output.stderr)?,
+            stdout: String::from_utf8(output.stdout)?,
         })
     }
 }
 
 impl Tool for BashTool {
+    type Error = BashToolError;
     gen_invoke_function!();
     fn description(&self) -> ToolDescription {
         ToolDescription::new(

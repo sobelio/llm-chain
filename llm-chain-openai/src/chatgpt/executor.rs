@@ -5,9 +5,11 @@ use super::Model;
 use async_openai::error::OpenAIError;
 use llm_chain::step::{Step, StepError};
 use llm_chain::tokens::PromptTokensError;
+use llm_chain::tokens::{Tokenizer, TokenizerError};
+use llm_chain::traits;
 use llm_chain::traits::{ExecutorCreationError, ExecutorError};
 use llm_chain::Parameters;
-use llm_chain::{traits, PromptTemplateError};
+use llm_chain::PromptTemplateError;
 
 use super::options::PerExecutor;
 use async_trait::async_trait;
@@ -38,16 +40,6 @@ impl Executor {
             per_invocation_options,
         }
     }
-
-    fn get_bpe_from_model(
-        &self,
-        step: &Step<Self>,
-    ) -> Result<tiktoken_rs::CoreBPE, PromptTokensError> {
-        use tiktoken_rs::get_bpe_from_model;
-        get_bpe_from_model(&self.get_model_from_step(step).to_string())
-            .map_err(|_| PromptTokensError::NotAvailable)
-    }
-
     fn get_model_from_step(&self, step: &Step<Self>) -> Model {
         step.options()
             .or_else(|| self.per_invocation_options.as_ref())
@@ -91,7 +83,7 @@ impl traits::Executor for Executor {
             per_invocation_options: invocation_options,
         })
     }
-
+    type StepTokenizer<'a> = OpenAITokenizer;
     async fn execute(
         &self,
         step: &Step<Self>,
@@ -131,14 +123,47 @@ impl traits::Executor for Executor {
             num_tokens_with_empty_params as i32,
         ))
     }
-    fn tokenize_str(&self, step: &Step<Self>, doc: &str) -> Result<Vec<usize>, PromptTokensError> {
-        Ok(self.get_bpe_from_model(step)?.encode_ordinary(doc))
+    fn get_tokenizer(
+        &self,
+        step: &llm_chain::step::Step<Self>,
+    ) -> Result<OpenAITokenizer, TokenizerError> {
+        Ok(OpenAITokenizer::new(
+            &step.options().map(|x| x.clone()).unwrap_or_default(),
+        ))
     }
-    fn to_string(&self, step: &Step<Self>, tokens: &[usize]) -> Result<String, PromptTokensError> {
+}
+
+pub struct OpenAITokenizer {
+    model_name: String,
+}
+
+impl OpenAITokenizer {
+    pub fn new(options: &PerInvocation) -> Self {
+        Self {
+            model_name: options.model.clone().unwrap_or_default().to_string(),
+        }
+    }
+
+    fn get_bpe_from_model(&self) -> Result<tiktoken_rs::CoreBPE, PromptTokensError> {
+        use tiktoken_rs::get_bpe_from_model;
+        get_bpe_from_model(&self.model_name).map_err(|_| PromptTokensError::NotAvailable)
+    }
+}
+
+impl Tokenizer<usize> for OpenAITokenizer {
+    fn tokenize_str(&self, doc: &str) -> Result<Vec<usize>, TokenizerError> {
+        Ok(self
+            .get_bpe_from_model()
+            .map_err(|_| TokenizerError::TokenizationError)?
+            .encode_ordinary(doc))
+    }
+
+    fn to_string(&self, tokens: Vec<usize>) -> Result<String, TokenizerError> {
         let res = self
-            .get_bpe_from_model(step)?
+            .get_bpe_from_model()
+            .map_err(|_e| TokenizerError::ToStringError)?
             .decode(tokens.to_vec())
-            .map_err(|_| PromptTokensError::UnableToCompute)?;
+            .map_err(|_e| TokenizerError::ToStringError)?;
         Ok(res)
     }
 }

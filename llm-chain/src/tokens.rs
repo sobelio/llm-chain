@@ -21,11 +21,15 @@ pub enum PromptTokensError {
     /// Indicates that the prompt tokens could not be computed because formatting the prompt failed.
     #[error("Formatting prompt failed: {0}")]
     PromptFormatFailed(#[from] crate::prompt::PromptTemplateError),
+    #[error("Tokenizer error: {0}")]
+    TokenizerError(#[from] crate::tokens::TokenizerError),
 }
 
 /// An extension trait for the `Executor` trait that provides additional methods for working
 /// with token counts.
-pub trait ExecutorTokenCountExt<Output, Token>: Executor<Output = Output, Token = Token> {
+pub trait ExecutorTokenCountExt<Output, Token: Clone, StepTokenizer>:
+    Executor<Output = Output, Token = Token>
+{
     /// Splits a `Parameters` object at the token limit.
     ///
     /// This method takes a `Step` and a `Parameters` object, and returns a tuple of `Parameters`
@@ -46,11 +50,24 @@ pub trait ExecutorTokenCountExt<Output, Token>: Executor<Output = Output, Token 
         if tokens_used.has_tokens_remaining() {
             Ok((doc.clone(), None))
         } else {
-            let tokens = self.tokenize_str(step, text)?;
+            let tokenizer = self
+                .get_tokenizer(step)
+                .map_err(|_e| PromptTokensError::UnableToCompute)?;
+
+            let tokens = tokenizer
+                .tokenize_str(text)
+                .map_err(|_| PromptTokensError::NotAvailable)?;
+
             let idx: usize = (tokens_used.max_tokens - tokens_used.template_tokens_used) as usize;
             let (a, b) = tokens.split_at(idx);
-            let a = doc.with_text(self.to_string(step, a)?);
-            let b = self.to_string(step, b)?;
+            let a = doc.with_text(
+                tokenizer
+                    .to_string(a.to_vec())
+                    .map_err(|_| PromptTokensError::UnableToCompute)?,
+            );
+            let b = tokenizer
+                .to_string(b.to_vec())
+                .map_err(|_| PromptTokensError::UnableToCompute)?;
             let b = if b.is_empty() {
                 None
             } else {
@@ -140,4 +157,43 @@ impl TokenCount {
 }
 
 /// An extension trait for the `Executor` trait that provides additional methods for working with tokens
-impl<E, O, T> ExecutorTokenCountExt<O, T> for E where E: Executor<Output = O, Token = T> {}
+impl<E, O, T, N> ExecutorTokenCountExt<O, T, N> for E
+where
+    E: Executor<Output = O, Token = T>,
+    T: Clone,
+{
+}
+
+#[derive(Error, Debug, Clone)]
+pub enum TokenizerError {
+    #[error("Error tokenizing input text")]
+    TokenizationError,
+    #[error("Error stringifying tokens to text")]
+    ToStringError,
+    #[error("Error creating tokenizer")]
+    TokenizerCreationError,
+}
+
+pub trait Tokenizer<TokenType: Clone> {
+    /// Tokenizes a string.
+    ///
+    /// # Parameters
+    ///    
+    /// * `doc`: The string to tokenize.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing a vector of tokens, or an error if there was a problem.
+    fn tokenize_str(&self, doc: &str) -> Result<Vec<TokenType>, TokenizerError>;
+
+    /// Converts a vector of tokens into a string.
+    ///
+    /// # Parameters
+    ///    
+    /// * `tokens`: The slice of tokens to convert.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing a string, or an error if there was a problem.
+    fn to_string(&self, tokens: Vec<TokenType>) -> Result<String, TokenizerError>;
+}

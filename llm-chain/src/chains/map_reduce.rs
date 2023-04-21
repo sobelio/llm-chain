@@ -7,11 +7,16 @@
 //! The `Chain` struct is generic over the type of the `Step` and provides a convenient way
 //! to execute map-reduce operations using a provided `Executor`.
 
-use crate::output::Output;
-use crate::traits::ExecutorError;
 use crate::{
-    frame::Frame, serialization::StorableEntity, step::Step, tokens::ExecutorTokenCountExt,
-    tokens::PromptTokensError, traits::Executor, Parameters,
+    frame::Frame,
+    output::Output,
+    serialization::StorableEntity,
+    step::Step,
+    tokens,
+    tokens::PromptTokensError,
+    traits,
+    traits::{Executor, ExecutorError},
+    Parameters,
 };
 use futures::future::join_all;
 use serde::de::{Deserializer, MapAccess};
@@ -144,13 +149,25 @@ impl<E: Executor> Chain<E> {
         Ok(new_outputs)
     }
 
-    fn chunk_documents(
+    fn chunk_documents<'a>(
         &self,
         v: Vec<Parameters>,
         executor: &E,
         step: &Step<E>,
-    ) -> Result<Vec<Parameters>, PromptTokensError> {
-        let data: Result<Vec<_>, _> = v.iter().map(|x| executor.split_to_fit(step, x)).collect();
+    ) -> Result<Vec<Parameters>, PromptTokensError>
+    where
+        E: Executor + 'a,
+    {
+        let data: Result<Vec<_>, _> = v
+            .iter()
+            .map(|x| {
+                <E as tokens::ExecutorTokenCountExt<
+                    <E as traits::Executor>::Output,
+                    <E as traits::Executor>::Token,
+                    <E as traits::Executor>::StepTokenizer<'a>,
+                >>::split_to_fit(executor, step, x)
+            })
+            .collect();
         let data = data?.iter().flatten().cloned().collect();
         Ok(data)
     }

@@ -8,8 +8,10 @@ use async_trait::async_trait;
 
 use llm_chain::step::{Step, StepError};
 use llm_chain::tokens::{PromptTokensError, TokenCount};
+use llm_chain::tokens::{Tokenizer, TokenizerError};
 use llm_chain::traits::{Executor as ExecutorTrait, ExecutorCreationError, ExecutorError};
-use llm_chain::{Parameters, PromptTemplateError};
+use llm_chain::Parameters;
+use llm_chain::PromptTemplateError;
 use llm_chain_llama_sys::llama_context_params;
 /// Executor is responsible for running the LLAMA model and managing its context.
 pub struct Executor {
@@ -137,6 +139,7 @@ impl ExecutorError for Error {}
 impl ExecutorTrait for Executor {
     type Output = Output;
     type Token = i32;
+    type StepTokenizer<'a> = LLamaTokenizer<'a>;
     type Error = Error;
     type PerInvocationOptions = PerInvocation;
     type PerExecutorOptions = PerExecutor;
@@ -162,7 +165,6 @@ impl ExecutorTrait for Executor {
             invocation_options,
         })
     }
-
     // Executes the model asynchronously and returns the output.
     async fn execute(
         &self,
@@ -185,19 +187,28 @@ impl ExecutorTrait for Executor {
         step: &Step<Self>,
         parameters: &Parameters,
     ) -> Result<TokenCount, PromptTokensError> {
+        let tokenizer = self.get_tokenizer(step)?;
         let input = step
             .prompt()
             .as_text_prompt_or_convert()
             .format(parameters)
             .map_err(|_| PromptTokensError::UnableToCompute)?;
-        let tokens_used = self.tokenize_str(step, &input)?.len() as i32;
+
+        let tokens_used = tokenizer
+            .tokenize_str(&input)
+            .map_err(|_e| PromptTokensError::UnableToCompute)?
+            .len() as i32;
 
         let input_with_empty_params = step
             .prompt()
             .as_text_prompt_or_convert()
             .format(&parameters.with_placeholder_values())
             .map_err(|_| PromptTokensError::UnableToCompute)?;
-        let template_tokens_used = self.tokenize_str(step, &input_with_empty_params)?.len() as i32;
+
+        let template_tokens_used = tokenizer
+            .tokenize_str(&input_with_empty_params)
+            .map_err(|_e| PromptTokensError::UnableToCompute)?
+            .len() as i32;
 
         let max_tokens = self.max_tokens();
         Ok(TokenCount::new(
@@ -207,13 +218,34 @@ impl ExecutorTrait for Executor {
         ))
     }
 
-    fn tokenize_str(&self, _step: &Step<Self>, doc: &str) -> Result<Vec<i32>, PromptTokensError> {
-        let tokenized = llama_tokenize_helper(&self.context, doc, true);
+    fn get_tokenizer(
+        &self,
+        _step: &llm_chain::step::Step<Self>,
+    ) -> Result<LLamaTokenizer, TokenizerError> {
+        Ok(LLamaTokenizer::new(self))
+    }
+}
+
+pub struct LLamaTokenizer<'a> {
+    context: &'a LLamaContext,
+}
+
+impl<'a> LLamaTokenizer<'a> {
+    pub fn new(executor: &'a Executor) -> Self {
+        LLamaTokenizer {
+            context: &executor.context,
+        }
+    }
+}
+
+impl Tokenizer<i32> for LLamaTokenizer<'_> {
+    fn tokenize_str(&self, doc: &str) -> Result<Vec<i32>, TokenizerError> {
+        let tokenized = llama_tokenize_helper(self.context, doc, true);
         Ok(tokenized)
     }
 
-    fn to_string(&self, _step: &Step<Self>, tokens: &[i32]) -> Result<String, PromptTokensError> {
-        let output = embedding_to_output(&self.context, tokens);
+    fn to_string(&self, tokens: Vec<i32>) -> Result<String, TokenizerError> {
+        let output = embedding_to_output(self.context, &tokens);
         Ok(output.to_string())
     }
 }
