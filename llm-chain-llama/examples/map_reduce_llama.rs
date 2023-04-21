@@ -21,7 +21,7 @@ async fn main() {
     // Create the prompts
     let map_step = Step::for_prompt(default_prompt!(ExtractiveSummaryChat));
     let reduce_step = Step::for_prompt(default_prompt!(ExtractiveSummaryChat));
-    // println!("{}",default_prompt!(ExtractiveSummaryChat).to_string());
+    println!("{}",default_prompt!(ExtractiveSummaryChat).to_string());
     // System: You are an extractive summarizer that follows the output pattern
     // User: Please extract sentences as the summary. The summary should contain {{sentences}} sentences. Document: {{text}}
     let chain = Chain::new(map_step, reduce_step);

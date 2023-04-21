@@ -64,6 +64,6 @@ macro_rules! prompt {
 #[macro_export]
 macro_rules! default_prompt {
     ($prompt:ty) => {
-        <$prompt as DefaultPrompt<_>>::as_prompt()
+        <$prompt as DefaultPrompt>::as_prompt()
     };
 }
