@@ -112,6 +112,10 @@ impl traits::Step for Step {
             user: None,
         })
     }
+
+    fn stream(&self) -> Option<bool> {
+        self.stream
+    }
 }
 
 #[cfg(feature = "serialization")]

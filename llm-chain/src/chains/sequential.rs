@@ -47,9 +47,14 @@ impl<E: Executor> Chain<E> {
         for (i, step) in self.steps.iter().enumerate() {
             let frame = Frame::new(executor, step);
             let res = frame.format_and_execute(&current_params).await?;
+<<<<<<< HEAD
             let is_streaming_and_last_step =
                 step.is_streaming() == Some(true) && i == self.steps.len() - 1;
             if !is_streaming_and_last_step {
+=======
+            let is_stream_and_last_step = step.stream() == Some(true) && i == self.steps.len() - 1;
+            if !is_stream_and_last_step {
+>>>>>>> d0359d5 (Updates:)
                 current_params = current_params.with_text_from_output(&res).await;
             }
             output = Some(res);
