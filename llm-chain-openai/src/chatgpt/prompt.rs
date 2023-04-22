@@ -18,9 +18,10 @@ fn convert_role(role: chat::ChatRole) -> Role {
 
 fn format_chat_message(
     message: chat::ChatMessage,
+    parameters: &Parameters,
 ) -> Result<ChatCompletionRequestMessage, PromptTemplateError> {
     let role = convert_role(message.role());
-    let content = message.content().format(&Parameters::new())?;
+    let content = message.content().format(parameters)?;
     Ok(ChatCompletionRequestMessage {
         role,
         content,
@@ -30,16 +31,20 @@ fn format_chat_message(
 
 fn format_chat_messages(
     messages: Vec<chat::ChatMessage>,
+    parameters: &Parameters,
 ) -> Result<Vec<ChatCompletionRequestMessage>, PromptTemplateError> {
-    messages.into_iter().map(format_chat_message).collect()
+    messages
+        .into_iter()
+        .map(|m| format_chat_message(m, parameters))
+        .collect()
 }
 
 pub fn create_chat_completion_request(
     model: &Model,
     prompt: &Prompt,
-    _parameters: &Parameters,
+    parameters: &Parameters,
 ) -> Result<CreateChatCompletionRequest, PromptTemplateError> {
-    let messages = format_chat_messages(prompt.as_chat_prompt())?;
+    let messages = format_chat_messages(prompt.as_chat_prompt(), parameters)?;
     Ok(CreateChatCompletionRequest {
         model: model.to_string(),
         messages,

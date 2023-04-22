@@ -29,7 +29,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap();
 
     let result = Step::for_prompt(prompt.into())
-        .run(&parameters!("task" => task), &exec)
+        .run(
+            &{
+                let mut params = llm_chain::Parameters::new();
+                params = params.with("task", task);
+                params
+            },
+            &exec,
+        )
         .await?;
 
     println!("{}", result);

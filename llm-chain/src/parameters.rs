@@ -200,11 +200,11 @@ macro_rules! parameters {
     ($text:expr) => {
         llm_chain::Parameters::new_with_text($text)
     };
-    ($($key:expr => $value:expr),* $(,)?) => {{
+    ($($key:expr => $value:expr),+$(,)?) => {{
         let mut params = llm_chain::Parameters::new();
         $(
             params = params.with($key, $value);
-        )*
+        )+
         params
     }};
 }

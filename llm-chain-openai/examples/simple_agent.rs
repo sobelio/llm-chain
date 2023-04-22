@@ -1,23 +1,17 @@
 use llm_chain::executor;
-use llm_chain::multitool;
 
 use async_trait::async_trait;
 use llm_chain::output::Output;
 use llm_chain::parameters;
 use llm_chain::prompt::chat::{ChatMessage, ChatPrompt, ChatRole};
-use llm_chain::step::Step;
-use llm_chain::tools::tools::{BashTool, BashToolError, ExitTool, ExitToolError};
 use llm_chain::tools::ToolCollection;
 use llm_chain::tools::{Tool, ToolDescription, ToolError};
 use llm_chain::traits::Executor as ExecutorTrait;
-use llm_chain::Parameters;
-use llm_chain::PromptTemplate;
 
 use llm_chain::tools::tools::{
     BashTool, BashToolError, BashToolInput, BashToolOutput, ExitTool, ExitToolError, ExitToolInput,
     ExitToolOutput,
 };
-use llm_chain::tools::{Tool, ToolCollection, ToolDescription, ToolError};
 use llm_chain::{multitool, PromptTemplate};
 use llm_chain::{traits::StepExt, Parameters};
 use llm_chain_openai::chatgpt::{Executor, Step};

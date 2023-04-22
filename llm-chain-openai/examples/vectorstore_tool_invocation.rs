@@ -1,3 +1,4 @@
+use llm_chain::executor;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -11,7 +12,7 @@ use llm_chain::tools::tools::{BashToolError, BashToolInput, BashToolOutput};
 use llm_chain::tools::{Tool, ToolCollection, ToolDescription, ToolError};
 use llm_chain::traits::VectorStore;
 use llm_chain::vectorstores::qdrant::{Qdrant, QdrantError};
-use llm_chain::{multitool, PromptTemplate};
+use llm_chain::{multitool, parameters, PromptTemplate};
 use llm_chain::{traits::StepExt, Parameters};
 use llm_chain_openai::chatgpt::{Executor, Step};
 use llm_chain_openai::embeddings::{Embeddings, OpenAIEmbeddingsError};
@@ -117,7 +118,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     let qdrant = build_local_qdrant().await;
 
-    let exec = Executor::new_default();
+    let exec = executor!().unwrap();
 
     let mut tool_collection = ToolCollection::<Multitool>::new();
 
@@ -151,7 +152,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let template = PromptTemplate::combine(vec![
         tool_collection.to_prompt_template().unwrap(),
-        PromptTemplate::tera("Please perform the following task: {{task}}."),
+        PromptTemplate::legacy("Please perform the following task: {{task}}."),
     ]);
 
     let task = "Tell me something about dogs";
@@ -162,9 +163,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build()
         .unwrap();
 
-    let result = Step::for_prompt(prompt)
-        .run(&Parameters::new().with("task", task), &exec)
-        .await?;
+    let result = Step::for_prompt(prompt.into())
+        .run(&parameters!("task" => task), &exec)
+        .await
+        .unwrap();
 
     println!("{}", result);
     match tool_collection
