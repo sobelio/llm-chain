@@ -1,4 +1,4 @@
-//! # Output Module
+//! The output module provides representations of the output of a chain.
 //!
 //! This module provides an implementation of the `Output` trait for the
 //! `CreateChatCompletionResponse` from ChatGPT's API
