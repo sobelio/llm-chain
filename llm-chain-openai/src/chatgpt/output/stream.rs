@@ -1,21 +1,18 @@
-use async_openai::{error::OpenAIError, types::CreateChatCompletionStreamResponse};
-use futures::stream::{Stream, StreamExt};
+use async_openai::types::ChatCompletionResponseStream;
+use futures::stream::StreamExt;
 use std::{
     fmt::{self, Debug, Formatter},
-    pin::Pin,
     sync::Arc,
 };
 use tokio::sync::Mutex;
 
-pub type ResponseStream =
-    Pin<Box<dyn Stream<Item = Result<CreateChatCompletionStreamResponse, OpenAIError>> + Send>>;
-pub type SharedResponseStream = Arc<Mutex<ResponseStream>>;
+pub type SharedResponseStream = Arc<Mutex<ChatCompletionResponseStream>>;
 
 #[derive(Clone)]
 pub struct StreamWrapper(SharedResponseStream);
 
 impl StreamWrapper {
-    pub fn new(stream: ResponseStream) -> Self {
+    pub fn new(stream: ChatCompletionResponseStream) -> Self {
         Self(Arc::new(Mutex::new(stream)))
     }
 
