@@ -33,7 +33,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
 
     println!("{}", result);
-    match tool_collection.process_chat_input(&result.primary_textual_output().await.unwrap()) {
+    match tool_collection
+        .process_chat_input(&result.primary_textual_output().await.unwrap())
+        .await
+    {
         Ok(output) => println!("{}", output),
         Err(e) => println!("Error: {}", e),
     }

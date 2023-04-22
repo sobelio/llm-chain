@@ -26,7 +26,7 @@ pub enum ToolUseError<E: ToolError> {
 
 impl<T> ToolCollection<T>
 where
-    T: Tool,
+    T: Tool + Send + Sync,
 {
     pub fn new() -> Self {
         Self { tools: vec![] }
@@ -36,7 +36,7 @@ where
         self.tools.push(tool);
     }
 
-    pub fn invoke(
+    pub async fn invoke(
         &self,
         name: &str,
         input: &serde_yaml::Value,
@@ -46,7 +46,7 @@ where
             .iter()
             .find(|t| t.matches(name))
             .ok_or(ToolUseError::ToolNotFound)?;
-        tool.invoke(input.clone()).map_err(|e| e.into())
+        tool.invoke(input.clone()).await.map_err(|e| e.into())
     }
 
     /// Process chat input and execute the appropriate tool.
@@ -58,7 +58,7 @@ where
     ///
     /// Returns an `OpaqueError` variant if the input is not a valid YAML or
     /// if the specified tool is not found.
-    pub fn process_chat_input(
+    pub async fn process_chat_input(
         &self,
         data: &str,
     ) -> Result<String, ToolUseError<<T as Tool>::Error>> {
@@ -66,8 +66,10 @@ where
         if tool_invocations.len() != 1 {
             return Err(ToolUseError::InvalidInvocation);
         }
-        let output = self.invoke(&tool_invocations[0].command, &tool_invocations[0].input)?;
-        Ok(serde_yaml::to_string(&output)?)
+        let output = self
+            .invoke(&tool_invocations[0].command, &tool_invocations[0].input)
+            .await?;
+        serde_yaml::to_string(&output).map_err(|e| e.into())
     }
 
     /// Generate a YAML-formatted string describing the available tools.

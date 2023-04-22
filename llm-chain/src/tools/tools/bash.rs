@@ -1,5 +1,6 @@
 use crate::tools::description::{Describe, Format, ToolDescription};
-use crate::tools::tool::{gen_invoke_function, Tool, ToolError};
+use crate::tools::tool::{Tool, ToolError};
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::num::TryFromIntError;
 use std::process::Command;
@@ -66,8 +67,12 @@ pub enum BashToolError {
 
 impl ToolError for BashToolError {}
 
-impl BashTool {
-    fn invoke_typed(&self, input: &BashToolInput) -> Result<BashToolOutput, BashToolError> {
+#[async_trait]
+impl Tool for BashTool {
+    type Input = BashToolInput;
+    type Output = BashToolOutput;
+    type Error = BashToolError;
+    async fn invoke_typed(&self, input: &BashToolInput) -> Result<BashToolOutput, BashToolError> {
         let output = Command::new("bash").arg("-c").arg(&input.cmd).output()?;
 
         Ok(BashToolOutput {
@@ -80,11 +85,7 @@ impl BashTool {
             stdout: String::from_utf8(output.stdout)?,
         })
     }
-}
 
-impl Tool for BashTool {
-    type Error = BashToolError;
-    gen_invoke_function!();
     fn description(&self) -> ToolDescription {
         ToolDescription::new(
             "BashTool",

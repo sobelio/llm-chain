@@ -4,6 +4,10 @@
 mod bash;
 mod exit;
 mod python;
-pub use bash::{BashTool, BashToolError};
-pub use exit::{ExitTool, ExitToolError};
-pub use python::{PythonTool, PythonToolError};
+mod vectorstore;
+pub use bash::{BashTool, BashToolError, BashToolInput, BashToolOutput};
+pub use exit::{ExitTool, ExitToolError, ExitToolInput, ExitToolOutput};
+pub use python::{PythonTool, PythonToolError, PythonToolInput, PythonToolOutput};
+pub use vectorstore::{
+    VectorStoreTool, VectorStoreToolError, VectorStoreToolInput, VectorStoreToolOutput,
+};

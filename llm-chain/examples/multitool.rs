@@ -1,11 +1,13 @@
+use async_trait::async_trait;
 use llm_chain::{
     multitool,
     tools::{
-        tools::{BashTool, BashToolError},
+        tools::{BashTool, BashToolError, BashToolInput, BashToolOutput},
         Format, Tool, ToolError,
     },
     tools::{ToolCollection, ToolDescription},
 };
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 /// Your custom tool's implementation:
@@ -15,9 +17,17 @@ struct MyToolError(#[from] serde_yaml::Error);
 
 impl ToolError for MyToolError {}
 
+#[derive(Serialize, Deserialize)]
+struct MyToolInput(());
+#[derive(Serialize, Deserialize)]
+struct MyToolOutput(());
+
 struct MyTool {}
 
+#[async_trait]
 impl Tool for MyTool {
+    type Input = MyToolInput;
+    type Output = MyToolOutput;
     type Error = MyToolError;
 
     fn description(&self) -> ToolDescription {
@@ -30,18 +40,28 @@ impl Tool for MyTool {
         }
     }
 
-    fn invoke(&self, _: serde_yaml::Value) -> Result<serde_yaml::Value, Self::Error> {
-        Ok(serde_yaml::Value::Null)
+    async fn invoke(&self, _: serde_yaml::Value) -> Result<serde_yaml::Value, Self::Error> {
+        todo!()
+    }
+
+    async fn invoke_typed(&self, _: &Self::Input) -> Result<Self::Output, Self::Error> {
+        todo!()
     }
 }
 
 // Final toolbox Tool type:
 multitool!(
     Multitool,
+    MultiToolInput,
+    MultiToolOutput,
     MultitoolError,
     BashTool,
+    BashToolInput,
+    BashToolOutput,
     BashToolError,
     MyTool,
+    MyToolInput,
+    MyToolOutput,
     MyToolError
 );
 

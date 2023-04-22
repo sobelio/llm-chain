@@ -13,7 +13,7 @@ use uuid::Uuid;
 
 use crate::{
     schema::{Document, EmptyMetadata},
-    traits::{Embeddings, EmbeddingsError, VectorStore},
+    traits::{Embeddings, EmbeddingsError, VectorStore, VectorStoreError},
 };
 
 const DEFAULT_CONTENT_PAYLOAD_KEY: &str = "page_content";
@@ -35,10 +35,10 @@ impl From<EmptyMetadata> for Value {
     }
 }
 
-pub struct Qdrant<E, M = EmptyMetadata>
+pub struct Qdrant<E, M>
 where
     E: Embeddings,
-    M: TryFrom<Value>,
+    M: TryFrom<Value> + Into<Value> + Send + Sync,
 {
     client: Arc<QdrantClient>,
     collection_name: String,
@@ -51,7 +51,7 @@ where
 impl<E, M> Qdrant<E, M>
 where
     E: Embeddings,
-    M: TryFrom<Value>,
+    M: TryFrom<Value> + Into<Value> + Send + Sync,
 {
     pub fn new(
         client: Arc<QdrantClient>,
@@ -143,6 +143,11 @@ where
     Client(#[from] anyhow::Error),
     #[error(transparent)]
     ConversionError(#[from] ConversionError),
+}
+
+impl<E> VectorStoreError for QdrantError<E> where
+    E: std::fmt::Debug + std::error::Error + EmbeddingsError
+{
 }
 
 #[async_trait]

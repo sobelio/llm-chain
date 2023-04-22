@@ -1,8 +1,62 @@
 #[macro_export]
 macro_rules! multitool {
-    ($multitool:ident, $error:ident, $($tool:ident, $tool_error:ident),+) => {
+    ($multitool:ident, $input:ident, $output:ident, $error:ident, $($tool:ident, $tool_input:ident, $tool_output:ident, $tool_error:ident),+) => {
+        #[derive(Serialize, Deserialize)]
+        enum $input {
+            $($tool_input($tool_input)),+
+        }
+
+        $(
+            impl From<$tool_input> for $input {
+                fn from(tool: $tool_input) -> Self {
+                    $input::$tool_input(tool)
+                }
+            }
+        )+
+
+        $(
+            impl TryInto<$tool_input> for $input {
+                type Error = $error;
+                fn try_into(self) -> Result<$tool_input, Self::Error> {
+                    if let $input::$tool_input(t) = self {
+                        Ok(t)
+                    } else {
+                        Err($error::BadVariant)
+                    }
+                }
+            }
+        )+
+
+        #[derive(Serialize, Deserialize)]
+        enum $output {
+            $($tool_output($tool_output)),+
+        }
+
+        $(
+            impl From<$tool_output> for $output {
+                fn from(tool: $tool_output) -> Self {
+                    $output::$tool_output(tool)
+                }
+            }
+        )+
+
+        $(
+            impl TryInto<$tool_output> for $output {
+                type Error = $error;
+                fn try_into(self) -> Result<$tool_output, Self::Error> {
+                    if let $output::$tool_output(t) = self {
+                        Ok(t)
+                    } else {
+                        Err($error::BadVariant)
+                    }
+                }
+            }
+        )+
+
         #[derive(Debug, Error)]
         enum $error {
+            #[error("Could not convert")]
+            BadVariant,
             #[error(transparent)]
             YamlError(#[from] serde_yaml::Error),
             $(#[error(transparent)]
@@ -23,8 +77,22 @@ macro_rules! multitool {
             }
         )+
 
+        #[async_trait]
         impl Tool for $multitool {
+            type Input = $input;
+            type Output = $output;
             type Error = $error;
+
+            async fn invoke_typed(&self, input: &Self::Input) -> Result<Self::Output, Self::Error> {
+
+                match (self, input) {
+                    $(($multitool::$tool(t), $input::$tool_input(i)) => {
+                            t.invoke_typed(i).await.map(|o| <$tool_output as Into<Self::Output>>::into(o)).map_err(|e| e.into())
+                        }
+                    ),+
+                    _ => Err($error::BadVariant)
+                }
+            }
 
             /// Returns the `ToolDescription` containing metadata about the tool.
             fn description(&self) -> ToolDescription {
@@ -39,9 +107,9 @@ macro_rules! multitool {
             ///
             /// Returns an `ToolUseError` if the input is not in the expected format or if the tool
             /// fails to produce a valid output.
-            fn invoke(&self, input: serde_yaml::Value) -> Result<serde_yaml::Value, Self::Error> {
+            async fn invoke(&self, input: serde_yaml::Value) -> Result<serde_yaml::Value, Self::Error> {
                 match self {
-                    $($multitool::$tool(t) => t.invoke(input).map_err(|e| e.into())),+
+                    $($multitool::$tool(t) => t.invoke(input).await.map_err(|e| e.into())),+
                 }
             }
 

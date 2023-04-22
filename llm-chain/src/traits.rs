@@ -170,12 +170,15 @@ pub trait Embeddings {
     async fn embed_query(&self, query: String) -> Result<Vec<f32>, Self::Error>;
 }
 
+/// This marker trait is needed so users of VectorStore can derive From<VectorStore::Error>
+pub trait VectorStoreError {}
+
 #[async_trait]
 pub trait VectorStore<E, M = EmptyMetadata>
 where
     E: Embeddings,
 {
-    type Error: Debug + Error + From<<E as Embeddings>::Error>;
+    type Error: Debug + Error + VectorStoreError;
     async fn add_texts(&self, texts: Vec<String>) -> Result<Vec<String>, Self::Error>;
     async fn add_documents(&self, documents: Vec<Document<M>>) -> Result<Vec<String>, Self::Error>;
     async fn similarity_search(
