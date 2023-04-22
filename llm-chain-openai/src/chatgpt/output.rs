@@ -151,7 +151,7 @@ impl output::Output for Output {
                 .iter()
                 .map(|choice| choice.message.content.clone())
                 .collect(),
-            OutputInner::Stream(stream) => stream.primary_textual_output().await,
+            OutputInner::Stream(stream) => stream.primary_textual_output_choices().await,
         }
     }
 }
