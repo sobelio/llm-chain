@@ -178,7 +178,7 @@ pub trait VectorStore<E, M = EmptyMetadata>
 where
     E: Embeddings,
 {
-    type Error: Debug + Error + VectorStoreError + From<<E as Embeddings>::Error>;
+    type Error: Debug + Error + VectorStoreError;
     async fn add_texts(&self, texts: Vec<String>) -> Result<Vec<String>, Self::Error>;
     async fn add_documents(&self, documents: Vec<Document<M>>) -> Result<Vec<String>, Self::Error>;
     async fn similarity_search(

@@ -3,206 +3,47 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use llm_chain::output::Output;
 use llm_chain::prompt::chat::{ChatMessage, ChatPrompt, ChatRole};
-use llm_chain::schema::Document;
-use llm_chain::tools::tools::{BashTool, VectorStoreTool};
-use llm_chain::tools::{Format, Tool, ToolCollection, ToolDescription, ToolError};
-use llm_chain::vectorstores::qdrant::Qdrant;
+use llm_chain::schema::{Document, EmptyMetadata};
+use llm_chain::tools::tools::{
+    BashTool, VectorStoreTool, VectorStoreToolError, VectorStoreToolInput, VectorStoreToolOutput,
+};
+use llm_chain::tools::tools::{BashToolError, BashToolInput, BashToolOutput};
+use llm_chain::tools::{Tool, ToolCollection, ToolDescription, ToolError};
+use llm_chain::traits::VectorStore;
+use llm_chain::vectorstores::qdrant::{Qdrant, QdrantError};
 use llm_chain::{multitool, PromptTemplate};
 use llm_chain::{traits::StepExt, Parameters};
 use llm_chain_openai::chatgpt::{Executor, Step};
-use llm_chain_openai::embeddings::Embeddings;
+use llm_chain_openai::embeddings::{Embeddings, OpenAIEmbeddingsError};
 use qdrant_client::prelude::{QdrantClient, QdrantClientConfig};
 use qdrant_client::qdrant::{CreateCollection, Distance, VectorParams, VectorsConfig};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 // A simple example generating a prompt with some tools.
 
-/// Your custom tool's implementation:
-#[derive(Debug, Error)]
-#[error("MyTool custom error")]
-struct MyToolError(#[from] serde_yaml::Error);
-
-impl ToolError for MyToolError {}
-
-#[derive(Serialize, Deserialize)]
-struct MyToolInput;
-#[derive(Serialize, Deserialize)]
-struct MyToolOutput;
-
-struct MyTool {}
-
-#[async_trait]
-impl Tool for MyTool {
-    type Input = MyToolInput;
-    type Output = MyToolOutput;
-    type Error = MyToolError;
-
-    fn description(&self) -> ToolDescription {
-        ToolDescription {
-            name: "MyTool".into(),
-            description: "My custom implementation of a tool".into(),
-            description_context: "You are able to use my tool".into(),
-            input_format: Format::new(vec![]),
-            output_format: Format::new(vec![]),
-        }
-    }
-
-    async fn invoke(&self, _: serde_yaml::Value) -> Result<serde_yaml::Value, Self::Error> {
-        Ok(serde_yaml::Value::Null)
-    }
-
-    async fn invoke_typed(&self, input: &Self::Input) -> Result<Self::Output, Self::Error> {
-        todo!()
-    }
-}
-
-#[derive(Serialize, Deserialize)]
-struct MyMetadata;
-
 // `multitool!` macro cannot handle generic annotations as of now; for now you will need to pass concrete arguments and alias your types
-type QdrantTool = VectorStoreTool<Embeddings, Qdrant<Embeddings, MyMetadata>>;
-type QdrantToolInput = <QdrantTool as Tool>::Input;
-type QdrantToolOutput = <QdrantTool as Tool>::Output;
-type QdrantToolError = <QdrantTool as Tool>::Error;
+type QdrantTool = VectorStoreTool<Embeddings, EmptyMetadata, Qdrant<Embeddings, EmptyMetadata>>;
+type QdrantToolInput = VectorStoreToolInput;
+type QdrantToolOutput = VectorStoreToolOutput;
+type QdrantToolError =
+    VectorStoreToolError<QdrantError<OpenAIEmbeddingsError>, OpenAIEmbeddingsError>;
 
-#[derive(Serialize, Deserialize)]
-enum MultiToolInput {
-    QdrantToolInput(QdrantToolInput),
-    MyToolInput(MyToolInput),
-}
-impl TryInto<QdrantToolInput> for MultiToolInput {
-    type Error = MultitoolError;
-    fn try_into(self) -> Result<QdrantToolInput, Self::Error> {
-        if let MultiToolInput::QdrantToolInput(t) = self {
-            Ok(t)
-        } else {
-            Err(MultitoolError::BadVariant)
-        }
-    }
-}
-impl TryInto<MyToolInput> for MultiToolInput {
-    type Error = MultitoolError;
-    fn try_into(self) -> Result<MyToolInput, Self::Error> {
-        if let MultiToolInput::MyToolInput(t) = self {
-            Ok(t)
-        } else {
-            Err(MultitoolError::BadVariant)
-        }
-    }
-}
-#[derive(Serialize, Deserialize)]
-enum MultiToolOutput {
-    QdrantToolOutput(QdrantToolOutput),
-    MyToolOutput(MyToolOutput),
-}
-impl From<QdrantToolOutput> for MultiToolOutput {
-    fn from(tool: QdrantToolOutput) -> Self {
-        MultiToolOutput::QdrantToolOutput(tool)
-    }
-}
-impl From<MyToolOutput> for MultiToolOutput {
-    fn from(tool: MyToolOutput) -> Self {
-        MultiToolOutput::MyToolOutput(tool)
-    }
-}
-impl TryInto<QdrantToolOutput> for MultiToolOutput {
-    type Error = MultitoolError;
-    fn try_into(self) -> Result<QdrantToolOutput, Self::Error> {
-        if let MultiToolOutput::QdrantToolOutput(t) = self {
-            Ok(t)
-        } else {
-            Err(MultitoolError::BadVariant)
-        }
-    }
-}
-impl TryInto<MyToolOutput> for MultiToolOutput {
-    type Error = MultitoolError;
-    fn try_into(self) -> Result<MyToolOutput, Self::Error> {
-        if let MultiToolOutput::MyToolOutput(t) = self {
-            Ok(t)
-        } else {
-            Err(MultitoolError::BadVariant)
-        }
-    }
-}
-#[derive(Debug, Error)]
-enum MultitoolError {
-    #[error("Could not convert")]
-    BadVariant,
-    #[error(transparent)]
-    YamlError(#[from] serde_yaml::Error),
-    #[error(transparent)]
-    QdrantToolError(#[from] QdrantToolError),
-    #[error(transparent)]
-    MyToolError(#[from] MyToolError),
-}
-impl ToolError for MultitoolError {}
+multitool!(
+    Multitool,
+    MultitoolInput,
+    MultitoolOutput,
+    MultitoolError,
+    QdrantTool,
+    QdrantToolInput,
+    QdrantToolOutput,
+    QdrantToolError,
+    BashTool,
+    BashToolInput,
+    BashToolOutput,
+    BashToolError
+);
 
-enum Multitool {
-    QdrantTool(QdrantTool),
-    MyTool(MyTool),
-}
-impl From<QdrantTool> for Multitool {
-    fn from(tool: QdrantTool) -> Self {
-        Multitool::QdrantTool(tool)
-    }
-}
-impl From<MyTool> for Multitool {
-    fn from(tool: MyTool) -> Self {
-        Multitool::MyTool(tool)
-    }
-}
-#[async_trait]
-impl Tool for Multitool {
-    type Input = MultiToolInput;
-    type Output = MultiToolOutput;
-    type Error = MultitoolError;
-    async fn invoke_typed(&self, input: &Self::Input) -> Result<Self::Output, Self::Error> {
-        match (self, input) {
-            (Multitool::QdrantTool(t), MultiToolInput::QdrantToolInput(i)) => t
-                .invoke_typed(i)
-                .await
-                .map(|o| <QdrantToolOutput as Into<Self::Output>>::into(o))
-                .map_err(|e| e.into()),
-            (Multitool::MyTool(t), MultiToolInput::MyToolInput(i)) => t
-                .invoke_typed(i)
-                .await
-                .map(|o| <MyToolOutput as Into<Self::Output>>::into(o))
-                .map_err(|e| e.into()),
-            _ => Err(MultitoolError::BadVariant),
-        }
-    }
-    #[doc = " Returns the `ToolDescription` containing metadata about the tool."]
-    fn description(&self) -> ToolDescription {
-        match self {
-            Multitool::QdrantTool(t) => t.description(),
-            Multitool::MyTool(t) => t.description(),
-        }
-    }
-    #[doc = " Invokes the tool with the given YAML-formatted input."]
-    #[doc = ""]
-    #[doc = " # Errors"]
-    #[doc = ""]
-    #[doc = " Returns an `ToolUseError` if the input is not in the expected format or if the tool"]
-    #[doc = " fails to produce a valid output."]
-    async fn invoke(&self, input: serde_yaml::Value) -> Result<serde_yaml::Value, Self::Error> {
-        match self {
-            Multitool::QdrantTool(t) => t.invoke(input).await.map_err(|e| e.into()),
-            Multitool::MyTool(t) => t.invoke(input).await.map_err(|e| e.into()),
-        }
-    }
-    #[doc = " Checks whether the tool matches the given name."]
-    #[doc = ""]
-    #[doc = " This function is used to find the appropriate tool in a `ToolCollection` based on its name."]
-    fn matches(&self, name: &str) -> bool {
-        match self {
-            Multitool::QdrantTool(t) => t.description().name == name,
-            Multitool::MyTool(t) => t.description().name == name,
-        }
-    }
-}
-
-async fn build_local_qdrant() -> Qdrant<Embeddings> {
+async fn build_local_qdrant() -> Qdrant<Embeddings, EmptyMetadata> {
     // Qdrant prep
     let config = QdrantClientConfig::from_url("http://localhost:6334");
     let client = Arc::new(QdrantClient::new(Some(config)).await.unwrap());
@@ -235,7 +76,13 @@ async fn build_local_qdrant() -> Qdrant<Embeddings> {
 
     let embeddings = llm_chain_openai::embeddings::Embeddings::default();
 
-    let qdrant = Qdrant::new(client, collection_name, embeddings, None, None);
+    let qdrant = Qdrant::<llm_chain_openai::embeddings::Embeddings, EmptyMetadata>::new(
+        client,
+        collection_name,
+        embeddings,
+        None,
+        None,
+    );
 
     let doc_dog_definition = r#"The dog (Canis familiaris[4][5] or Canis lupus familiaris[5]) is a domesticated descendant of the wolf. Also called the domestic dog, it is derived from the extinct Pleistocene wolf,[6][7] and the modern wolf is the dog's nearest living relative.[8] Dogs were the first species to be domesticated[9][8] by hunter-gatherers over 15,000 years ago[7] before the development of agriculture.[1] Due to their long association with humans, dogs have expanded to a large number of domestic individuals[10] and gained the ability to thrive on a starch-rich diet that would be inadequate for other canids.[11]
     
@@ -273,8 +120,34 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let exec = Executor::new_default();
 
     let mut tool_collection = ToolCollection::<Multitool>::new();
+
+    // WHY IS THERE A BASH TOOL IN THIS EXAMPLE?
+    //
+    // Models usually understand what Bash can do pretty well and may try to `curl` data from websites instead of using your vector database;
+    //
+    // This is a situation that you may encounter with other tools from our library, as well as your own.
+    //
+    // If it so happens that the model defers to a more general tool, it most likely means that your prompt
+    // is not aligned with what you want the model to do.
+    //
+    // Note that it does not necessarily mean that you did not describe your tool well -
+    // a person or a model familiar with your tool would most likely know when and how they can use your tool based on their prior knowledge and given your prompt.
+    //
+    // However, if the model has not seen enough examples of the tool in action (as is likely the case with vector databases),
+    // it will most likely defer to a tool that it knows.
+    //
+    // Try to adjust the `topic` and `topic_context` arguments if that happens, so that they describe situations when the model MUST use the specific tool.
+    //
+    // Treat this as a playground for real world tool usage issues. You can always remove the BashTool from multitool! and ToolCollection.
     tool_collection.add_tool(BashTool::new().into());
-    tool_collection.add_tool(QdrantTool::new(qdrant, "random facts", "all sorts of facts").into());
+    tool_collection.add_tool(
+        QdrantTool::new(
+            qdrant,
+            "factual information and trivia",
+            "facts, news, knowledge or trivia",
+        )
+        .into(),
+    );
 
     let template = PromptTemplate::combine(vec![
         tool_collection.to_prompt_template().unwrap(),
@@ -294,7 +167,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
 
     println!("{}", result);
-    match tool_collection.process_chat_input(&result.primary_textual_output().await.unwrap()) {
+    match tool_collection
+        .process_chat_input(&result.primary_textual_output().await.unwrap())
+        .await
+    {
         Ok(output) => println!("{}", output),
         Err(e) => println!("Error: {}", e),
     }

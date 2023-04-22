@@ -69,7 +69,7 @@ where
         let output = self
             .invoke(&tool_invocations[0].command, &tool_invocations[0].input)
             .await?;
-        Ok(serde_yaml::to_string(&output)?)
+        serde_yaml::to_string(&output).map_err(|e| e.into())
     }
 
     /// Generate a YAML-formatted string describing the available tools.

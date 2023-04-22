@@ -35,10 +35,10 @@ impl From<EmptyMetadata> for Value {
     }
 }
 
-pub struct Qdrant<E, M = EmptyMetadata>
+pub struct Qdrant<E, M>
 where
     E: Embeddings,
-    M: TryFrom<Value>,
+    M: TryFrom<Value> + Into<Value> + Send + Sync,
 {
     client: Arc<QdrantClient>,
     collection_name: String,

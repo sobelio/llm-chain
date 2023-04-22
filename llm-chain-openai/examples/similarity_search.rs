@@ -1,6 +1,10 @@
 use std::sync::Arc;
 
-use llm_chain::{schema::Document, traits::VectorStore, vectorstores::qdrant::Qdrant};
+use llm_chain::{
+    schema::{Document, EmptyMetadata},
+    traits::VectorStore,
+    vectorstores::qdrant::Qdrant,
+};
 use llm_chain_openai::embeddings::Embeddings;
 use qdrant_client::{
     prelude::{QdrantClient, QdrantClientConfig},
@@ -42,7 +46,7 @@ async fn main() {
     let embeddings = llm_chain_openai::embeddings::Embeddings::default();
 
     // Storing documents
-    let qdrant: Qdrant<Embeddings> = Qdrant::new(
+    let qdrant: Qdrant<Embeddings, EmptyMetadata> = Qdrant::new(
         client.clone(),
         collection_name.clone(),
         embeddings,

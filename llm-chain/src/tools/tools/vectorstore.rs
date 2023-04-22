@@ -5,12 +5,11 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::{
-    schema::EmptyMetadata,
     tools::{Describe, Format, Tool, ToolDescription, ToolError},
-    traits::{Embeddings, VectorStore, VectorStoreError},
+    traits::{Embeddings, EmbeddingsError, VectorStore, VectorStoreError},
 };
 
-pub struct VectorStoreTool<E, V, M = EmptyMetadata>
+pub struct VectorStoreTool<E, M, V>
 where
     E: Embeddings,
     V: VectorStore<E, M>,
@@ -22,7 +21,7 @@ where
     _data2: PhantomData<M>,
 }
 
-impl<E, V, M> VectorStoreTool<E, V, M>
+impl<E, M, V> VectorStoreTool<E, M, V>
 where
     E: Embeddings,
     V: VectorStore<E, M>,
@@ -39,18 +38,23 @@ where
 }
 
 #[derive(Debug, Error)]
-pub enum VectorStoreToolError<E>
+pub enum VectorStoreToolError<V, E>
 where
-    E: std::fmt::Debug + std::error::Error + VectorStoreError,
+    V: std::fmt::Debug + std::error::Error + VectorStoreError,
+    E: std::fmt::Debug + std::error::Error + EmbeddingsError,
 {
     #[error(transparent)]
     YamlError(#[from] serde_yaml::Error),
     #[error(transparent)]
-    VectorStoreError(#[from] E),
+    VectorStoreError(#[from] V),
+    #[error(transparent)]
+    Embeddings(E),
 }
 
-impl<E> ToolError for VectorStoreToolError<E> where
-    E: std::fmt::Debug + std::error::Error + VectorStoreError
+impl<V, E> ToolError for VectorStoreToolError<V, E>
+where
+    V: std::fmt::Debug + std::error::Error + VectorStoreError,
+    E: std::fmt::Debug + std::error::Error + EmbeddingsError,
 {
 }
 
@@ -98,7 +102,7 @@ impl Describe for VectorStoreToolOutput {
 }
 
 #[async_trait]
-impl<E, V, M> Tool for VectorStoreTool<E, V, M>
+impl<E, M, V> Tool for VectorStoreTool<E, M, V>
 where
     E: Embeddings + Sync + Send,
     V: VectorStore<E, M> + Sync + Send,
@@ -107,7 +111,7 @@ where
 {
     type Input = VectorStoreToolInput;
     type Output = VectorStoreToolOutput;
-    type Error = VectorStoreToolError<<V as VectorStore<E, M>>::Error>;
+    type Error = VectorStoreToolError<<V as VectorStore<E, M>>::Error, <E as Embeddings>::Error>;
 
     async fn invoke_typed(&self, input: &Self::Input) -> Result<Self::Output, Self::Error> {
         match self
