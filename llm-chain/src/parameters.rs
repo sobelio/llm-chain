@@ -195,13 +195,13 @@ impl From<Vec<(&str, &str)>> for Parameters {
 #[macro_export]
 macro_rules! parameters {
     () => {
-        llm_chain::Parameters::new()
+        $crate::Parameters::new()
     };
     ($text:expr) => {
         llm_chain::Parameters::new_with_text($text)
     };
     ($($key:expr => $value:expr),+$(,)?) => {{
-        let mut params = llm_chain::Parameters::new();
+        let mut params = $crate::Parameters::new();
         $(
             params = params.with($key, $value);
         )+

@@ -1,4 +1,10 @@
-use crate::{chains::map_reduce, output::Output, parameters, prompt, traits};
+use crate::{
+    chains::map_reduce::{self, MapReduceChainError},
+    output::Output,
+    parameters, prompt,
+    step::Step,
+    traits,
+};
 
 /// A `TextSummarizer` takes a given text and summarizes it using an `Executor`.
 ///
@@ -9,14 +15,14 @@ pub struct TextSummarizer<E: traits::Executor> {
 
 impl<E: traits::Executor> Default for TextSummarizer<E> {
     fn default() -> Self {
-        let map_prompt = prompt!(
+        let map_prompt = Step::for_prompt(prompt!(
             "You are a text summarizer. You will be given a text and you will have to summarize it",
             "Text:\n\n{{text}}\n\nPlease write a summary of the text above. Respond only with the summary."
-        );
-        let reduce_prompt = prompt!(
+        ));
+        let reduce_prompt = Step::for_prompt(prompt!(
             "You are a text summarizer. You will be given a text and you will have to summarize it",
             "Text:\n\n{{text}}\n\nPlease write a combined summary of the segment summaries above. Respond only with the summary."
-        );
+        ));
 
         TextSummarizer {
             chain: map_reduce::Chain::new(map_prompt, reduce_prompt),
@@ -26,9 +32,9 @@ impl<E: traits::Executor> Default for TextSummarizer<E> {
 
 /// The error type returned by the `TextSummarizer` when summarizing text.
 #[derive(thiserror::Error, Debug)]
-pub enum TextSummarizerError<E: traits::Executor> {
+pub enum TextSummarizerError<E: traits::ExecutorError> {
     #[error("MapReduceChainError: {0}")]
-    MapReduceChainError(#[from] map_reduce::MapReduceChainError<E::Error>),
+    MapReduceChainError(#[from] MapReduceChainError<E>),
     #[error("No output was produced")]
     NoOutput,
 }
@@ -41,7 +47,7 @@ impl<E: traits::Executor> TextSummarizer<E> {
         &self,
         exec: &E,
         text: &str,
-    ) -> Result<String, TextSummarizerError<E>> {
+    ) -> Result<String, TextSummarizerError<E::Error>> {
         let params = parameters! {
             "text" => text,
         };
@@ -59,7 +65,7 @@ impl<E: traits::Executor> TextSummarizer<E> {
 pub async fn summarize_text<E: traits::Executor>(
     exec: &E,
     text: &str,
-) -> Result<String, TextSummarizerError<E>> {
+) -> Result<String, TextSummarizerError<E::Error>> {
     TextSummarizer::<E>::default()
         .summarize_text(exec, text)
         .await

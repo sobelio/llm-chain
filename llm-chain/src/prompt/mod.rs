@@ -51,13 +51,13 @@ use self::{chat::ChatPrompt, traits::Prompt as PromptTrait};
 #[macro_export]
 macro_rules! prompt {
     ($single_arg:expr) => {
-        llm_chain::prompt::Prompt::new_from_text_prompt(
+        $crate::prompt::Prompt::new_from_text_prompt(
             llm_chain::prompt::text::TextPrompt::new($single_arg)
         )
     };
     ($system_arg:expr, $user_arg:expr $(,)?) => {
-        llm_chain::prompt::Prompt::new_from_chat_prompt(
-            llm_chain::prompt::chat::ChatPrompt::builder()
+        $crate::prompt::Prompt::new_from_chat_prompt(
+            $crate::prompt::chat::ChatPrompt::builder()
                 .system($system_arg)
                 .user($user_arg)
                 .build()
