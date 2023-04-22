@@ -128,7 +128,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     //
     // This is a situation that you may encounter with other tools from our library, as well as your own.
     //
-    // If it so happens that the model defers to a more general tool, it most likely means that your prompt
+    // If it so happens that the model defers to a more general tool, it most likely means that the tool's prompt
     // is not aligned with what you want the model to do.
     //
     // Note that it does not necessarily mean that you did not describe your tool well -
