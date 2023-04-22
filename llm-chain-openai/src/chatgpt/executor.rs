@@ -95,9 +95,16 @@ impl traits::Executor for Executor {
     ) -> Result<Self::Output, Self::Error> {
         let client = self.client.clone();
         let model = self.get_model_from_step(step);
-        let input = create_chat_completion_request(&model, step.prompt(), parameters)?;
-        let res = async move { client.chat().create(input).await }.await?;
-        Ok(res.into())
+        let is_streaming = step.is_streaming();
+        let input =
+            create_chat_completion_request(&model, step.prompt(), parameters, is_streaming)?;
+        if let Some(true) = is_streaming {
+            let res = async move { client.chat().create_stream(input).await }.await?;
+            Ok(res.into())
+        } else {
+            let res = async move { client.chat().create(input).await }.await?;
+            Ok(res.into())
+        }
     }
 
     fn tokens_used(
@@ -109,10 +116,16 @@ impl traits::Executor for Executor {
         let model_s = model.to_string();
         let max_tokens = self.max_tokens_allowed(step);
         let prompt = step.prompt();
-        let completion_req = create_chat_completion_request(&model, prompt, parameters)?;
+        let is_streaming = step.is_streaming();
+        let completion_req =
+            create_chat_completion_request(&model, prompt, parameters, is_streaming)?;
         // This approach will break once we add support for non-string valued parameters.
-        let prompt_with_empty_params =
-            create_chat_completion_request(&model, prompt, &parameters.with_placeholder_values())?;
+        let prompt_with_empty_params = create_chat_completion_request(
+            &model,
+            prompt,
+            &parameters.with_placeholder_values(),
+            is_streaming,
+        )?;
 
         let num_tokens_with_empty_params =
             num_tokens_from_messages(&model_s, &prompt_with_empty_params.messages)

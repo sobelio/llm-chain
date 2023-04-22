@@ -42,14 +42,16 @@ impl<E: Executor> Chain<E> {
         if self.steps.is_empty() {
             return Err(SequentialChainError::NoSteps);
         }
-
         let mut current_params = parameters;
         let mut output: Option<E::Output> = None;
-        for step in self.steps.iter() {
+        for (i, step) in self.steps.iter().enumerate() {
             let frame = Frame::new(executor, step);
             let res = frame.format_and_execute(&current_params).await?;
-
-            current_params = current_params.with_text_from_output(&res).await;
+            let is_streaming_and_last_step =
+                step.is_streaming() == Some(true) && i == self.steps.len() - 1;
+            if !is_streaming_and_last_step {
+                current_params = current_params.with_text_from_output(&res).await;
+            }
             output = Some(res);
         }
         Ok(output.expect("No output from chain"))
