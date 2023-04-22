@@ -1,3 +1,4 @@
+use llm_chain::parameters;
 use llm_chain::traits::Executor as ExecutorTrait;
 use llm_chain::{chains::sequential::Chain, prompt};
 use llm_chain_openai::chatgpt::{Executor, Step};
@@ -24,7 +25,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let res = chain
         .run(
             // Create a Parameters object with key-value pairs for the placeholders
-            vec![("name", "Emil"), ("date", "February 30th 2023")].into(),
+            parameters!("name" => "Emil", "date" => "February 30th 2023"),
             &exec,
         )
         .await

@@ -158,3 +158,53 @@ impl From<Vec<(&str, &str)>> for Parameters {
         Parameters { map }
     }
 }
+
+/// A macro that creates a new `Parameters` instance with the provided key-value pairs.
+///
+/// This macro makes it easy to create a new `Parameters` instance without having to call the constructor functions directly. It supports different input formats for creating `Parameters` instances with different key-value pairs.
+///
+/// # Usage
+///
+/// ```
+/// # use llm_chain::parameters;
+/// parameters!(); // Creates an empty Parameters instance.
+/// ```
+///
+/// # Examples
+///
+/// ```
+/// # use llm_chain::parameters;
+/// // Create an empty Parameters instance.
+/// let params = parameters!();
+///
+/// // Create a Parameters instance with the "text" key set to "some text".
+/// let params_with_text = parameters!("some text");
+///
+/// // Create a Parameters instance with multiple key-value pairs.
+/// let params_with_multiple = parameters! {
+///     "key1" => "val1",
+///     "key2" => "val2"
+/// };
+/// ```
+///
+/// # Parameters
+///
+/// - `()`: Creates an empty `Parameters` instance.
+/// - `"some text"`: Creates a `Parameters` instance with the "text" key set to "some text".
+/// - `{"key1" => "val1", "key2" => "val2"}`: Creates a `Parameters` instance with the specified key-value pairs.
+#[macro_export]
+macro_rules! parameters {
+    () => {
+        llm_chain::Parameters::new()
+    };
+    ($text:expr) => {
+        llm_chain::Parameters::new_with_text($text)
+    };
+    ($($key:expr => $value:expr),* $(,)?) => {{
+        let mut params = llm_chain::Parameters::new();
+        $(
+            params = params.with($key, $value);
+        )*
+        params
+    }};
+}

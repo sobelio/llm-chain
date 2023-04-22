@@ -1,8 +1,8 @@
 use llm_chain::chains::sequential::Chain;
-use llm_chain::prompt;
 use llm_chain::serialization::StorableEntity;
 use llm_chain::step::Step;
 use llm_chain::traits::Executor as ExecutorTrait;
+use llm_chain::{parameters, prompt};
 use llm_chain_openai::chatgpt::Executor;
 
 #[tokio::main(flavor = "current_thread")]
@@ -21,10 +21,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Wrote chain to {}", path);
 
     let chain = Chain::<Executor>::read_file_sync(path).unwrap();
-    let res = chain
-        .run(llm_chain::Parameters::new(), &chatgpt)
-        .await
-        .unwrap();
+    let res = chain.run(parameters!(), &chatgpt).await.unwrap();
     println!("{}", res);
     Ok(())
 }

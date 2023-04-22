@@ -1,6 +1,7 @@
 use llm_chain::executor;
 use llm_chain::multitool;
 use llm_chain::output::Output;
+use llm_chain::parameters;
 use llm_chain::prompt::chat::{ChatMessage, ChatPrompt, ChatRole};
 use llm_chain::step::Step;
 use llm_chain::tools::tools::{BashTool, BashToolError, ExitTool, ExitToolError};
@@ -39,7 +40,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_message(ChatMessage::from_template(ChatRole::User, template))
         .build()
         .unwrap();
-    let params = Parameters::new().with("task", task);
+    let params = parameters!("task" => task);
     for _ in 1..5 {
         let res = Step::for_prompt(chat.clone().into())
             .run(&params, &exec)
