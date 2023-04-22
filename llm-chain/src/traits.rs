@@ -21,44 +21,8 @@ use crate::{
 use async_trait::async_trait;
 use serde::{de::DeserializeOwned, Serialize};
 
-<<<<<<< HEAD
 /// A no-op. The `StepExt` trait previously extended the functionality of the `Step` trait, providing convenience
 /// methods for working with steps. Now it does nothing.
-=======
-/// Marker trait for errors in `Step` method. It is needed so the concrete Error can have a derived From<StepFormatError>
-pub trait StepError {}
-/// The `Step` trait represents a single step in a chain. It takes a set of parameters and returns a
-/// formatted prompt that can be used by an executor.
-pub trait Step {
-    /// The output type produced by this step.
-    type Output: Send;
-    type Error: Send + Debug + Error + StepError;
-
-    /// Formats the step given a set of parameters, returning a value that can be used by an
-    /// executor.
-    ///
-    /// # Parameters
-    ///
-    /// * `parameters`: The parameters used to format the step.
-    ///
-    /// # Returns
-    ///
-    /// The formatted output of this step or an error if the step could not be formatted.
-    fn format(&self, parameters: &Parameters) -> Result<Self::Output, Self::Error>;
-
-    /// Returns if the Step is a stream.
-    ///
-    /// # Returns
-    ///
-    /// Optional bool because some LLMs or their client libraries may not offer or expose streaming outputs.
-    fn stream(&self) -> Option<bool>;
-}
-
-impl<T: ?Sized> StepExt for T where T: Step {}
-
-/// The `StepExt` trait extends the functionality of the `Step` trait, providing convenience
-/// methods for working with steps.
->>>>>>> d0359d5 (Updates:)
 #[async_trait]
 #[deprecated(
     since = "0.7.0",

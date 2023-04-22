@@ -1,10 +1,10 @@
-use llm_chain::{chains::sequential::Chain, output::Output, prompt};
-use llm_chain_openai::chatgpt::{Executor, Step};
+use llm_chain::{chains::sequential::Chain, executor, output::Output, prompt};
+use llm_chain_openai::chatgpt::Step;
 
 #[tokio::main(flavor = "current_thread")]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create a new ChatGPT executor with the default settings
-    let exec = Executor::new_default();
+    let exec = executor!()?;
 
     // Create a chain of steps with two prompts
     // Second step is streaming
@@ -35,4 +35,5 @@ async fn main() {
     println!("{:?}", res.primary_textual_output().await);
 
     // Call `res.as_stream()` to access the Stream without polling.
+    Ok(())
 }
