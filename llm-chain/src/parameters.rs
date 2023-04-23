@@ -1,3 +1,6 @@
+//! Parameters are used to pass data steps of the chain. This module implements them.
+//!
+//! Parameters are used to pass data between steps of the chain. They are used to fill in the prompt template, and are also filled in by the output of the previous step. Parameters have a special key, `text`, which is used as a default key for simple use cases.
 use crate::output::Output;
 use dynfmt::{Argument, FormatArgs};
 use std::collections::HashMap;

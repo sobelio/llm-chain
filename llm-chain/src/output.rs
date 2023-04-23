@@ -1,3 +1,6 @@
+//! Module modeling the outputs from LLMs
+//!
+//! The `output` module contains the `Output` trait, which represents the output of a Large Language Model (LLM). It provides methods for retrieving and combining textual outputs from different models.
 use async_trait::async_trait;
 use futures::stream::StreamExt;
 

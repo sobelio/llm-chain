@@ -1,3 +1,6 @@
+//! The vector store tool accessses information from vector stores.
+//!
+//! Use it to give your LLM memory or access to semantically searchable information.
 use std::marker::PhantomData;
 
 use async_trait::async_trait;

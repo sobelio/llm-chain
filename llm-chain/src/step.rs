@@ -1,3 +1,6 @@
+//! Steps are indivudaul LLM invocations in a chain. They are a combination of a prompt and a configuration.
+//!
+//! Steps are used to set the per-invocation settings for a prompt. Useful when you want to change the settings for a specific prompt in a chain.
 use crate::{chains::sequential, prompt, traits, Parameters};
 use derive_builder;
 use serde::de::{Deserialize, Deserializer, MapAccess};
