@@ -1,3 +1,5 @@
+//! Utilities for working with executors
+//!
 /// A macro that creates a new executor for a specified model.
 ///
 /// This macro makes it easy to create a new executor for a specific model without having to

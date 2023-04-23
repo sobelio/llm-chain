@@ -1,3 +1,14 @@
+//! Functions for parsing the output of LLMs, including YAML and Markdown.
+//!
+//! This module provides a set of functions that allow you to parse and extract useful information from the output of Large Language Models (LLMs) in YAML and Markdown formats. These functions can be used to transform the LLM output into a more structured and usable format, enabling seamless integration with your applications.
+//!
+//! Key features include:
+//! - Parsing YAML and Markdown content produced by LLMs
+//! - Handling common edge cases and being lenient with LLM outputs
+//! - Extracting and deserializing YAML objects from text
+//!
+//! With these functions, you can easily work with the outputs of LLMs, simplifying the process of integrating LLMs into your applications and workflows.
+
 use markdown::{
     mdast::{Code, Node},
     to_mdast, ParseOptions,
@@ -6,7 +17,7 @@ use serde::de::DeserializeOwned;
 use serde_yaml::Value;
 use thiserror::Error;
 
-// The main error type for extraction.
+/// Errors occuring when parsing
 #[derive(Error, Debug)]
 #[error(transparent)]
 pub struct ExtractionError(#[from] ExtractionErrorImpl);

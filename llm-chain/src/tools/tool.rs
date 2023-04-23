@@ -3,7 +3,7 @@ use super::description::ToolDescription;
 use async_trait::async_trait;
 use serde::{de::DeserializeOwned, Serialize};
 
-/// Marker trait for Tool errors. It is needed so the concrete Errors can have a derived From<ToolError>
+/// Marker trait for Tool errors. It is needed so the concrete Errors can have a derived `From<ToolError>`
 pub trait ToolError {}
 
 /// The `Tool` trait defines an interface for tools that can be added to a `ToolCollection`.

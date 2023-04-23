@@ -1,3 +1,6 @@
+//! TextSplitters break text small enough parts to be fed to the model.
+//!
+//! TextSplitters are responsible for breaking text into small enough parts to be fed to the model. This means that they work with the token stream of the model.
 use crate::tokens::{Tokenizer, TokenizerError};
 use std::cmp::max;
 

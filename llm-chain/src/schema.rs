@@ -1,3 +1,6 @@
+//! Schema for Documents that can be stored in vector stores.
+//!
+//! This schema is used to store documents in vector stores. It is used to store the document's content and metadata.
 #[derive(Debug)]
 pub struct Document<M = EmptyMetadata> {
     pub page_content: String,

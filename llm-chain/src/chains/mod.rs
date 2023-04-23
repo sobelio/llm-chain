@@ -1,3 +1,5 @@
+//! Chains are multi-step modes of execution for LLMs such as Sequential or MapReduce.
+//!
 //! This module contains submodules for various types of chains. Chains are powerful tools that allow you to connect multiple steps together in a sequence. They take a set of parameters and an executor, perform the steps, and return the result.
 //!
 //! Currently, we support two types of chains that cater to different use cases. But worry not! We will be adding more in the future

@@ -1,3 +1,6 @@
+//! Opinionated text summarization functionality
+//!
+//! This module contains the `TextSummarizer` struct, that provides an easy way to summarize text.
 use crate::{
     chains::map_reduce::{self, MapReduceChainError},
     output::Output,

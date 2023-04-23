@@ -39,7 +39,7 @@ pub enum ExecutorCreationError {
     FieldRequiredError(String),
 }
 
-/// Marker trait for errors in `Executor` method. It is needed so the concrete Errors can have a derived From<ExecutorError>
+/// Marker trait for errors in `Executor` method. It is needed so the concrete Errors can have a derived `From<ExecutorError>`
 pub trait ExecutorError {}
 
 pub trait Input {}
