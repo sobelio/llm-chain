@@ -1,4 +1,4 @@
-use llm_chain::{executor, parameters, prompt, Parameters};
+use llm_chain::{executor, parameters, prompt};
 
 // Declare an async main function
 #[tokio::main(flavor = "current_thread")]
