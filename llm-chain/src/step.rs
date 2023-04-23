@@ -13,6 +13,7 @@ where
 {
     pub(crate) prompt: prompt::Prompt,
     pub(crate) options: Option<Executor::PerInvocationOptions>,
+    pub(crate) is_streaming: Option<bool>,
 }
 
 impl<Executor> Step<Executor>
@@ -23,6 +24,14 @@ where
         Self {
             prompt,
             options: None,
+            is_streaming: None,
+        }
+    }
+    pub fn for_prompt_with_streaming(prompt: prompt::Prompt) -> Self {
+        Self {
+            prompt,
+            options: None,
+            is_streaming: Some(true),
         }
     }
     pub fn for_prompt_and_options(
@@ -32,6 +41,7 @@ where
         Self {
             prompt,
             options: Some(options),
+            is_streaming: None,
         }
     }
     pub fn prompt(&self) -> &prompt::Prompt {
@@ -39,6 +49,9 @@ where
     }
     pub fn options(&self) -> Option<&Executor::PerInvocationOptions> {
         self.options.as_ref()
+    }
+    pub fn is_streaming(&self) -> Option<bool> {
+        self.is_streaming
     }
 
     /// Converts this step into a sequential chain with a single step.
@@ -97,6 +110,7 @@ impl<'de, E: traits::Executor> serde::de::Visitor<'de> for StepVisitor<E> {
     {
         let mut prompt = None;
         let mut options = None;
+        let mut is_streaming = None;
         while let Some(key) = map.next_key()? {
             match key {
                 "prompt" => {
@@ -111,12 +125,22 @@ impl<'de, E: traits::Executor> serde::de::Visitor<'de> for StepVisitor<E> {
                     }
                     options = Some(map.next_value()?);
                 }
+                "is_streaming" => {
+                    if is_streaming.is_some() {
+                        return Err(serde::de::Error::duplicate_field("is_streaming"));
+                    }
+                    is_streaming = Some(map.next_value()?);
+                }
                 _ => return Err(serde::de::Error::unknown_field(key, &["prompt", "options"])),
             }
         }
         let prompt = prompt.ok_or_else(|| serde::de::Error::missing_field("prompt"))?;
         let options = options.ok_or_else(|| serde::de::Error::missing_field("options"))?;
-        Ok(Step { prompt, options })
+        Ok(Step {
+            prompt,
+            options,
+            is_streaming,
+        })
     }
 }
 

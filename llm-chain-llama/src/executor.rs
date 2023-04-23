@@ -184,6 +184,7 @@ impl ExecutorTrait for Executor {
         let invocation = config.to_invocation(&formatted_prompts);
         Ok(self.run_model(invocation))
     }
+
     fn tokens_used(
         &self,
         step: &Step<Self>,
