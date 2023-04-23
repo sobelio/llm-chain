@@ -19,13 +19,13 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 18
-          cache: npm
-          cache-dependency-path: website/package-lock.json
+          cache: yarn
+          cache-dependency-path: website/yarn.lock
 
       - name: Install dependencies
-        run: npm install --frozen-lockfile
+        run: yarn install --production
       - name: Build website
-        run: npm run build
+        run: yarn build
 
       # Popular action to deploy to GitHub Pages:
       # Docs: https://github.com/peaceiris/actions-gh-pages#%EF%B8%8F-docusaurus
@@ -42,3 +42,13 @@ jobs:
           # You can swap them out with your own user credentials.
           user_name: github-actions[bot]
           user_email: 41898282+github-actions[bot]@users.noreply.github.com
+
+      - uses: enhancedocs/enhancedocs-github-action@0.1.0
+        with:
+          api-key: ${{ secrets.ENHANCEDOCS_API_KEY }}
+      - name: Build EnhanceDocs
+        working-directory: website
+        run: enhancedocs build docs blog ../docs ../llm-chain/src ../llm-chain ../llm-chain-llama ../llm-chain-openai
+      - name: Push Docs
+        working-directory: website
+        run: enhancedocs push 64456d414958ccf11d241c33
