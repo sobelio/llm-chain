@@ -14,25 +14,33 @@
 //! println!("{}", simple_text);
 //! ```
 pub mod chat;
-mod templates;
+mod string_template;
 
+mod conversation;
 pub mod text;
 mod traits;
+
+pub use conversation::Conversation;
 
 use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
-pub use templates::{PromptTemplate, PromptTemplateError};
+
+/// XXX: Check this?
+pub use string_template::{StringTemplate, StringTemplateError};
 
 use crate::{step::Step, traits::Executor, Parameters};
 
-use self::{chat::ChatPrompt, traits::Prompt as PromptTrait};
+use self::{
+    chat::{ChatPrompt, ChatRole},
+    traits::Prompt as PromptTrait,
+};
 
 /// Creates a `TextPrompt` or a `ChatPrompt` based on the number of arguments provided.
 ///
 /// If there is only one argument, it creates a `TextPrompt` with the provided template.
 /// If there are two arguments, it creates a `ChatPrompt` with the first message as the system
-/// message and the second message as the user message.
+/// message and the second message as the user message. You may add a "conversation: your_conversation" to include a conversation.
 /// If there are more than two arguments, a compile-time error is produced.
 ///
 /// # Example
@@ -64,8 +72,29 @@ macro_rules! prompt {
                 .unwrap(), // This unwrap is safe because we know that the builder will always succeed
         )
     };
+    ($user_arg:expr, conversation: $conversation:expr $(,)?) => {
+        {
+            let mut chat_prompt = $crate::prompt::chat::ChatPrompt::builder()
+                .conversation($conversation)
+                .user($user_arg)
+                .build()
+                .unwrap(); // This unwrap is safe because we know that the builder will always succeed
+            $crate::prompt::Prompt::new_from_chat_prompt(chat_prompt)
+        }
+    };
+    ($system_arg:expr, $user_arg:expr, conversation: $conversation:expr $(,)?) => {
+        {
+            let mut chat_prompt = $crate::prompt::chat::ChatPrompt::builder()
+                .conversation($conversation)
+                .system($system_arg)
+                .user($user_arg)
+                .build()
+                .unwrap(); // This unwrap is safe because we know that the builder will always succeed
+            $crate::prompt::Prompt::new_from_chat_prompt(chat_prompt)
+        }
+    };
     ($($extra_tokens:expr),+ $(,)?) => {
-        compile_error!("The 'prompt!' macro takes at most 2 arguments.")
+        compile_error!("The 'prompt!' macro takes at most 3 arguments.")
     };
 }
 
@@ -84,25 +113,25 @@ impl Prompt {
         self.0.as_chat_prompt()
     }
 
-    pub fn as_text_prompt(&self) -> Option<&PromptTemplate> {
+    pub fn as_text_prompt(&self) -> Option<&StringTemplate> {
         self.0.as_text_prompt()
     }
 
-    pub fn as_text_prompt_or_convert(&self) -> PromptTemplate {
+    pub fn as_text_prompt_or_convert(&self) -> StringTemplate {
         if let Some(template) = self.as_text_prompt() {
             template.clone()
         } else {
             // We need to interperse the chat messages with newlines and also include the Role in each line
             let mut templates = Vec::with_capacity(self.as_chat_prompt().len() * 3);
             for message in self.as_chat_prompt() {
-                templates.push(PromptTemplate::static_string(format!(
+                templates.push(StringTemplate::static_string(format!(
                     "{}: ",
                     message.role()
                 )));
                 templates.push(message.content());
-                templates.push(PromptTemplate::static_string("\n"));
+                templates.push(StringTemplate::static_string("\n"));
             }
-            PromptTemplate::combine(templates)
+            StringTemplate::combine(templates)
         }
     }
 
@@ -140,7 +169,7 @@ impl traits::Prompt for PromptImpl {
         }
     }
 
-    fn as_text_prompt(&self) -> Option<&PromptTemplate> {
+    fn as_text_prompt(&self) -> Option<&StringTemplate> {
         match &self {
             PromptImpl::TextPrompt(text_prompt) => text_prompt.as_text_prompt(),
             PromptImpl::ChatPrompt(chat_prompt) => chat_prompt.as_text_prompt(),
@@ -157,5 +186,63 @@ impl From<ChatPrompt> for Prompt {
 impl From<text::TextPrompt> for Prompt {
     fn from(text_prompt: text::TextPrompt) -> Self {
         Self(PromptImpl::TextPrompt(text_prompt))
+    }
+}
+
+pub struct ActualPrompt {
+    prompt: Prompt,
+    parameters: Parameters,
+}
+
+impl ActualPrompt {
+    pub fn for_prompt_and_parameters(prompt: Prompt, parameters: Parameters) -> Self {
+        Self { prompt, parameters }
+    }
+    pub fn for_prompt(prompt: Prompt) -> Self {
+        Self {
+            prompt,
+            parameters: Parameters::new(),
+        }
+    }
+    // -> Self::MyActualPrompt
+    pub fn as_chat_prompt(&self) -> Result<Vec<ActualChatMessage>, StringTemplateError> {
+        self.prompt
+            .as_chat_prompt()
+            .into_iter()
+            .map(|c| -> Result<ActualChatMessage, StringTemplateError> {
+                c.content()
+                    .format(&self.parameters)
+                    .map(|s| ActualChatMessage::new(c.role(), s))
+            })
+            .collect()
+    }
+    pub fn as_text_prompt(&self) -> Result<Option<String>, StringTemplateError> {
+        self.prompt
+            .as_text_prompt()
+            .map(|text_prompt| -> Result<String, StringTemplateError> {
+                text_prompt.format(&self.parameters)
+            })
+            .transpose()
+    }
+}
+
+pub struct ActualChatMessage {
+    role: ChatRole,
+    content: String,
+}
+
+impl ActualChatMessage {
+    pub fn new(role: ChatRole, content: String) -> Self {
+        Self { role, content }
+    }
+}
+
+pub struct ActualTextPrompt {
+    text: String,
+}
+
+impl ActualTextPrompt {
+    pub fn new(text: String) -> Self {
+        Self { text }
     }
 }

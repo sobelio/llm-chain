@@ -7,12 +7,12 @@ use crate::LLamaTextSplitter;
 use crate::output::Output;
 use async_trait::async_trait;
 
+use llm_chain::prompt::StringTemplateError;
 use llm_chain::step::{Step, StepError};
 use llm_chain::tokens::{PromptTokensError, TokenCount};
 use llm_chain::tokens::{Tokenizer, TokenizerError};
 use llm_chain::traits::{Executor as ExecutorTrait, ExecutorCreationError, ExecutorError};
 use llm_chain::Parameters;
-use llm_chain::PromptTemplateError;
 use llm_chain_llama_sys::llama_context_params;
 /// Executor is responsible for running the LLAMA model and managing its context.
 pub struct Executor {
@@ -130,7 +130,7 @@ pub enum Error {
     #[error("unable to format step")]
     StepError(#[from] StepError),
     #[error("unable to format prompt: {0}")]
-    PromptTemplateError(#[from] PromptTemplateError),
+    PromptTemplateError(#[from] StringTemplateError),
 }
 
 impl ExecutorError for Error {}

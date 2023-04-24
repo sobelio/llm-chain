@@ -19,7 +19,7 @@ pub enum PromptTokensError {
     UnableToCompute,
     /// Indicates that the prompt tokens could not be computed because formatting the prompt failed.
     #[error("Formatting prompt failed: {0}")]
-    PromptFormatFailed(#[from] crate::prompt::PromptTemplateError),
+    PromptFormatFailed(#[from] crate::prompt::StringTemplateError),
     #[error("Tokenizer error: {0}")]
     TokenizerError(#[from] crate::tokens::TokenizerError),
 }

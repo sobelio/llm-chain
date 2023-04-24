@@ -2,7 +2,8 @@ use async_openai::types::{ChatCompletionRequestMessage, CreateChatCompletionRequ
 use llm_chain::{
     prompt::chat::{self, ChatRole},
     prompt::Prompt,
-    Parameters, PromptTemplateError,
+    prompt::StringTemplateError,
+    Parameters,
 };
 
 use super::Model;
@@ -19,7 +20,7 @@ fn convert_role(role: chat::ChatRole) -> Role {
 fn format_chat_message(
     message: chat::ChatMessage,
     parameters: &Parameters,
-) -> Result<ChatCompletionRequestMessage, PromptTemplateError> {
+) -> Result<ChatCompletionRequestMessage, StringTemplateError> {
     let role = convert_role(message.role());
     let content = message.content().format(parameters)?;
     Ok(ChatCompletionRequestMessage {
@@ -32,7 +33,7 @@ fn format_chat_message(
 fn format_chat_messages(
     messages: Vec<chat::ChatMessage>,
     parameters: &Parameters,
-) -> Result<Vec<ChatCompletionRequestMessage>, PromptTemplateError> {
+) -> Result<Vec<ChatCompletionRequestMessage>, StringTemplateError> {
     messages
         .into_iter()
         .map(|m| format_chat_message(m, parameters))
@@ -44,7 +45,7 @@ pub fn create_chat_completion_request(
     prompt: &Prompt,
     parameters: &Parameters,
     is_streaming: Option<bool>,
-) -> Result<CreateChatCompletionRequest, PromptTemplateError> {
+) -> Result<CreateChatCompletionRequest, StringTemplateError> {
     let messages = format_chat_messages(prompt.as_chat_prompt(), parameters)?;
     Ok(CreateChatCompletionRequest {
         model: model.to_string(),

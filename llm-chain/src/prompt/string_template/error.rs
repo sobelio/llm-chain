@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 #[derive(Error, Debug, Clone)]
-pub enum PromptTemplateErrorImpl {
+pub enum StringTemplateErrorImpl {
     #[error("Tera error: {0}")]
     Tera(String),
     #[error("Unable to load file: {0}")]
@@ -10,15 +10,15 @@ pub enum PromptTemplateErrorImpl {
     LegacyTemplateError(String),
 }
 
-impl From<std::io::Error> for PromptTemplateErrorImpl {
+impl From<std::io::Error> for StringTemplateErrorImpl {
     fn from(error: std::io::Error) -> Self {
-        PromptTemplateErrorImpl::UnableToLoadFile(error.to_string())
+        StringTemplateErrorImpl::UnableToLoadFile(error.to_string())
     }
 }
 
-impl From<tera::Error> for PromptTemplateErrorImpl {
+impl From<tera::Error> for StringTemplateErrorImpl {
     fn from(error: tera::Error) -> Self {
-        PromptTemplateErrorImpl::Tera(error.to_string())
+        StringTemplateErrorImpl::Tera(error.to_string())
     }
 }
 
@@ -27,4 +27,4 @@ impl From<tera::Error> for PromptTemplateErrorImpl {
 /// An error that can occur when formatting a prompt template.
 /// This is a wrapper around the underlying error type, as
 /// the underlying error type doesn't have a stable API.
-pub struct PromptTemplateError(#[from] PromptTemplateErrorImpl);
+pub struct StringTemplateError(#[from] StringTemplateErrorImpl);

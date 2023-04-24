@@ -9,23 +9,6 @@ fn apply_formatting(template: &str, parameters: &Parameters) -> Result<String, S
         .map(|s| s.to_string())
 }
 
-/// A template for a prompt. This is a string that can be formatted with a set of parameters.
-///
-/// # Examples
-/// **Using the default key**
-/// ```
-/// use llm_chain::{PromptTemplate, Parameters};
-/// let template: PromptTemplate = "Hello {}!".into();
-/// let parameters: Parameters = "World".into();
-/// assert_eq!(template.format(&parameters).unwrap(), "Hello World!");
-/// ```
-/// **Using a custom key**
-/// ```
-/// use llm_chain::{PromptTemplate, Parameters};
-/// let template: PromptTemplate = "Hello {name}!".into();
-/// let parameters: Parameters = vec![("name", "World")].into();
-/// assert_eq!(template.format(&parameters).unwrap(), "Hello World!");
-/// ```
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PromptTemplate {
     template: String,

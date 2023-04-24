@@ -4,13 +4,13 @@ use super::prompt::create_chat_completion_request;
 use super::Model;
 use super::OpenAITextSplitter;
 use async_openai::error::OpenAIError;
+use llm_chain::prompt::StringTemplateError;
 use llm_chain::step::{Step, StepError};
 use llm_chain::tokens::PromptTokensError;
 use llm_chain::tokens::{Tokenizer, TokenizerError};
 use llm_chain::traits;
 use llm_chain::traits::{ExecutorCreationError, ExecutorError};
 use llm_chain::Parameters;
-use llm_chain::PromptTemplateError;
 
 use super::options::PerExecutor;
 use async_trait::async_trait;
@@ -55,7 +55,7 @@ impl Executor {
 pub enum Error {
     OpenAIError(#[from] OpenAIError),
     StepError(#[from] StepError),
-    PromptTemplateError(#[from] PromptTemplateError),
+    PromptTemplateError(#[from] StringTemplateError),
 }
 
 impl ExecutorError for Error {}

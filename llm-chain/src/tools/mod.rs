@@ -12,7 +12,7 @@
 //!
 //! ```rust
 //! use llm_chain::tools::{ToolCollection, tools::BashTool};
-//! use llm_chain::prompt::PromptTemplate;
+//! use llm_chain::prompt::StringTemplate;
 //! use std::boxed::Box;
 //!
 //! // Create a ToolCollection with a tool.
@@ -20,8 +20,8 @@
 //! tc.add_tool(BashTool::new());
 //!
 //! // Create a prompt indicating the LLM should use the provided tools.
-//! let prompt = PromptTemplate::static_string("Find information about Rust programming language.");
-//! let tool_prompt = PromptTemplate::combine(vec![tc.to_prompt_template().unwrap(), prompt]);
+//! let prompt = StringTemplate::static_string("Find information about Rust programming language.");
+//! let tool_prompt = StringTemplate::combine(vec![tc.to_prompt_template().unwrap(), prompt]);
 //! ```
 //!
 //! ## Modules

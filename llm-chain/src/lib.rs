@@ -44,6 +44,3 @@ pub mod summarization;
 // Re-exports for convenient usage
 pub use parameters::Parameters;
 pub use text_splitter::{NaiveWhitespaceSplitter, TextSplitter};
-
-#[deprecated(note = "Use llm_chain::prompt! instead")]
-pub use prompt::{PromptTemplate, PromptTemplateError};

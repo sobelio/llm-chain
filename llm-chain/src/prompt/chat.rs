@@ -1,5 +1,5 @@
+use super::string_template::StringTemplate;
 use super::{conversation::Conversation, traits::Prompt};
-use crate::PromptTemplate;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -26,7 +26,7 @@ impl fmt::Display for ChatRole {
 #[builder(setter(into))]
 pub struct ChatMessage {
     role: ChatRole,
-    content: PromptTemplate,
+    content: StringTemplate,
 }
 
 impl ChatMessage {
@@ -34,13 +34,13 @@ impl ChatMessage {
     pub fn new<S: Into<String>>(role: ChatRole, content: S) -> Self {
         Self {
             role,
-            content: PromptTemplate::tera(content.into()),
+            content: StringTemplate::tera(content.into()),
         }
     }
     pub fn legacy<S: Into<String>>(role: ChatRole, content: S) -> Self {
         Self {
             role,
-            content: PromptTemplate::legacy(content.into()),
+            content: StringTemplate::legacy(content.into()),
         }
     }
 
@@ -48,18 +48,18 @@ impl ChatMessage {
     pub fn static_string<S: Into<String>>(role: ChatRole, content: S) -> Self {
         Self {
             role,
-            content: PromptTemplate::static_string(content),
+            content: StringTemplate::static_string(content),
         }
     }
 
     /// Creates a new `ChatMessage` from a role and a prompt template.
-    pub fn from_template(role: ChatRole, content: PromptTemplate) -> Self {
+    pub fn from_template(role: ChatRole, content: StringTemplate) -> Self {
         Self { role, content }
     }
     pub fn role(&self) -> ChatRole {
         self.role.clone()
     }
-    pub fn content(&self) -> PromptTemplate {
+    pub fn content(&self) -> StringTemplate {
         self.content.clone()
     }
 }
@@ -86,7 +86,7 @@ impl Prompt for ChatPrompt {
         self.messages.clone()
     }
 
-    fn as_text_prompt(&self) -> Option<&PromptTemplate> {
+    fn as_text_prompt(&self) -> Option<&StringTemplate> {
         None
     }
 }
@@ -130,7 +130,7 @@ impl ChatPromptBuilder {
     }
 
     /// Adds a conversation to the start of the prompt. Useful for adding a conversation history.
-    /// 
+    ///
     /// # Parameters
     /// * `conversation` - The conversation to add to the prompt
     pub fn conversation(mut self, conversation: Conversation) -> Self {

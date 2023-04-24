@@ -4,15 +4,15 @@
 use serde::{Deserialize, Serialize};
 
 use super::chat::{ChatMessage, ChatRole};
+use super::string_template::StringTemplate;
 use super::traits::Prompt;
-use crate::PromptTemplate;
 use std::fmt;
 
 /// Represents a text-only prompt, without implying the existence of a chat. This is useful for non-chat models.
 /// As an added benefit, `TextPrompt` can be used in chat models as well.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TextPrompt {
-    content: PromptTemplate,
+    content: StringTemplate,
 }
 
 impl TextPrompt {
@@ -32,13 +32,13 @@ impl TextPrompt {
     #[cfg(feature = "tera")]
     pub fn new<S: Into<String>>(content: S) -> Self {
         Self {
-            content: PromptTemplate::tera(content.into()),
+            content: StringTemplate::tera(content.into()),
         }
     }
     #[cfg(not(feature = "tera"))]
     pub fn new<S: Into<String>>(content: S) -> Self {
         Self {
-            content: PromptTemplate::legacy(content.into()),
+            content: StringTemplate::legacy(content.into()),
         }
     }
 }
@@ -54,7 +54,7 @@ impl Prompt for TextPrompt {
     }
 
     /// Returns a reference to the `PromptTemplate` for the `TextPrompt`.
-    fn as_text_prompt(&self) -> Option<&PromptTemplate> {
+    fn as_text_prompt(&self) -> Option<&StringTemplate> {
         Some(&self.content)
     }
 }
