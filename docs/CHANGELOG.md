@@ -8,6 +8,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+## [0.7.0] 2023-04-24
+
+### Added
+- added support for streaming responses
+- executor package for simplifying creation of executors
+- Helper methods for running models without having to creat chains
+- Helper methods for running prompts without creating steps
+### Changed
+- Steps are now part of the core `llm-chain` package
+
 ## [0.6.0] 2023-04-17
 
 ### Added

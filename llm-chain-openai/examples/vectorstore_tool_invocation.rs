@@ -13,8 +13,8 @@ use llm_chain::tools::{Tool, ToolCollection, ToolDescription, ToolError};
 use llm_chain::traits::VectorStore;
 use llm_chain::vectorstores::qdrant::{Qdrant, QdrantError};
 use llm_chain::{multitool, parameters, PromptTemplate};
-use llm_chain::{traits::StepExt, Parameters};
-use llm_chain_openai::chatgpt::{Executor, Step};
+
+use llm_chain_openai::chatgpt::{Step};
 use llm_chain_openai::embeddings::{Embeddings, OpenAIEmbeddingsError};
 use qdrant_client::prelude::{QdrantClient, QdrantClientConfig};
 use qdrant_client::qdrant::{CreateCollection, Distance, VectorParams, VectorsConfig};

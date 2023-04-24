@@ -13,8 +13,8 @@ use llm_chain::tools::tools::{
     ExitToolOutput,
 };
 use llm_chain::{multitool, PromptTemplate};
-use llm_chain::{traits::StepExt, Parameters};
-use llm_chain_openai::chatgpt::{Executor, Step};
+
+use llm_chain_openai::chatgpt::{Step};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
