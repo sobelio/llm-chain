@@ -50,7 +50,7 @@ impl traits::Options for PerInvocation {}
 /// Currently, it only supports specifying an `api_key`.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PerExecutor {
-    pub(crate) api_key: Option<String>,
+    pub api_key: Option<String>,
 }
 
 impl traits::Options for PerExecutor {}
