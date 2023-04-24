@@ -1128,9 +1128,9 @@ dependencies = [
 
 [[package]]
 name = "markdown"
-version = "1.0.0-alpha.7"
+version = "1.0.0-alpha.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "98de49c677e95e00eaa74c42a0b07ea55e1e0b1ebca5b2cbc7657f288cd714eb"
+checksum = "90dc06f03f6231d979d6bc10edfd12f407564910d74438eb163d6f6f1f0ee582"
 dependencies = [
  "unicode-id",
 ]
