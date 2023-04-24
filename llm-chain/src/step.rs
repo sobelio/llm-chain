@@ -1,6 +1,7 @@
 //! Steps are indivudaul LLM invocations in a chain. They are a combination of a prompt and a configuration.
 //!
 //! Steps are used to set the per-invocation settings for a prompt. Useful when you want to change the settings for a specific prompt in a chain.
+use crate::prompt::Conversation;
 use crate::{chains::sequential, prompt, traits, Parameters};
 use derive_builder;
 use serde::de::{Deserialize, Deserializer, MapAccess};
@@ -14,6 +15,7 @@ where
     pub(crate) prompt: prompt::Prompt,
     pub(crate) options: Option<Executor::PerInvocationOptions>,
     pub(crate) is_streaming: Option<bool>,
+    pub(crate) conversation: Option<Conversation>,
 }
 
 impl<Executor> Step<Executor>
@@ -25,6 +27,15 @@ where
             prompt,
             options: None,
             is_streaming: None,
+            conversation: None,
+        }
+    }
+    pub fn for_prompt_and_conversation(prompt: prompt::Prompt, conversation: Conversation) -> Self {
+        Self {
+            prompt,
+            options: None,
+            is_streaming: None,
+            conversation: Some(conversation),
         }
     }
     pub fn for_prompt_with_streaming(prompt: prompt::Prompt) -> Self {
@@ -32,6 +43,7 @@ where
             prompt,
             options: None,
             is_streaming: Some(true),
+            conversation: None,
         }
     }
     pub fn for_prompt_and_options(
@@ -42,6 +54,7 @@ where
             prompt,
             options: Some(options),
             is_streaming: None,
+            conversation: None,
         }
     }
     pub fn prompt(&self) -> &prompt::Prompt {
@@ -140,6 +153,7 @@ impl<'de, E: traits::Executor> serde::de::Visitor<'de> for StepVisitor<E> {
             prompt,
             options,
             is_streaming,
+            conversation: None,
         })
     }
 }

@@ -37,5 +37,5 @@ pub mod multitool;
 mod tool;
 pub mod tools;
 
-pub use collection::{ToolCollection, ToolUseError};
+pub use collection::{ToolCollection, ToolInvocationInput, ToolUseError};
 pub use tool::{Tool, ToolError};

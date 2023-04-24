@@ -1,4 +1,4 @@
-use super::traits::Prompt;
+use super::{conversation::Conversation, traits::Prompt};
 use crate::PromptTemplate;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
@@ -31,18 +31,24 @@ pub struct ChatMessage {
 
 impl ChatMessage {
     /// Creates a new `ChatMessage` from a role and a string.
-    #[cfg(feature = "tera")]
     pub fn new<S: Into<String>>(role: ChatRole, content: S) -> Self {
         Self {
             role,
             content: PromptTemplate::tera(content.into()),
         }
     }
-    #[cfg(not(feature = "tera"))]
-    pub fn new<S: Into<String>>(role: ChatRole, content: S) -> Self {
+    pub fn legacy<S: Into<String>>(role: ChatRole, content: S) -> Self {
         Self {
             role,
             content: PromptTemplate::legacy(content.into()),
+        }
+    }
+
+    /// Creates a chat-message prompt from a static string useful for untrusted inputs
+    pub fn static_string<S: Into<String>>(role: ChatRole, content: S) -> Self {
+        Self {
+            role,
+            content: PromptTemplate::static_string(content),
         }
     }
 
@@ -121,5 +127,21 @@ impl ChatPromptBuilder {
     /// Adds a system message to the prompt
     pub fn system<S: Into<String>>(self, message: S) -> Self {
         self.add_message(ChatMessage::new(ChatRole::System, message))
+    }
+
+    /// Adds a conversation to the start of the prompt. Useful for adding a conversation history.
+    /// 
+    /// # Parameters
+    /// * `conversation` - The conversation to add to the prompt
+    pub fn conversation(mut self, conversation: Conversation) -> Self {
+        // Get the messages from the input conversation
+        let mut convo_messages = conversation.get_chat_messages();
+
+        // Append the current messages to the end of the input conversation's messages
+        convo_messages.extend(self.messages.unwrap_or_default().iter().cloned());
+
+        // Replace the current conversation's messages with the updated list
+        self.messages = Some(convo_messages);
+        self
     }
 }

@@ -89,7 +89,7 @@ where
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct ToolInvocationInput {
+pub struct ToolInvocationInput {
     command: String,
     input: serde_yaml::Value,
 }
