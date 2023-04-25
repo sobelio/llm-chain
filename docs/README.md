@@ -12,11 +12,11 @@
 To help you get started, here is an example demonstrating how to use `llm-chain`. You can find more examples in the [examples folder](/llm-chain-openai/examples) in the repository.
 
 ```rust
-let exec = Executor::new_default();
-let res = Step::for_prompt(prompt!(
+let exec = executor!()?;
+let res = prompt!(
     "You are a robot assistant for making personalized greetings",
     "Make a personalized greeting for Joe"
-))
+)
 .run(&Parameters::new(), &exec)
 .await?;
 println!("{}", res);
