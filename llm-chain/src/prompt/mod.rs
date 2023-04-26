@@ -38,8 +38,8 @@ macro_rules! prompt {
     ($system_arg:expr, $user_arg:expr $(,)?) => {
         $crate::prompt::Data::Chat(
             $crate::prompt::ChatMessageCollection::<$crate::prompt::StringTemplate>::new()
-                .with_system($crate::prompt::StringTemplate::tera($system_arg))
-                .with_user($crate::prompt::StringTemplate::tera($user_arg)),
+                .with_system_template($system_arg)
+                .with_user_template($user_arg),
         )
     };
     ($($extra_tokens:expr),+ $(,)?) => {

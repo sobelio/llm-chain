@@ -159,7 +159,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ))
         .with_user(StringTemplate::combine(vec![
             tool_collection.to_prompt_template().unwrap(),
-            StringTemplate::legacy("Please perform the following task: {{task}}."),
+            StringTemplate::tera("Please perform the following task: {{task}}."),
         ]));
 
     let result = Step::for_prompt_template(prompt.into())

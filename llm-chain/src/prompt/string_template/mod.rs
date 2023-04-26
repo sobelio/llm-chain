@@ -17,7 +17,7 @@ use crate::Parameters;
 /// ```
 /// use llm_chain::prompt::StringTemplate;
 /// use llm_chain::Parameters;
-/// let template: StringTemplate = "Hello {}!".into();
+/// let template: StringTemplate = "Hello {{ text }}!".into();
 /// let parameters: Parameters = "World".into();
 /// assert_eq!(template.format(&parameters).unwrap(), "Hello World!");
 /// ```
@@ -25,7 +25,7 @@ use crate::Parameters;
 /// ```
 /// use llm_chain::prompt::StringTemplate;
 /// use llm_chain::Parameters;
-/// let template: StringTemplate = "Hello {name}!".into();
+/// let template: StringTemplate = "Hello {{ name }}!".into();
 /// let parameters: Parameters = vec![("name", "World")].into();
 /// assert_eq!(template.format(&parameters).unwrap(), "Hello World!");
 /// ```
@@ -89,7 +89,7 @@ impl StringTemplate {
     /// use llm_chain::prompt::StringTemplate;
     /// use llm_chain::Parameters;
     /// let template1 = StringTemplate::tera("Hello {{name}}");
-    /// let template2 = StringTemplate::new("!");
+    /// let template2 = StringTemplate::tera("!");
     /// let template3 = StringTemplate::combine(vec![template1, template2]);
     /// let parameters: Parameters = vec![("name", "World")].into();
     /// assert_eq!(template3.format(&parameters).unwrap(), "Hello World!");
@@ -155,5 +155,11 @@ impl fmt::Display for StringTemplateImpl {
                 Ok(())
             }
         }
+    }
+}
+
+impl From<&str> for StringTemplate {
+    fn from(template: &str) -> Self {
+        Self::tera(template.to_string())
     }
 }

@@ -30,7 +30,6 @@ mod tokenizer;
 
 pub use context::ContextParams;
 pub use executor::Executor;
-pub use instruct::new_instruct_template;
 pub use options::PerExecutor;
 pub use options::PerInvocation;
 pub use output::Output;

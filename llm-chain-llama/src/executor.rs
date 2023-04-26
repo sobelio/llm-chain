@@ -8,11 +8,11 @@ use crate::output::Output;
 use async_trait::async_trait;
 
 use llm_chain::prompt::{Prompt, StringTemplateError};
-use llm_chain::step::{Step, StepError};
+use llm_chain::step::{StepError};
 use llm_chain::tokens::{PromptTokensError, TokenCount};
 use llm_chain::tokens::{Tokenizer, TokenizerError};
 use llm_chain::traits::{Executor as ExecutorTrait, ExecutorCreationError, ExecutorError};
-use llm_chain::Parameters;
+
 use llm_chain_llama_sys::llama_context_params;
 /// Executor is responsible for running the LLAMA model and managing its context.
 pub struct Executor {
@@ -183,49 +183,35 @@ impl ExecutorTrait for Executor {
 
     fn tokens_used(
         &self,
-        step: &Step<Self>,
-        parameters: &Parameters,
+        options: Option<&Self::PerInvocationOptions>,
+        prompt: &Prompt,
     ) -> Result<TokenCount, PromptTokensError> {
-        let tokenizer = self.get_tokenizer(step)?;
-        let input = step
-            .prompt()
-            .format(parameters)
-            .map_err(|_| PromptTokensError::UnableToCompute)?
-            .to_text();
+        let tokenizer = self.get_tokenizer(options)?;
+        let input = prompt.to_text();
 
         let tokens_used = tokenizer
             .tokenize_str(&input)
             .map_err(|_e| PromptTokensError::UnableToCompute)?
             .len() as i32;
-
-        let input_with_empty_params = step
-            .prompt()
-            .format(&parameters.with_placeholder_values())
-            .map_err(|_| PromptTokensError::UnableToCompute)?
-            .to_text();
-
-        let template_tokens_used = tokenizer
-            .tokenize_str(&input_with_empty_params)
-            .map_err(|_e| PromptTokensError::UnableToCompute)?
-            .len() as i32;
-
-        let max_tokens = self.max_tokens_allowed(step);
-        Ok(TokenCount::new(
-            max_tokens,
-            tokens_used,
-            template_tokens_used,
-        ))
+        let max_tokens = self.max_tokens_allowed(options);
+        Ok(TokenCount::new(max_tokens, tokens_used))
     }
 
-    fn max_tokens_allowed(&self, _step: &Step<Self>) -> i32 {
+    fn max_tokens_allowed(&self, _step: Option<&PerInvocation>) -> i32 {
         self.context_params().n_ctx
     }
 
-    fn get_tokenizer(&self, _step: &Step<Self>) -> Result<LLamaTokenizer, TokenizerError> {
+    fn get_tokenizer(
+        &self,
+        _step: Option<&Self::PerInvocationOptions>,
+    ) -> Result<LLamaTokenizer, TokenizerError> {
         Ok(LLamaTokenizer::new(self))
     }
 
-    fn get_text_splitter(&self, _step: &Step<Self>) -> Result<Self::TextSplitter<'_>, Self::Error> {
+    fn get_text_splitter(
+        &self,
+        _step: Option<&Self::PerInvocationOptions>,
+    ) -> Result<Self::TextSplitter<'_>, Self::Error> {
         Ok(LLamaTextSplitter::new(self))
     }
 }

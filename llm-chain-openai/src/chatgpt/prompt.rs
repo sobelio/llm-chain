@@ -31,7 +31,7 @@ fn format_chat_message(
     })
 }
 
-fn format_chat_messages(
+pub fn format_chat_messages(
     messages: ChatMessageCollection<String>,
 ) -> Result<Vec<ChatCompletionRequestMessage>, StringTemplateError> {
     messages.iter().map(format_chat_message).collect()

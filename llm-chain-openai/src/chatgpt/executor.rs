@@ -1,17 +1,17 @@
 use super::options::PerInvocation;
 use super::output::Output;
 use super::prompt::create_chat_completion_request;
+use super::prompt::format_chat_messages;
 use super::Model;
 use super::OpenAITextSplitter;
 use async_openai::error::OpenAIError;
 use llm_chain::prompt::Prompt;
 use llm_chain::prompt::StringTemplateError;
-use llm_chain::step::{Step, StepError};
+use llm_chain::step::{StepError};
 use llm_chain::tokens::PromptTokensError;
 use llm_chain::tokens::{Tokenizer, TokenizerError};
 use llm_chain::traits;
 use llm_chain::traits::{ExecutorCreationError, ExecutorError};
-use llm_chain::Parameters;
 
 use super::options::PerExecutor;
 use async_trait::async_trait;
@@ -47,10 +47,6 @@ impl Executor {
         opts.or(self.per_invocation_options.as_ref())
             .and_then(|opts| opts.model.clone())
             .unwrap_or_default()
-    }
-
-    fn get_model_from_step(&self, step: &Step<Self>) -> Model {
-        self.get_model_from_invocation_options(step.options())
     }
 }
 
@@ -106,54 +102,46 @@ impl traits::Executor for Executor {
 
     fn tokens_used(
         &self,
-        step: &Step<Self>,
-        parameters: &Parameters,
+        opts: Option<&PerInvocation>,
+        prompt: &Prompt,
     ) -> Result<TokenCount, PromptTokensError> {
-        let model = self.get_model_from_step(step);
-        let model_s = model.to_string();
-        let max_tokens = self.max_tokens_allowed(step);
-        let prompt = step.prompt().format(parameters)?;
-        let is_streaming = step.is_streaming();
-        let completion_req = create_chat_completion_request(&model, &prompt, is_streaming)?;
-        // This approach will break once we add support for non-string valued parameters.
-        let prompt_with_empty_params = create_chat_completion_request(
-            &model,
-            &step.format(&parameters.with_placeholder_values())?,
-            is_streaming,
-        )?;
-
-        let num_tokens_with_empty_params =
-            num_tokens_from_messages(&model_s, &prompt_with_empty_params.messages)
-                .map_err(|_| PromptTokensError::NotAvailable)?;
-        let tokens_used = num_tokens_from_messages(&model.to_string(), &completion_req.messages)
+        let model = self.get_model_from_invocation_options(opts);
+        let messages = format_chat_messages(prompt.to_chat())?;
+        let tokens_used = num_tokens_from_messages(&model.to_string(), &messages)
             .map_err(|_| PromptTokensError::NotAvailable)?;
 
         Ok(TokenCount::new(
-            max_tokens,
+            self.max_tokens_allowed(opts),
             tokens_used as i32,
-            num_tokens_with_empty_params as i32,
         ))
     }
 
     /// Get the context size from the model or return default context size
-    fn max_tokens_allowed(&self, step: &Step<Self>) -> i32 {
-        let model = self.get_model_from_step(step);
+    fn max_tokens_allowed(&self, opts: Option<&PerInvocation>) -> i32 {
+        let model = self.get_model_from_invocation_options(opts);
         tiktoken_rs::model::get_context_size(&model.to_string())
             .try_into()
             .unwrap_or(4096)
     }
 
-    fn get_tokenizer(&self, step: &Step<Self>) -> Result<OpenAITokenizer, TokenizerError> {
-        let opts = step
-            .options()
+    fn get_tokenizer(
+        &self,
+        options: Option<&PerInvocation>,
+    ) -> Result<OpenAITokenizer, TokenizerError> {
+        let opts = options
             .or(self.per_invocation_options.as_ref())
             .cloned()
             .unwrap_or_default();
         Ok(OpenAITokenizer::new(&opts))
     }
 
-    fn get_text_splitter(&self, step: &Step<Self>) -> Result<Self::TextSplitter<'_>, Self::Error> {
-        Ok(OpenAITextSplitter::new(self.get_model_from_step(step)))
+    fn get_text_splitter(
+        &self,
+        options: Option<&PerInvocation>,
+    ) -> Result<Self::TextSplitter<'_>, Self::Error> {
+        Ok(OpenAITextSplitter::new(
+            self.get_model_from_invocation_options(options),
+        ))
     }
 }
 

@@ -39,6 +39,8 @@ pub enum MapReduceChainError<Err: ExecutorError> {
     TokenizeError(#[from] crate::tokens::PromptTokensError),
     #[error("The vector of input documents was empty")]
     InputEmpty,
+    #[error("Error templating: {0}")]
+    StringTemplate(#[from] crate::prompt::StringTemplateError),
 }
 
 /// The `Chain` struct represents a map-reduce chain, consisting of a `map` step and a `reduce` step.
@@ -136,7 +138,8 @@ impl<E: Executor> Chain<E> {
                 new_doc.push_str(&next.primary_textual_output().await.unwrap_or_default());
 
                 let params = parameters.with_text(new_doc.clone());
-                let count = executor.tokens_used(&self.reduce, &params)?;
+                let prompt = self.reduce.format(&params)?;
+                let count = executor.tokens_used(self.reduce.options(), &prompt)?;
                 if count.has_tokens_remaining() {
                     current_doc = new_doc;
                     v.pop();

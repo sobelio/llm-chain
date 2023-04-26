@@ -8,15 +8,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut tool_collection = ToolCollection::new();
     tool_collection.add_tool(BashTool::new());
 
-    #[cfg(feature = "tera")]
     let prompt = StringTemplate::combine(vec![
         tool_collection.to_prompt_template().unwrap(),
         StringTemplate::tera("Please perform the following task: {{text}}"),
-    ]);
-    #[cfg(not(feature = "tera"))]
-    let prompt = StringTemplate::combine(vec![
-        tool_collection.to_prompt_template()?,
-        StringTemplate::legacy("Please perform the following task: {{text}}"),
     ]);
 
     println!(
