@@ -25,7 +25,7 @@ use async_openai::types::{ChatCompletionResponseStream, CreateChatCompletionResp
 use async_trait::async_trait;
 use llm_chain::output;
 use std::fmt;
-use stream::{SharedResponseStream, StreamWrapper};
+use stream::{ResponseStream, StreamWrapper};
 
 /// Represents the output of a CreateChatCompletionResponse from OpenAI.
 #[derive(Clone, Debug)]
@@ -51,7 +51,7 @@ impl From<ChatCompletionResponseStream> for OutputInner {
 pub struct Output(OutputInner);
 
 impl Output {
-    pub fn as_stream(&self) -> Option<SharedResponseStream> {
+    pub fn as_stream(&self) -> Option<ResponseStream> {
         match &self.0 {
             OutputInner::Stream(wrapper) => Some(wrapper.inner()),
             _ => None,
