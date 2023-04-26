@@ -1148,6 +1148,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "llm-chain-qdrant"
+version = "0.8.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "llm-chain",
+ "llm-chain-openai",
+ "qdrant-client",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "lock_api"
 version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"

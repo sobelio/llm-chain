@@ -4,7 +4,7 @@
 use std::marker::PhantomData;
 
 use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::{
@@ -16,6 +16,7 @@ pub struct VectorStoreTool<E, M, V>
 where
     E: Embeddings,
     V: VectorStore<E, M>,
+    M: Serialize + DeserializeOwned,
 {
     pub store: V,
     pub topic: String,
@@ -27,6 +28,7 @@ where
 impl<E, M, V> VectorStoreTool<E, M, V>
 where
     E: Embeddings,
+    M: Serialize + DeserializeOwned,
     V: VectorStore<E, M>,
 {
     pub fn new(store: V, topic: &str, topic_context: &str) -> Self {
@@ -109,7 +111,7 @@ impl<E, M, V> Tool for VectorStoreTool<E, M, V>
 where
     E: Embeddings + Sync + Send,
     V: VectorStore<E, M> + Sync + Send,
-    M: Sync + Send,
+    M: Sync + Send + serde::Serialize + serde::de::DeserializeOwned,
     Self: 'static,
 {
     type Input = VectorStoreToolInput;

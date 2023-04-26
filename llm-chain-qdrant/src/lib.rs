@@ -11,34 +11,20 @@ use qdrant_client::{
 use thiserror::Error;
 use uuid::Uuid;
 
-use crate::{
-    schema::{Document, EmptyMetadata},
+use llm_chain::{
+    schema::Document,
     traits::{Embeddings, EmbeddingsError, VectorStore, VectorStoreError},
 };
+
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 const DEFAULT_CONTENT_PAYLOAD_KEY: &str = "page_content";
 const DEFAULT_METADATA_PAYLOAD_KEY: &str = "metadata";
 
-impl TryFrom<Value> for EmptyMetadata {
-    type Error = ();
-
-    fn try_from(_: Value) -> Result<Self, Self::Error> {
-        Ok(EmptyMetadata)
-    }
-}
-
-impl From<EmptyMetadata> for Value {
-    fn from(_val: EmptyMetadata) -> Self {
-        Value {
-            kind: Some(qdrant_client::qdrant::value::Kind::NullValue(0)),
-        }
-    }
-}
-
 pub struct Qdrant<E, M>
 where
     E: Embeddings,
-    M: TryFrom<Value> + Into<Value> + Send + Sync,
+    M: Serialize + DeserializeOwned + Send + Sync,
 {
     client: Arc<QdrantClient>,
     collection_name: String,
@@ -51,7 +37,7 @@ where
 impl<E, M> Qdrant<E, M>
 where
     E: Embeddings,
-    M: TryFrom<Value> + Into<Value> + Send + Sync,
+    M: Send + Sync + Serialize + DeserializeOwned,
 {
     pub fn new(
         client: Arc<QdrantClient>,
@@ -78,13 +64,10 @@ where
     ) -> Result<Document<M>, QdrantError<E::Error>> {
         let metadata = scored_point.payload.get(&self.metadata_payload_key);
         let metadata: Option<M> = match metadata.cloned() {
-            Some(val) => match M::try_from(val) {
-                Ok(m) => Ok::<std::option::Option<M>, QdrantError<E::Error>>(Some(m)),
-                Err(_) => Err(ConversionError::InvalidMetadata {
-                    point_id: scored_point.id.clone(),
-                }
-                .into()),
-            },
+            Some(val) => {
+                let j = serde_json::to_value(val)?;
+                Some(serde_json::from_value(value))
+            }
             None => Ok(None),
         }?;
         let page_content = scored_point
@@ -140,7 +123,7 @@ where
     #[error(transparent)]
     Embeddings(#[from] E),
     #[error("Qdrant Client Error")]
-    Client(#[from] anyhow::Error),
+    Client(anyhow::Error),
     #[error(transparent)]
     ConversionError(#[from] ConversionError),
 }
@@ -154,7 +137,7 @@ impl<E> VectorStoreError for QdrantError<E> where
 impl<E, M> VectorStore<E, M> for Qdrant<E, M>
 where
     E: Embeddings + Send + Sync,
-    M: TryFrom<Value> + Into<Value> + Send + Sync,
+    M: Send + Sync + Serialize + DeserializeOwned,
 {
     type Error = QdrantError<E::Error>;
 
@@ -180,7 +163,8 @@ where
             .collect();
         self.client
             .upsert_points(self.collection_name.clone(), points, None)
-            .await?;
+            .await
+            .map_err(|e| QdrantError::Client(e.into()))?;
         Ok(ids)
     }
 
@@ -218,7 +202,8 @@ where
 
         self.client
             .upsert_points(self.collection_name.clone(), points, None)
-            .await?;
+            .await
+            .map_err(|e| QdrantError::Client(e.into()))?;
 
         Ok(ids)
     }
@@ -251,7 +236,8 @@ where
                 with_vectors: None,
                 read_consistency: None,
             })
-            .await?;
+            .await
+            .map_err(|e| QdrantError::Client(e.into()))?;
 
         let mut out = vec![];
         for r in res.result.into_iter() {

@@ -37,7 +37,6 @@ pub mod text_splitter;
 pub mod tokens;
 pub mod tools;
 pub mod traits;
-pub mod vectorstores;
 
 // Utilities and tools
 pub mod summarization;
