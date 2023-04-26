@@ -11,32 +11,30 @@ In this part of the tutorial series, we'll explore how to use prompt templates a
 Here's a simple Rust program demonstrating how to use prompt templates and parameters:
 
 ```rust
-use llm_chain::{prompt, traits::StepExt, Parameters};
-use llm_chain_openai::chatgpt::{Executor, Step};
+use llm_chain::{executor, parameters, prompt, step::Step};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create a new ChatGPT executor
-    let exec = Executor::new_default();
+    let exec = executor!()?;
     // Create our step containing our prompt template
-    let step = Step::for_prompt(prompt!(
+    let step = Step::for_prompt_template(prompt!(
         "You are a bot for making personalized greetings",
         "Make a personalized greeting tweet for {{text}}" // Text is the default parameter name, but you can use whatever you want
     ));
 
     // A greeting for emil!
-    let res = step.run(&Parameters::new_with_text("Emil"), &exec).await?;
+    let res = step.run(&parameters!("Emil"), &exec).await?;
     println!("{}", res);
 
     // A greeting for you
-    let res = step
-        .run(&Parameters::new_with_text("Your Name Here"), &exec)
-        .await?;
+    let res = step.run(&parameters!("Your Name Here"), &exec).await?;
 
     println!("{}", res);
 
     Ok(())
 }
+
 ```
 
 Let's break down the different parts of the code:
