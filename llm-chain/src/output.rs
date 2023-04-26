@@ -4,6 +4,8 @@
 use async_trait::async_trait;
 use futures::stream::StreamExt;
 
+use crate::prompt::ChatRole;
+
 /// Separator string used when joining primary textual outputs.
 const OUTPUT_JOINER_SEQUENCE: &str = "\n";
 
@@ -24,6 +26,12 @@ pub trait Output: Send + Clone + Sync {
         } else {
             Some(outputs[0].clone())
         }
+    }
+
+    /// Gets the `ChatRole` of the output, if any. If no role is available, it returns `None`.
+    /// Automatically guesses assistant when not implemented.
+    async fn get_chat_role(&self) -> Option<ChatRole> {
+        Some(ChatRole::Assistant)
     }
 
     /// Combines the primary textual outputs from multiple instances implementing the `Output` trait.

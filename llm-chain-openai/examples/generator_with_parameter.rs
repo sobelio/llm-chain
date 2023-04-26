@@ -5,7 +5,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create a new ChatGPT executor
     let exec = executor!()?;
     // Create our step containing our prompt template
-    let step = Step::for_prompt(prompt!(
+    let step = Step::for_prompt_template(prompt!(
         "You are a bot for making personalized greetings",
         "Make a personalized greeting tweet for {{text}}" // Text is the default parameter name, but you can use whatever you want
     ));

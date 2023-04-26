@@ -1,6 +1,6 @@
 use llm_chain::chains::map_reduce::Chain;
+use llm_chain::step::Step;
 use llm_chain::{executor, parameters, prompt, Parameters};
-use llm_chain_openai::chatgpt::Step;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -8,13 +8,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let exec = executor!()?;
 
     // Create the "map" step to summarize an article into bullet points
-    let map_prompt = Step::for_prompt(prompt!(
+    let map_prompt = Step::for_prompt_template(prompt!(
         "You are a bot for summarizing wikipedia articles, you are terse and focus on accuracy",
         "Summarize this article into bullet points:\n{{text}}"
     ));
 
     // Create the "reduce" step to combine multiple summaries into one
-    let reduce_prompt = Step::for_prompt(prompt!(
+    let reduce_prompt = Step::for_prompt_template(prompt!(
         "You are a diligent bot that summarizes text",
         "Please combine the articles below into one summary as bullet points:\n{{text}}"
     ));

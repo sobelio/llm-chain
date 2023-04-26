@@ -19,7 +19,7 @@ pub enum PromptTokensError {
     UnableToCompute,
     /// Indicates that the prompt tokens could not be computed because formatting the prompt failed.
     #[error("Formatting prompt failed: {0}")]
-    PromptFormatFailed(#[from] crate::prompt::PromptTemplateError),
+    PromptFormatFailed(#[from] crate::prompt::StringTemplateError),
     #[error("Tokenizer error: {0}")]
     TokenizerError(#[from] crate::tokens::TokenizerError),
 }
@@ -47,13 +47,13 @@ pub trait ExecutorTokenCountExt<Output, Token: Clone, StepTokenizer>:
         chunk_overlap: Option<usize>,
     ) -> Result<Vec<Parameters>, PromptTokensError> {
         let splitter = self
-            .get_text_splitter(step)
+            .get_text_splitter(step.options())
             .map_err(|_e| PromptTokensError::UnableToCompute)?;
 
         let text = doc.get_text().ok_or(PromptTokensError::UnableToCompute)?;
 
         let max_tokens = self
-            .max_tokens_allowed(step)
+            .max_tokens_allowed(step.options())
             .try_into()
             .map_err(|_| PromptTokensError::UnableToCompute)?;
 
@@ -77,10 +77,7 @@ pub struct TokenCount {
     max_tokens: i32,
     /// The total number of tokens used.
     tokens_used: i32,
-    /// Template tokens used
-    template_tokens_used: i32,
 }
-
 impl TokenCount {
     /// Creates a new `TokenCount` instance with the given maximum tokens and tokens used.
     ///
@@ -88,11 +85,10 @@ impl TokenCount {
     ///
     /// * `max_tokens` - The maximum number of tokens allowed.
     /// * `tokens_used` - The total number of tokens used.
-    pub fn new(max_tokens: i32, tokens_used: i32, template_tokens_used: i32) -> Self {
+    pub fn new(max_tokens: i32, tokens_used: i32) -> Self {
         Self {
             max_tokens,
             tokens_used,
-            template_tokens_used,
         }
     }
 
@@ -116,7 +112,7 @@ impl TokenCount {
     ///
     /// ```
     /// use llm_chain::tokens::TokenCount;
-    /// let token_count = TokenCount::new(100, 50, 10);
+    /// let token_count = TokenCount::new(100, 50);
     /// assert!(token_count.has_room_for(49));
     /// ```
     pub fn has_room_for(&self, tokens: i32) -> bool {

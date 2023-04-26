@@ -7,12 +7,12 @@ use crate::LLamaTextSplitter;
 use crate::output::Output;
 use async_trait::async_trait;
 
-use llm_chain::step::{Step, StepError};
+use llm_chain::prompt::{Prompt};
+
 use llm_chain::tokens::{PromptTokensError, TokenCount};
 use llm_chain::tokens::{Tokenizer, TokenizerError};
 use llm_chain::traits::{Executor as ExecutorTrait, ExecutorCreationError, ExecutorError};
-use llm_chain::Parameters;
-use llm_chain::PromptTemplateError;
+
 use llm_chain_llama_sys::llama_context_params;
 /// Executor is responsible for running the LLAMA model and managing its context.
 pub struct Executor {
@@ -127,10 +127,6 @@ impl Executor {
 pub enum Error {
     #[error("unable to tokenize prompt")]
     PromptTokensError(PromptTokensError),
-    #[error("unable to format step")]
-    StepError(#[from] StepError),
-    #[error("unable to format prompt: {0}")]
-    PromptTemplateError(#[from] PromptTemplateError),
 }
 
 impl ExecutorError for Error {}
@@ -170,66 +166,48 @@ impl ExecutorTrait for Executor {
     // Executes the model asynchronously and returns the output.
     async fn execute(
         &self,
-        step: &Step<Self>,
-        parameters: &Parameters,
+        options: Option<&Self::PerInvocationOptions>,
+        prompt: &Prompt,
     ) -> Result<Self::Output, Self::Error> {
-        let config = match step.options() {
+        let config = match options {
             Some(options) => options.clone(),
             None => self.invocation_options.clone().unwrap_or_default(),
         };
-        let formatted_prompts = step
-            .prompt()
-            .as_text_prompt_or_convert()
-            .format(parameters)?;
-        let invocation = config.to_invocation(&formatted_prompts);
+        let invocation = config.to_invocation(&prompt.to_text());
         Ok(self.run_model(invocation))
     }
 
     fn tokens_used(
         &self,
-        step: &Step<Self>,
-        parameters: &Parameters,
+        options: Option<&Self::PerInvocationOptions>,
+        prompt: &Prompt,
     ) -> Result<TokenCount, PromptTokensError> {
-        let tokenizer = self.get_tokenizer(step)?;
-        let input = step
-            .prompt()
-            .as_text_prompt_or_convert()
-            .format(parameters)
-            .map_err(|_| PromptTokensError::UnableToCompute)?;
+        let tokenizer = self.get_tokenizer(options)?;
+        let input = prompt.to_text();
 
         let tokens_used = tokenizer
             .tokenize_str(&input)
             .map_err(|_e| PromptTokensError::UnableToCompute)?
             .len() as i32;
-
-        let input_with_empty_params = step
-            .prompt()
-            .as_text_prompt_or_convert()
-            .format(&parameters.with_placeholder_values())
-            .map_err(|_| PromptTokensError::UnableToCompute)?;
-
-        let template_tokens_used = tokenizer
-            .tokenize_str(&input_with_empty_params)
-            .map_err(|_e| PromptTokensError::UnableToCompute)?
-            .len() as i32;
-
-        let max_tokens = self.max_tokens_allowed(step);
-        Ok(TokenCount::new(
-            max_tokens,
-            tokens_used,
-            template_tokens_used,
-        ))
+        let max_tokens = self.max_tokens_allowed(options);
+        Ok(TokenCount::new(max_tokens, tokens_used))
     }
 
-    fn max_tokens_allowed(&self, _step: &Step<Self>) -> i32 {
+    fn max_tokens_allowed(&self, _step: Option<&PerInvocation>) -> i32 {
         self.context_params().n_ctx
     }
 
-    fn get_tokenizer(&self, _step: &Step<Self>) -> Result<LLamaTokenizer, TokenizerError> {
+    fn get_tokenizer(
+        &self,
+        _step: Option<&Self::PerInvocationOptions>,
+    ) -> Result<LLamaTokenizer, TokenizerError> {
         Ok(LLamaTokenizer::new(self))
     }
 
-    fn get_text_splitter(&self, _step: &Step<Self>) -> Result<Self::TextSplitter<'_>, Self::Error> {
+    fn get_text_splitter(
+        &self,
+        _step: Option<&Self::PerInvocationOptions>,
+    ) -> Result<Self::TextSplitter<'_>, Self::Error> {
         Ok(LLamaTextSplitter::new(self))
     }
 }

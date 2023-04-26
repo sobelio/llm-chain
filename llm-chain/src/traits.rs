@@ -13,10 +13,10 @@ use std::{error::Error, fmt::Debug};
 
 use crate::{
     output::Output,
+    prompt::Prompt,
     schema::{Document, EmptyMetadata},
-    step::Step,
     tokens::{PromptTokensError, TokenCount, Tokenizer, TokenizerError},
-    Parameters, TextSplitter,
+    TextSplitter,
 };
 use async_trait::async_trait;
 use serde::{de::DeserializeOwned, Serialize};
@@ -59,7 +59,7 @@ pub trait Executor: Sized {
     /// The output type produced by this executor.
     type Output: Output;
     /// The error type produced by this executor.
-    type Error: ExecutorError + Debug + Error + From<crate::step::StepError>;
+    type Error: ExecutorError + Debug + Error;
 
     /// The token type used by this executor.
     type Token: Clone;
@@ -85,27 +85,10 @@ pub trait Executor: Sized {
         Self::new_with_options(None, None)
     }
 
-    #[deprecated(
-        since = "0.7.0",
-        note = "Use new() instead, this call has an unsafe unwrap"
-    )]
-    fn new_with_default() -> Self {
-        Self::new().unwrap()
-    }
-
-    /// Executes the given input and returns the resulting output.
-    ///
-    /// # Parameters
-    ///
-    /// * `input`: The input value to execute, that is the output of the step.
-    ///
-    /// # Returns
-    ///
-    /// The output produced by the executor.
     async fn execute(
         &self,
-        step: &Step<Self>,
-        parameters: &Parameters,
+        options: Option<&Self::PerInvocationOptions>,
+        prompt: &Prompt,
     ) -> Result<Self::Output, Self::Error>;
 
     /// Calculates the number of tokens used by the step given a set of parameters.
@@ -123,19 +106,19 @@ pub trait Executor: Sized {
     /// A `Result` containing the token count, or an error if there was a problem.
     fn tokens_used(
         &self,
-        step: &Step<Self>,
-        parameters: &Parameters,
+        options: Option<&Self::PerInvocationOptions>,
+        prompt: &Prompt,
     ) -> Result<TokenCount, PromptTokensError>;
 
-    /// Returns the maximum number of input tokens allowed by the model used in step.
+    /// Returns the maximum number of input tokens allowed by the model used.
     ///
     /// # Parameters
     ///
-    /// * `step`: The step to get token allowance for.
+    /// * `options`: The per-invocation options that affect the token allowance.
     ///
     /// # Returns
     /// The max token count for the step
-    fn max_tokens_allowed(&self, step: &Step<Self>) -> i32;
+    fn max_tokens_allowed(&self, options: Option<&Self::PerInvocationOptions>) -> i32;
 
     /// Creates a tokenizer, depending on the model used by `step`.
     ///
@@ -147,7 +130,10 @@ pub trait Executor: Sized {
     ///
 
     /// A `Result` containing a tokenizer, or an error if there was a problem.
-    fn get_tokenizer(&self, step: &Step<Self>) -> Result<Self::StepTokenizer<'_>, TokenizerError>;
+    fn get_tokenizer(
+        &self,
+        options: Option<&Self::PerInvocationOptions>,
+    ) -> Result<Self::StepTokenizer<'_>, TokenizerError>;
 
     /// Creates a text splitter, depending on the model used by 'step'
     ///
@@ -157,7 +143,10 @@ pub trait Executor: Sized {
     ///
     /// # Returns
     /// A `Result` containing a text splitter, or an error if there was a problem.
-    fn get_text_splitter(&self, step: &Step<Self>) -> Result<Self::TextSplitter<'_>, Self::Error>;
+    fn get_text_splitter(
+        &self,
+        options: Option<&Self::PerInvocationOptions>,
+    ) -> Result<Self::TextSplitter<'_>, Self::Error>;
 }
 
 /// This marker trait is needed so the concrete VectorStore::Error can have a derived From<Embeddings::Error>

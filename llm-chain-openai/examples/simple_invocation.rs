@@ -1,10 +1,11 @@
 use llm_chain::executor;
 use llm_chain::output::Output;
-use llm_chain::prompt::chat::{ChatMessage, ChatPrompt, ChatRole};
+use llm_chain::parameters;
+
+use llm_chain::prompt::{ChatMessageCollection, StringTemplate};
 use llm_chain::step::Step;
 use llm_chain::tools::tools::BashTool;
 use llm_chain::tools::ToolCollection;
-use llm_chain::{parameters, PromptTemplate};
 
 // A simple example generating a prompt with some tools.
 
@@ -15,20 +16,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut tool_collection = ToolCollection::new();
     tool_collection.add_tool(BashTool::new());
 
-    let template = PromptTemplate::combine(vec![
+    let template = StringTemplate::combine(vec![
         tool_collection.to_prompt_template().unwrap(),
-        PromptTemplate::tera("Please perform the following task: {{task}}."),
+        StringTemplate::tera("Please perform the following task: {{task}}."),
     ]);
 
     let task = "Find the file GOAL.txt and tell me its content";
 
-    let prompt = ChatPrompt::builder()
-        .system("You are an automated agent for performing tasks. Your output must always be YAML.")
-        .add_message(ChatMessage::from_template(ChatRole::User, template))
-        .build()
-        .unwrap();
+    let prompt = ChatMessageCollection::new()
+        .with_system_template(
+            "You are an automated agent for performing tasks. Your output must always be YAML.",
+        )
+        .with_user(template);
 
-    let result = Step::for_prompt(prompt.into())
+    let result = Step::for_prompt_template(prompt.into())
         .run(&parameters!("task" => task), &exec)
         .await?;
 

@@ -9,6 +9,7 @@
 
 use crate::step::Step;
 use crate::traits;
+use crate::traits::ExecutorError;
 use crate::Parameters;
 
 /// The `Frame` struct represents a combination of a `Step` and an `Executor`.
@@ -39,7 +40,20 @@ where
     ///
     /// This function takes a reference to a `Parameters` struct, formats the step with the provided parameters,
     /// and executes it using the associated executor. The result of the execution is returned as `E::Output`.
-    pub async fn format_and_execute(&self, parameters: &Parameters) -> Result<E::Output, E::Error> {
-        self.executor.execute(self.step, parameters).await
+    pub async fn format_and_execute(
+        &self,
+        parameters: &Parameters,
+    ) -> Result<E::Output, FormatAndExecuteError<E::Error>> {
+        let prompt = self.step.format(parameters)?;
+        Ok(self.executor.execute(self.step.options(), &prompt).await?)
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+/// An error that occurs when formatting and prompt template for an LLM
+pub enum FormatAndExecuteError<E: ExecutorError> {
+    #[error("Error formatting: {0}")]
+    Format(#[from] crate::prompt::StringTemplateError),
+    #[error("Error executing: {0}")]
+    Execute(#[from] E),
 }

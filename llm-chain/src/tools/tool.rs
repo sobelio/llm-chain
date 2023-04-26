@@ -29,7 +29,7 @@ pub trait Tool {
     /// fails to produce a valid output.
     async fn invoke(&self, input: serde_yaml::Value) -> Result<serde_yaml::Value, Self::Error> {
         let input = serde_yaml::from_value(input)
-            .map_err(|e| <serde_yaml::Error as Into<Self::Error>>::into(e))?;
+            .map_err(<serde_yaml::Error as Into<Self::Error>>::into)?;
         let output = self.invoke_typed(&input).await?;
         Ok(serde_yaml::to_value(output)?)
     }

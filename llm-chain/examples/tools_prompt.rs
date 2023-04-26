@@ -1,21 +1,16 @@
+use llm_chain::prompt::StringTemplate;
 use llm_chain::tools::tools::BashTool;
 use llm_chain::tools::ToolCollection;
-use llm_chain::{Parameters, PromptTemplate};
+use llm_chain::Parameters;
 // A simple example generating a prompt with some tools.
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut tool_collection = ToolCollection::new();
     tool_collection.add_tool(BashTool::new());
 
-    #[cfg(feature = "tera")]
-    let prompt = PromptTemplate::combine(vec![
+    let prompt = StringTemplate::combine(vec![
         tool_collection.to_prompt_template().unwrap(),
-        PromptTemplate::tera("Please perform the following task: {{text}}"),
-    ]);
-    #[cfg(not(feature = "tera"))]
-    let prompt = PromptTemplate::combine(vec![
-        tool_collection.to_prompt_template()?,
-        PromptTemplate::legacy("Please perform the following task: {{text}}"),
+        StringTemplate::tera("Please perform the following task: {{text}}"),
     ]);
 
     println!(

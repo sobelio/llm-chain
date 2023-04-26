@@ -18,11 +18,11 @@ pub struct TextSummarizer<E: traits::Executor> {
 
 impl<E: traits::Executor> Default for TextSummarizer<E> {
     fn default() -> Self {
-        let map_prompt = Step::for_prompt(prompt!(
+        let map_prompt = Step::for_prompt_template(prompt!(
             "You are a text summarizer. You will be given a text and you will have to summarize it",
             "Text:\n\n{{text}}\n\nPlease write a summary of the text above. Respond only with the summary."
         ));
-        let reduce_prompt = Step::for_prompt(prompt!(
+        let reduce_prompt = Step::for_prompt_template(prompt!(
             "You are a text summarizer. You will be given a text and you will have to summarize it",
             "Text:\n\n{{text}}\n\nPlease write a combined summary of the segment summaries above. Respond only with the summary."
         ));

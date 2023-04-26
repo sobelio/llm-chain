@@ -1,5 +1,4 @@
-use llm_chain::{chains::sequential::Chain, executor, output::Output, prompt};
-use llm_chain_openai::chatgpt::Step;
+use llm_chain::{chains::sequential::Chain, executor, output::Output, prompt, step::Step};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -10,7 +9,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Second step is streaming
     let chain = Chain::new(vec![
         // First step: make a personalized birthday email
-        Step::for_prompt(
+        Step::for_prompt_template(
             prompt!("You are a bot for making personalized greetings", "Make personalized birthday e-mail to the whole company for {{name}} who has their birthday on {{date}}. Include their name")
         ),
 
