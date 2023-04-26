@@ -7,8 +7,8 @@ use crate::LLamaTextSplitter;
 use crate::output::Output;
 use async_trait::async_trait;
 
-use llm_chain::prompt::{Prompt, StringTemplateError};
-use llm_chain::step::{StepError};
+use llm_chain::prompt::{Prompt};
+
 use llm_chain::tokens::{PromptTokensError, TokenCount};
 use llm_chain::tokens::{Tokenizer, TokenizerError};
 use llm_chain::traits::{Executor as ExecutorTrait, ExecutorCreationError, ExecutorError};
@@ -127,10 +127,6 @@ impl Executor {
 pub enum Error {
     #[error("unable to tokenize prompt")]
     PromptTokensError(PromptTokensError),
-    #[error("unable to format step")]
-    StepError(#[from] StepError),
-    #[error("unable to format prompt: {0}")]
-    PromptTemplateError(#[from] StringTemplateError),
 }
 
 impl ExecutorError for Error {}
@@ -168,7 +164,7 @@ impl ExecutorTrait for Executor {
         })
     }
     // Executes the model asynchronously and returns the output.
-    async fn execute_static(
+    async fn execute(
         &self,
         options: Option<&Self::PerInvocationOptions>,
         prompt: &Prompt,

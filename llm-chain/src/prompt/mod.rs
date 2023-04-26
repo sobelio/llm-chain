@@ -10,7 +10,13 @@ pub use string_template::{StringTemplate, StringTemplateError};
 pub use chat::{ChatMessage, ChatMessageCollection, ChatRole};
 pub use model::Data;
 
+/// A prompt template.
+///
+/// A prompt template is a template that can be used to generate a prompt.
 pub type PromptTemplate = Data<StringTemplate>;
+/// A prompt.
+///
+/// A prompt input for an LLM model.
 pub type Prompt = Data<String>;
 
 /// Creates a `TextPrompt` or a `ChatPrompt` based on the number of arguments provided.

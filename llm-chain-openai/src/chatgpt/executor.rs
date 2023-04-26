@@ -6,8 +6,7 @@ use super::Model;
 use super::OpenAITextSplitter;
 use async_openai::error::OpenAIError;
 use llm_chain::prompt::Prompt;
-use llm_chain::prompt::StringTemplateError;
-use llm_chain::step::{StepError};
+
 use llm_chain::tokens::PromptTokensError;
 use llm_chain::tokens::{Tokenizer, TokenizerError};
 use llm_chain::traits;
@@ -54,10 +53,7 @@ impl Executor {
 #[error(transparent)]
 pub enum Error {
     OpenAIError(#[from] OpenAIError),
-    StepError(#[from] StepError),
-    PromptTemplateError(#[from] StringTemplateError),
 }
-
 impl ExecutorError for Error {}
 
 #[async_trait]
@@ -88,7 +84,7 @@ impl traits::Executor for Executor {
         })
     }
 
-    async fn execute_static(
+    async fn execute(
         &self,
         opts: Option<&PerInvocation>,
         prompt: &Prompt,

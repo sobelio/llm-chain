@@ -29,6 +29,7 @@ use serde::de::{Deserializer, MapAccess};
 use serde::ser::{SerializeMap, Serializer};
 use serde::{Deserialize, Serialize};
 
+use crate::frame::FormatAndExecuteError;
 use crate::{
     frame::Frame,
     serialization::StorableEntity,
@@ -41,9 +42,11 @@ use crate::{
 use crate::serialization::StorableEntity;
 
 #[derive(thiserror::Error, Debug)]
+
+/// The `SequentialChainError` enum represents errors that can occur when executing a sequential chain.
 pub enum SequentialChainError<Err: ExecutorError> {
     #[error("ExecutorError: {0}")]
-    ExecutorError(#[from] Err),
+    FormatAndExecuteError(#[from] FormatAndExecuteError<Err>),
     #[error("The vector of steps was empty")]
     NoSteps,
 }

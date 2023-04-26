@@ -1,7 +1,8 @@
 //! Steps are indivudaul LLM invocations in a chain. They are a combination of a prompt and a configuration.
 //!
 //! Steps are used to set the per-invocation settings for a prompt. Useful when you want to change the settings for a specific prompt in a chain.
-use crate::prompt::{ChatMessageCollection, Prompt, StringTemplateError};
+use crate::frame::{FormatAndExecuteError, Frame};
+use crate::prompt::{Prompt, StringTemplateError};
 use crate::{chains::sequential, prompt, traits, Parameters};
 use derive_builder;
 use serde::de::{Deserialize, Deserializer, MapAccess};
@@ -15,7 +16,6 @@ where
     pub(crate) prompt: prompt::PromptTemplate,
     pub(crate) options: Option<Executor::PerInvocationOptions>,
     pub(crate) is_streaming: Option<bool>,
-    pub(crate) conversation: Option<ChatMessageCollection<String>>,
 }
 
 impl<Executor> Step<Executor>
@@ -27,18 +27,6 @@ where
             prompt,
             options: None,
             is_streaming: None,
-            conversation: None,
-        }
-    }
-    pub fn for_prompt_and_conversation(
-        prompt: prompt::PromptTemplate,
-        conversation: ChatMessageCollection<String>,
-    ) -> Self {
-        Self {
-            prompt,
-            options: None,
-            is_streaming: None,
-            conversation: Some(conversation),
         }
     }
     pub fn for_prompt_with_streaming(prompt: prompt::PromptTemplate) -> Self {
@@ -46,7 +34,6 @@ where
             prompt,
             options: None,
             is_streaming: Some(true),
-            conversation: None,
         }
     }
     pub fn for_prompt_and_options(
@@ -57,7 +44,6 @@ where
             prompt,
             options: Some(options),
             is_streaming: None,
-            conversation: None,
         }
     }
     pub fn prompt(&self) -> &prompt::PromptTemplate {
@@ -82,26 +68,30 @@ where
         crate::chains::sequential::Chain::of_one(self)
     }
 
+    /// Formats the prompt for this step with the given parameters.
     pub fn format(&self, parameters: &Parameters) -> Result<Prompt, StringTemplateError> {
         self.prompt.format(parameters)
     }
 
+    /// Executes the step with the given parameters and executor.
+    /// # Arguments
+    /// * `parameters` - A `Parameters` object containing the input parameters for the step.
+    /// * `executor` - An executor to use to execute the step.
+    /// # Returns
+    /// The output of the executor.
     pub async fn run(
         &self,
         parameters: &Parameters,
         executor: &Executor,
-    ) -> Result<Executor::Output, Executor::Error>
+    ) -> Result<Executor::Output, FormatAndExecuteError<Executor::Error>>
     where
         Self: Sized,
     {
-        let prompt = self.format(parameters).unwrap();
-        executor.execute_static(self.options(), &prompt).await // BAD UNWRAP
+        Ok(Frame::new(executor, &self)
+            .format_and_execute(parameters)
+            .await?)
     }
 }
-
-#[derive(thiserror::Error, Debug)]
-#[error("StepError")]
-pub struct StepError;
 
 // Your custom Serialize implementation for Step
 impl<E: traits::Executor> Serialize for Step<E> {
@@ -162,7 +152,6 @@ impl<'de, E: traits::Executor> serde::de::Visitor<'de> for StepVisitor<E> {
             prompt,
             options,
             is_streaming,
-            conversation: None,
         })
     }
 }

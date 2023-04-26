@@ -1,5 +1,4 @@
-use llm_chain::{chains::sequential::Chain, executor, output::Output, prompt};
-use llm_chain_openai::chatgpt::Step;
+use llm_chain::{chains::sequential::Chain, executor, output::Output, prompt, step::Step};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

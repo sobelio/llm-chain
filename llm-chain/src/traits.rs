@@ -15,9 +15,8 @@ use crate::{
     output::Output,
     prompt::Prompt,
     schema::{Document, EmptyMetadata},
-    step::Step,
     tokens::{PromptTokensError, TokenCount, Tokenizer, TokenizerError},
-    Parameters, TextSplitter,
+    TextSplitter,
 };
 use async_trait::async_trait;
 use serde::{de::DeserializeOwned, Serialize};
@@ -60,7 +59,7 @@ pub trait Executor: Sized {
     /// The output type produced by this executor.
     type Output: Output;
     /// The error type produced by this executor.
-    type Error: ExecutorError + Debug + Error + From<crate::step::StepError>;
+    type Error: ExecutorError + Debug + Error;
 
     /// The token type used by this executor.
     type Token: Clone;
@@ -86,35 +85,7 @@ pub trait Executor: Sized {
         Self::new_with_options(None, None)
     }
 
-    #[deprecated(
-        since = "0.7.0",
-        note = "Use new() instead, this call has an unsafe unwrap"
-    )]
-    fn new_with_default() -> Self {
-        Self::new().unwrap()
-    }
-
-    /// Executes the given input and returns the resulting output.
-    ///
-    /// # Parameters
-    ///
-    /// * `input`: The input value to execute, that is the output of the step.
-    ///
-    /// # Returns
-    ///
-    /// The output produced by the executor.
-    #[deprecated(since = "0.8.0", note = "Use execute_static()")]
     async fn execute(
-        &self,
-        step: &Step<Self>,
-        parameters: &Parameters,
-    ) -> Result<Self::Output, Self::Error> {
-        let prompt = step.prompt();
-        let formatted = prompt.format(parameters).unwrap(); // BAD UNWRAP
-        self.execute_static(step.options(), &formatted).await
-    }
-
-    async fn execute_static(
         &self,
         options: Option<&Self::PerInvocationOptions>,
         prompt: &Prompt,

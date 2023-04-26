@@ -46,13 +46,17 @@ impl fmt::Display for ChatRole {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// The `ChatMessage` struct represents a chat message.
+/// It has two fields:
+/// - `role`: The role of the message sender.
+/// - `body`: The body of the message.
 pub struct ChatMessage<Body> {
-    pub role: ChatRole,
-    pub body: Body,
+    role: ChatRole,
+    body: Body,
 }
 
 impl<Body> ChatMessage<Body> {
-    /// Create a new chat message.
+    /// Creates a new chat message.
     ///
     /// # Arguments
     /// * `role` - The role of the message sender.
@@ -61,14 +65,55 @@ impl<Body> ChatMessage<Body> {
         Self { role, body }
     }
 
-    pub fn system(body: Body) -> Self {
-        Self::new(ChatRole::System, body)
+    /// Creates a new chat message with the role of `Assistant`.
+    ///
+    /// # Arguments
+    /// * `body` - The body of the message.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use llm_chain::prompt::{ChatMessage, ChatRole};
+    /// let msg = ChatMessage::assistant("Hello, how can I help you?");
+    ///
+    /// assert_eq!(msg.role(), &ChatRole::Assistant);
+    /// ```
+    pub fn assistant(body: Body) -> Self {
+        Self::new(ChatRole::Assistant, body)
     }
+
+    /// Creates a new chat message with the role of `User`.
+    ///
+    /// # Arguments
+    /// * `body` - The body of the message.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use llm_chain::prompt::{ChatMessage, ChatRole};
+    /// let msg = ChatMessage::user("What's the weather like today?");
+    ///
+    /// assert_eq!(msg.role(), &ChatRole::User);
+    /// ```
     pub fn user(body: Body) -> Self {
         Self::new(ChatRole::User, body)
     }
-    pub fn assistant(body: Body) -> Self {
-        Self::new(ChatRole::Assistant, body)
+
+    /// Creates a new chat message with the role of `System`.
+    ///
+    /// # Arguments
+    /// * `body` - The body of the message.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use llm_chain::prompt::{ChatMessage, ChatRole};
+    /// let msg = ChatMessage::system("Session started.");
+    ///
+    /// assert_eq!(msg.role(), &ChatRole::System);
+    /// ```
+    pub fn system(body: Body) -> Self {
+        Self::new(ChatRole::System, body)
     }
 
     /// Maps the body of the chat message using the provided function `f`.
@@ -83,7 +128,7 @@ impl<Body> ChatMessage<Body> {
     /// let msg = ChatMessage::new(ChatRole::Assistant, "Hello!");
     /// let mapped_msg = msg.map(|body| body.to_uppercase());
     ///
-    /// assert_eq!(mapped_msg.body, "HELLO!");
+    /// assert_eq!(mapped_msg.body(), "HELLO!");
     /// ```
     pub fn map<U, F: FnOnce(&Body) -> U>(&self, f: F) -> ChatMessage<U> {
         let role = self.role.clone();
@@ -93,15 +138,23 @@ impl<Body> ChatMessage<Body> {
         }
     }
 
+    /// Applies a fallible function `f` to the body of the chat message and returns a new chat message
+    /// with the mapped body or an error if the function fails.
+    ///
+    /// # Arguments
+    /// * `f` - The fallible function to apply to the message body.
     pub fn try_map<U, E, F: Fn(&Body) -> Result<U, E>>(&self, f: F) -> Result<ChatMessage<U>, E> {
         let body = f(&self.body)?;
         let role = self.role.clone();
         Ok(ChatMessage { role, body })
     }
 
+    /// Returns a reference to the role of the message sender.
     pub fn role(&self) -> &ChatRole {
         &self.role
     }
+
+    /// Returns a reference to the body of the message.
     pub fn body(&self) -> &Body {
         &self.body
     }
@@ -114,65 +167,94 @@ impl<T: fmt::Display> fmt::Display for ChatMessage<T> {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// A collection of chat messages with various roles (e.g., user, assistant, system).
 pub struct ChatMessageCollection<Body> {
     messages: VecDeque<ChatMessage<Body>>,
 }
 
 impl<Body> ChatMessageCollection<Body> {
-    /// Creates a new empty `ChatMessageList`.
+    /// Creates a new empty `ChatMessageCollection`.
     pub fn new() -> Self {
         ChatMessageCollection {
             messages: VecDeque::new(),
         }
     }
 
+    /// Creates a `ChatMessageCollection` from a given vector of `ChatMessage`.
+    ///
+    /// # Arguments
+    ///
+    /// * `messages` - A vector of `ChatMessage` instances to be included in the collection.
     pub fn for_vector(messages: Vec<ChatMessage<Body>>) -> Self {
         ChatMessageCollection {
             messages: messages.into(),
         }
     }
 
+    /// Adds a system message to the collection with the given body.
+    ///
+    /// # Arguments
+    ///
+    /// * `body` - The message body to be added as a system message.
     pub fn with_system(mut self, body: Body) -> Self {
         self.add_message(ChatMessage::system(body));
         self
     }
 
+    /// Adds a user message to the collection with the given body.
+    ///
+    /// # Arguments
+    ///
+    /// * `body` - The message body to be added as a user message.
     pub fn with_user(mut self, body: Body) -> Self {
         self.add_message(ChatMessage::user(body));
         self
     }
 
+    /// Adds an assistant message to the collection with the given body.
+    ///
+    /// # Arguments
+    ///
+    /// * `body` - The message body to be added as an assistant message.
     pub fn with_assistant(mut self, body: Body) -> Self {
         self.add_message(ChatMessage::assistant(body));
         self
     }
 
-    /// Appends a `ChatMessage` to the list.
+    /// Appends a `ChatMessage` to the collection.
+    ///
+    /// # Arguments
+    ///
+    /// * `message` - The `ChatMessage` instance to be added to the collection.
     pub fn add_message(&mut self, message: ChatMessage<Body>) {
         self.messages.push_back(message);
     }
 
-    /// Removes the first message from the list and returns it, or `None` if the list is empty.
+    /// Removes the first message from the collection and returns it, or `None` if the collection is empty.
     pub fn remove_first_message(&mut self) -> Option<ChatMessage<Body>> {
         self.messages.pop_front()
     }
 
-    /// Returns the number of messages in the list.
+    /// Returns the number of messages in the collection.
     pub fn len(&self) -> usize {
         self.messages.len()
     }
 
     /// Returns a reference to the message at the specified index, or `None` if the index is out of bounds.
+    ///
+    /// # Arguments
+    ///
+    /// * `index` - The index of the desired message in the collection.
     pub fn get_message(&self, index: usize) -> Option<&ChatMessage<Body>> {
         self.messages.get(index)
     }
 
-    /// Returns an iterator over the messages in the list.
+    /// Returns an iterator over the messages in the collection.
     pub fn iter(&self) -> std::collections::vec_deque::Iter<'_, ChatMessage<Body>> {
         self.messages.iter()
     }
 
-    /// Creates a new `ChatMessageList` with the results of applying a function to each `ChatMessage`.
+    /// Creates a new `ChatMessageCollection` with the results of applying a function to each `ChatMessage`.
     ///
     /// # Arguments
     ///
@@ -187,6 +269,12 @@ impl<Body> ChatMessageCollection<Body> {
         }
     }
 
+    /// Creates a new `ChatMessageCollection` by applying a fallible function to each message body
+    /// in the current collection. Returns an error if the function fails for any message.
+    ///
+    /// # Arguments
+    ///
+    /// * `f` - The fallible function to apply to each message body.
     pub fn try_map<U, E, F: Fn(&Body) -> Result<U, E>>(
         &self,
         f: F,
@@ -204,7 +292,7 @@ impl<Body> ChatMessageCollection<Body> {
         })
     }
 
-    /// Trims the conversation to the number of messages by removing the oldest messages.
+    /// Trims the conversation to the specified number of messages by removing the oldest messages.
     ///
     /// # Arguments
     ///
@@ -231,7 +319,20 @@ impl<T: fmt::Display> fmt::Display for ChatMessageCollection<T> {
     }
 }
 
+/// Implementation of `ChatMessageCollection` for `String`.
 impl ChatMessageCollection<String> {
+    /// Trims the conversation context by removing the oldest messages in the collection
+    /// until the total number of tokens in the remaining messages is less than or equal
+    /// to the specified `max_tokens` limit.
+    ///
+    /// # Arguments
+    ///
+    /// * `tokenizer` - An instance of a `Tokenizer` that is used to tokenize the chat message bodies.
+    /// * `max_tokens` - The maximum number of tokens allowed in the trimmed conversation context.
+    ///
+    /// # Returns
+    ///
+    /// A `Result<(), TokenizerError>` indicating success or failure.
     pub fn trim_context<Tok, TT: Clone>(
         &mut self,
         tokenizer: &Tok,
@@ -242,6 +343,8 @@ impl ChatMessageCollection<String> {
     {
         let mut total_tokens = 0;
 
+        // Remove the oldest messages from the collection
+        // until the total tokens are within the limit.
         while let Some(msg) = self.messages.back() {
             let tokens = tokenizer.tokenize_str(&msg.body)?;
             total_tokens += tokens.len();
@@ -256,13 +359,43 @@ impl ChatMessageCollection<String> {
     }
 }
 
+/// Implementation of `ChatMessageCollection` for `StringTemplate`.
 impl ChatMessageCollection<StringTemplate> {
+    /// Adds a user message to the conversation using the specified template string.
+    ///
+    /// # Arguments
+    ///
+    /// * `body` - A template string representing the message body.
+    ///
+    /// # Returns
+    ///
+    /// A modified `ChatMessageCollection` with the new user message added.
     pub fn with_user_template(self, body: &str) -> Self {
         self.with_user(StringTemplate::tera(body))
     }
+
+    /// Adds a system message to the conversation using the specified template string.
+    ///
+    /// # Arguments
+    ///
+    /// * `body` - A template string representing the message body.
+    ///
+    /// # Returns
+    ///
+    /// A modified `ChatMessageCollection` with the new system message added.
     pub fn with_system_template(self, body: &str) -> Self {
         self.with_system(StringTemplate::tera(body))
     }
+
+    /// Adds an assistant message to the conversation using the specified template string.
+    ///
+    /// # Arguments
+    ///
+    /// * `body` - A template string representing the message body.
+    ///
+    /// # Returns
+    ///
+    /// A modified `ChatMessageCollection` with the new assistant message added.
     pub fn with_assistant_template(self, body: &str) -> Self {
         self.with_assistant(StringTemplate::tera(body))
     }

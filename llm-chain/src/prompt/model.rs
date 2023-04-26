@@ -7,7 +7,7 @@ use std::fmt;
 pub enum Data<T> {
     /// A collection of chat messages.
     Chat(ChatMessageCollection<T>),
-    /// A single text.
+    /// A text prompt.
     Text(T),
 }
 
@@ -32,6 +32,16 @@ impl<T> Data<T> {
         }
     }
 
+    /// Maps the body of the chat messages or the text in the `Data` enum using the provided function that might fail.
+    ///
+    /// # Arguments
+    ///
+    /// * `f` - A function that takes a reference to the body of a chat message or the text and returns a `Result<U, E>` value.
+    ///
+    /// # Returns
+    ///
+    /// A `Result<Data<U>, E>` with the body of the chat messages or the text mapped by the provided function.
+    /// If the provided function returns an error, the error will be propagated in the result.
     pub fn try_map<U, E, F: Fn(&T) -> Result<U, E>>(&self, f: F) -> Result<Data<U>, E> {
         match self {
             Self::Chat(chat) => {
@@ -89,6 +99,7 @@ impl<T> From<ChatMessage<T>> for Data<T> {
     }
 }
 
+use crate::frame::FormatAndExecuteError;
 // move to another file
 use crate::prompt::{StringTemplate, StringTemplateError};
 use crate::step::Step;
@@ -99,11 +110,19 @@ use super::chat::ChatMessageCollection;
 use super::{ChatMessage, ChatRole};
 
 impl Data<StringTemplate> {
+    /// Helper function to run a prompt template.
+    ///
+    /// # Arguments
+    /// parameters: &Parameters - The parameters to use for the prompt template.
+    /// executor: &E - The executor to use for the prompt template.
+    ///
+    /// # Returns
+    /// The output of applying the prompt template to the model.
     pub async fn run<E: Executor>(
         &self,
         parameters: &Parameters,
         executor: &E,
-    ) -> Result<E::Output, E::Error> {
+    ) -> Result<E::Output, FormatAndExecuteError<E::Error>> {
         Step::for_prompt_template(self.clone())
             .run(parameters, executor)
             .await

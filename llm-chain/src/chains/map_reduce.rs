@@ -32,8 +32,8 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum MapReduceChainError<Err: ExecutorError> {
     /// An error relating to the operation of the Executor.
-    #[error("ExecutorError: {0}")]
-    ExecutorError(#[from] Err),
+    #[error("FormatAndExecuteError: {0}")]
+    FormatAndExecuteError(#[from] crate::frame::FormatAndExecuteError<Err>),
     /// An error relating to tokenizing the inputs.
     #[error("TokenizeError: {0}")]
     TokenizeError(#[from] crate::tokens::PromptTokensError),
