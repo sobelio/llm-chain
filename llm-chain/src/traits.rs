@@ -21,15 +21,6 @@ use crate::{
 use async_trait::async_trait;
 use serde::{de::DeserializeOwned, Serialize};
 
-/// A no-op. The `StepExt` trait previously extended the functionality of the `Step` trait, providing convenience
-/// methods for working with steps. Now it does nothing.
-#[async_trait]
-#[deprecated(
-    since = "0.7.0",
-    note = "These are now methods on Step. This trait is a no-op now."
-)]
-pub trait StepExt {}
-
 #[derive(thiserror::Error, Debug)]
 #[error("unable to create executor")]
 pub enum ExecutorCreationError {
@@ -41,8 +32,6 @@ pub enum ExecutorCreationError {
 
 /// Marker trait for errors in `Executor` method. It is needed so the concrete Errors can have a derived `From<ExecutorError>`
 pub trait ExecutorError {}
-
-pub trait Input {}
 
 /// The `Options` trait represents an options type that is used to customize the behavior of a step or executor.
 pub trait Options: Clone + Send + Sync + Serialize + DeserializeOwned + Debug {}
