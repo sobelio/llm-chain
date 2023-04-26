@@ -23,7 +23,6 @@
 
 mod context;
 mod executor;
-mod instruct;
 mod options;
 mod output;
 mod text_splitter;
