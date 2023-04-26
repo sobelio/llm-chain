@@ -49,15 +49,6 @@ impl From<StringTemplateImpl> for StringTemplate {
 }
 
 impl StringTemplate {
-    #[deprecated(note = "Use StringTemplate::tera or llm_chain::prompt! instead")]
-    /// Create a new prompt template from a string.
-    pub fn new<K: Into<String>>(template: K) -> Self {
-        Self::legacy(template)
-    }
-    pub fn legacy<K: Into<String>>(template: K) -> Self {
-        StringTemplateImpl::legacy(template).into()
-    }
-
     /// Format the template with the given parameters.
     pub fn format(&self, parameters: &Parameters) -> Result<String, error::StringTemplateError> {
         self.0.format(parameters).map_err(|e| e.into())
@@ -110,12 +101,6 @@ impl StringTemplate {
     }
 }
 
-impl<T: Into<String>> From<T> for StringTemplate {
-    fn from(template: T) -> Self {
-        Self::legacy(template.into())
-    }
-}
-
 impl fmt::Display for StringTemplate {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
@@ -126,23 +111,14 @@ impl fmt::Display for StringTemplate {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 enum StringTemplateImpl {
     Static(String),
-    Legacy(legacy::PromptTemplate),
     Tera(String),
     Combined(Vec<StringTemplateImpl>),
 }
 
 impl StringTemplateImpl {
-    /// Create a new prompt template from a string.
-    pub fn legacy<K: Into<String>>(template: K) -> Self {
-        Self::Legacy(legacy::PromptTemplate::new(template))
-    }
-
     pub fn format(&self, parameters: &Parameters) -> Result<String, StringTemplateErrorImpl> {
         match self {
             Self::Static(template) => Ok(template.clone()),
-            Self::Legacy(template) => template
-                .format(parameters)
-                .map_err(StringTemplateErrorImpl::LegacyTemplateError),
             Self::Tera(template) => tera::render(template, parameters).map_err(|e| e.into()),
             Self::Combined(templates) => {
                 let mut result = String::new();
@@ -172,7 +148,6 @@ impl fmt::Display for StringTemplateImpl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Static(s) => write!(f, "{}", s),
-            Self::Legacy(template) => write!(f, "{}", template),
             Self::Tera(template) => write!(f, "{}", template),
             Self::Combined(templates) => {
                 for template in templates {
