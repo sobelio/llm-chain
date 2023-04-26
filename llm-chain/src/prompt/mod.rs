@@ -1,7 +1,7 @@
 //! Module implementing prompts and prompt templates.
 //! Contains the `prompt!` macro, Prompts and PromptTemplates.
 
-pub mod chat;
+mod chat;
 mod model;
 mod string_template;
 

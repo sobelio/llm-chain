@@ -1,26 +1,22 @@
 use async_openai::types::{ChatCompletionRequestMessage, CreateChatCompletionRequest, Role};
 use llm_chain::{
-    prompt::Prompt,
-    prompt::{
-        chat::ChatRole,
-        chat::{self},
-    },
-    prompt::{ChatMessageCollection, StringTemplateError},
+    prompt::StringTemplateError,
+    prompt::{self, Prompt},
 };
 
 use super::Model;
 
-fn convert_role(role: &chat::ChatRole) -> Role {
+fn convert_role(role: &prompt::ChatRole) -> Role {
     match role {
-        ChatRole::User => Role::User,
-        ChatRole::Assistant => Role::Assistant,
-        ChatRole::System => Role::System,
-        ChatRole::Other(_s) => Role::User, // other roles are not supported by OpenAI
+        prompt::ChatRole::User => Role::User,
+        prompt::ChatRole::Assistant => Role::Assistant,
+        prompt::ChatRole::System => Role::System,
+        prompt::ChatRole::Other(_s) => Role::User, // other roles are not supported by OpenAI
     }
 }
 
 fn format_chat_message(
-    message: &chat::ChatMessage<String>,
+    message: &prompt::ChatMessage<String>,
 ) -> Result<ChatCompletionRequestMessage, StringTemplateError> {
     let role = convert_role(message.role());
     let content = message.body().to_string();
@@ -32,7 +28,7 @@ fn format_chat_message(
 }
 
 pub fn format_chat_messages(
-    messages: ChatMessageCollection<String>,
+    messages: prompt::ChatMessageCollection<String>,
 ) -> Result<Vec<ChatCompletionRequestMessage>, StringTemplateError> {
     messages.iter().map(format_chat_message).collect()
 }

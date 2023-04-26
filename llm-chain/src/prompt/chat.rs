@@ -27,7 +27,7 @@ impl fmt::Display for ChatRole {
     /// # Examples
     ///
     /// ```
-    /// use llm_chain::prompt::chat::ChatRole;
+    /// use llm_chain::prompt::ChatRole;
     ///
     /// let user_role = ChatRole::User;
     /// let assistant_role = ChatRole::Assistant;
