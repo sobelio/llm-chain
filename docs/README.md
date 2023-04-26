@@ -17,12 +17,13 @@ let res = prompt!(
     "You are a robot assistant for making personalized greetings",
     "Make a personalized greeting for Joe"
 )
-.run(&Parameters::new(), &exec)
+.run(parameters()!, &exec)
 .await?;
 println!("{}", res);
 ```
 
 [➡️ **tutorial: get started with llm-chain**](https://sobelio.github.io/llm-chain/docs/getting-started-tutorial/index)
+[➡️ **quick-start**: Create project based on our template](https://github.com/sobelio/llm-chain-template/generate)
 
 ## Features 🌟
 
@@ -41,8 +42,8 @@ To start using `llm-chain`, add it as a dependency in your `Cargo.toml`:
 
 ```toml
 [dependencies]
-llm-chain = "0.1.0"
-llm-chain-openai = "0.1.0
+llm-chain = "0.8.0"
+llm-chain-openai = "0.8.0
 ```
 
 The examples for `llm-chain-openai` require you to set the `OPENAI_API_KEY` environment variable which you can do like this:
