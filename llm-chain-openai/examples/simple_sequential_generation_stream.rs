@@ -10,7 +10,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Second step is streaming
     let chain = Chain::new(vec![
         // First step: make a personalized birthday email
-        Step::for_prompt(
+        Step::for_prompt_template(
             prompt!("You are a bot for making personalized greetings", "Make personalized birthday e-mail to the whole company for {{name}} who has their birthday on {{date}}. Include their name")
         ),
 

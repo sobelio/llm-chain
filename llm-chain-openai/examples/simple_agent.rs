@@ -1,13 +1,13 @@
-use llm_chain::executor;
+
 
 use async_trait::async_trait;
-use llm_chain::output::Output;
-use llm_chain::parameters;
-use llm_chain::prompt::chat::{ChatMessage, ChatPrompt, ChatRole};
-use llm_chain::prompt::StringTemplate;
-use llm_chain::tools::ToolCollection;
+
+
+
+
+
 use llm_chain::tools::{Tool, ToolDescription, ToolError};
-use llm_chain::traits::Executor as ExecutorTrait;
+
 
 use llm_chain::multitool;
 use llm_chain::tools::tools::{
@@ -15,7 +15,7 @@ use llm_chain::tools::tools::{
     ExitToolOutput,
 };
 
-use llm_chain_openai::chatgpt::Step;
+
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -37,6 +37,7 @@ multitool!(
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /*
     let mut tool_collection = ToolCollection::<MyMultitool>::new();
     tool_collection.add_tool(BashTool::new().into());
     tool_collection.add_tool(ExitTool::new().into());
@@ -84,6 +85,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .add_message(ChatMessage::from_template(ChatRole::User, next_step))
             .build()
             .unwrap();
-    }
+    } */
     Ok(())
 }

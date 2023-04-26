@@ -1,14 +1,16 @@
 use async_openai::types::{ChatCompletionRequestMessage, CreateChatCompletionRequest, Role};
 use llm_chain::{
-    prompt::chat::{self, ChatRole},
     prompt::Prompt,
-    prompt::StringTemplateError,
-    Parameters,
+    prompt::{
+        chat::ChatRole,
+        chat::{self},
+    },
+    prompt::{ChatMessageCollection, StringTemplateError},
 };
 
 use super::Model;
 
-fn convert_role(role: chat::ChatRole) -> Role {
+fn convert_role(role: &chat::ChatRole) -> Role {
     match role {
         ChatRole::User => Role::User,
         ChatRole::Assistant => Role::Assistant,
@@ -18,11 +20,10 @@ fn convert_role(role: chat::ChatRole) -> Role {
 }
 
 fn format_chat_message(
-    message: chat::ChatMessage,
-    parameters: &Parameters,
+    message: &chat::ChatMessage<String>,
 ) -> Result<ChatCompletionRequestMessage, StringTemplateError> {
     let role = convert_role(message.role());
-    let content = message.content().format(parameters)?;
+    let content = message.body().to_string();
     Ok(ChatCompletionRequestMessage {
         role,
         content,
@@ -31,22 +32,17 @@ fn format_chat_message(
 }
 
 fn format_chat_messages(
-    messages: Vec<chat::ChatMessage>,
-    parameters: &Parameters,
+    messages: ChatMessageCollection<String>,
 ) -> Result<Vec<ChatCompletionRequestMessage>, StringTemplateError> {
-    messages
-        .into_iter()
-        .map(|m| format_chat_message(m, parameters))
-        .collect()
+    messages.iter().map(format_chat_message).collect()
 }
 
 pub fn create_chat_completion_request(
     model: &Model,
     prompt: &Prompt,
-    parameters: &Parameters,
     is_streaming: Option<bool>,
 ) -> Result<CreateChatCompletionRequest, StringTemplateError> {
-    let messages = format_chat_messages(prompt.as_chat_prompt(), parameters)?;
+    let messages = format_chat_messages(prompt.to_chat())?;
     Ok(CreateChatCompletionRequest {
         model: model.to_string(),
         messages,

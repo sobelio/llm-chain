@@ -4,6 +4,7 @@ use super::prompt::create_chat_completion_request;
 use super::Model;
 use super::OpenAITextSplitter;
 use async_openai::error::OpenAIError;
+use llm_chain::prompt::Prompt;
 use llm_chain::prompt::StringTemplateError;
 use llm_chain::step::{Step, StepError};
 use llm_chain::tokens::PromptTokensError;
@@ -42,11 +43,14 @@ impl Executor {
         }
     }
 
-    fn get_model_from_step(&self, step: &Step<Self>) -> Model {
-        step.options()
-            .or(self.per_invocation_options.as_ref())
+    fn get_model_from_invocation_options(&self, opts: Option<&PerInvocation>) -> Model {
+        opts.or(self.per_invocation_options.as_ref())
             .and_then(|opts| opts.model.clone())
             .unwrap_or_default()
+    }
+
+    fn get_model_from_step(&self, step: &Step<Self>) -> Model {
+        self.get_model_from_invocation_options(step.options())
     }
 }
 
@@ -88,23 +92,16 @@ impl traits::Executor for Executor {
         })
     }
 
-    async fn execute(
+    async fn execute_static(
         &self,
-        step: &Step<Self>,
-        parameters: &Parameters,
+        opts: Option<&PerInvocation>,
+        prompt: &Prompt,
     ) -> Result<Self::Output, Self::Error> {
         let client = self.client.clone();
-        let model = self.get_model_from_step(step);
-        let is_streaming = step.is_streaming();
-        let input =
-            create_chat_completion_request(&model, step.prompt(), parameters, is_streaming)?;
-        if let Some(true) = is_streaming {
-            let res = async move { client.chat().create_stream(input).await }.await?;
-            Ok(res.into())
-        } else {
-            let res = async move { client.chat().create(input).await }.await?;
-            Ok(res.into())
-        }
+        let model = self.get_model_from_invocation_options(opts);
+        let input = create_chat_completion_request(&model, prompt, None).unwrap();
+        let res = async move { client.chat().create(input).await }.await?;
+        Ok(res.into())
     }
 
     fn tokens_used(
@@ -115,15 +112,13 @@ impl traits::Executor for Executor {
         let model = self.get_model_from_step(step);
         let model_s = model.to_string();
         let max_tokens = self.max_tokens_allowed(step);
-        let prompt = step.prompt();
+        let prompt = step.prompt().format(parameters)?;
         let is_streaming = step.is_streaming();
-        let completion_req =
-            create_chat_completion_request(&model, prompt, parameters, is_streaming)?;
+        let completion_req = create_chat_completion_request(&model, &prompt, is_streaming)?;
         // This approach will break once we add support for non-string valued parameters.
         let prompt_with_empty_params = create_chat_completion_request(
             &model,
-            prompt,
-            &parameters.with_placeholder_values(),
+            &step.format(&parameters.with_placeholder_values())?,
             is_streaming,
         )?;
 

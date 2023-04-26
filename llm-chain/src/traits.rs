@@ -13,6 +13,7 @@ use std::{error::Error, fmt::Debug};
 
 use crate::{
     output::Output,
+    prompt::Prompt,
     schema::{Document, EmptyMetadata},
     step::Step,
     tokens::{PromptTokensError, TokenCount, Tokenizer, TokenizerError},
@@ -102,10 +103,21 @@ pub trait Executor: Sized {
     /// # Returns
     ///
     /// The output produced by the executor.
+    #[deprecated(since = "0.8.0", note = "Use execute_static()")]
     async fn execute(
         &self,
         step: &Step<Self>,
         parameters: &Parameters,
+    ) -> Result<Self::Output, Self::Error> {
+        let prompt = step.prompt();
+        let formatted = prompt.format(parameters).unwrap(); // BAD UNWRAP
+        self.execute_static(step.options(), &formatted).await
+    }
+
+    async fn execute_static(
+        &self,
+        options: Option<&Self::PerInvocationOptions>,
+        prompt: &Prompt,
     ) -> Result<Self::Output, Self::Error>;
 
     /// Calculates the number of tokens used by the step given a set of parameters.

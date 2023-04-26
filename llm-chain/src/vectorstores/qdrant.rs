@@ -162,7 +162,6 @@ where
         let embedding_vecs = self.embeddings.embed_texts(texts.clone()).await?;
 
         let ids = (0..embedding_vecs.len())
-            .into_iter()
             .map(|_| Uuid::new_v4().to_string())
             .collect::<Vec<String>>();
         let points = embedding_vecs
@@ -190,7 +189,6 @@ where
         let embedding_vecs = self.embeddings.embed_texts(texts).await?;
 
         let ids = (0..embedding_vecs.len())
-            .into_iter()
             .map(|_| Uuid::new_v4().to_string())
             .collect::<Vec<String>>();
 

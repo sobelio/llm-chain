@@ -12,7 +12,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     path.push("chain-from-yaml.yaml");
     let path = path.to_str().unwrap();
 
-    let chain_to_write: Chain<Executor> = Step::for_prompt(prompt!(
+    let chain_to_write: Chain<Executor> = Step::for_prompt_template(prompt!(
         "You are a bot for making personalized greetings",
         "Make a personalized greet for Joe"
     ))

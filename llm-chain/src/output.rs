@@ -4,7 +4,7 @@
 use async_trait::async_trait;
 use futures::stream::StreamExt;
 
-use crate::prompt::chat::ChatRole;
+use crate::prompt::ChatRole;
 
 /// Separator string used when joining primary textual outputs.
 const OUTPUT_JOINER_SEQUENCE: &str = "\n";

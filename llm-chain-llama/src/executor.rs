@@ -7,7 +7,7 @@ use crate::LLamaTextSplitter;
 use crate::output::Output;
 use async_trait::async_trait;
 
-use llm_chain::prompt::StringTemplateError;
+use llm_chain::prompt::{Prompt, StringTemplateError};
 use llm_chain::step::{Step, StepError};
 use llm_chain::tokens::{PromptTokensError, TokenCount};
 use llm_chain::tokens::{Tokenizer, TokenizerError};
@@ -168,20 +168,16 @@ impl ExecutorTrait for Executor {
         })
     }
     // Executes the model asynchronously and returns the output.
-    async fn execute(
+    async fn execute_static(
         &self,
-        step: &Step<Self>,
-        parameters: &Parameters,
+        options: Option<&Self::PerInvocationOptions>,
+        prompt: &Prompt,
     ) -> Result<Self::Output, Self::Error> {
-        let config = match step.options() {
+        let config = match options {
             Some(options) => options.clone(),
             None => self.invocation_options.clone().unwrap_or_default(),
         };
-        let formatted_prompts = step
-            .prompt()
-            .as_text_prompt_or_convert()
-            .format(parameters)?;
-        let invocation = config.to_invocation(&formatted_prompts);
+        let invocation = config.to_invocation(&prompt.to_text());
         Ok(self.run_model(invocation))
     }
 
@@ -193,9 +189,9 @@ impl ExecutorTrait for Executor {
         let tokenizer = self.get_tokenizer(step)?;
         let input = step
             .prompt()
-            .as_text_prompt_or_convert()
             .format(parameters)
-            .map_err(|_| PromptTokensError::UnableToCompute)?;
+            .map_err(|_| PromptTokensError::UnableToCompute)?
+            .to_text();
 
         let tokens_used = tokenizer
             .tokenize_str(&input)
@@ -204,9 +200,9 @@ impl ExecutorTrait for Executor {
 
         let input_with_empty_params = step
             .prompt()
-            .as_text_prompt_or_convert()
             .format(&parameters.with_placeholder_values())
-            .map_err(|_| PromptTokensError::UnableToCompute)?;
+            .map_err(|_| PromptTokensError::UnableToCompute)?
+            .to_text();
 
         let template_tokens_used = tokenizer
             .tokenize_str(&input_with_empty_params)

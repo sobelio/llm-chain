@@ -1,10 +1,10 @@
 use llm_chain::executor;
-use llm_chain::prompt::StringTemplate;
+use llm_chain::prompt::{ChatMessageCollection, StringTemplate};
 use std::sync::Arc;
 
 use async_trait::async_trait;
 use llm_chain::output::Output;
-use llm_chain::prompt::chat::{ChatMessage, ChatPrompt, ChatRole};
+
 use llm_chain::schema::{Document, EmptyMetadata};
 use llm_chain::tools::tools::{
     BashTool, VectorStoreTool, VectorStoreToolError, VectorStoreToolInput, VectorStoreToolOutput,
@@ -151,20 +151,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .into(),
     );
 
-    let template = StringTemplate::combine(vec![
-        tool_collection.to_prompt_template().unwrap(),
-        StringTemplate::legacy("Please perform the following task: {{task}}."),
-    ]);
-
     let task = "Tell me something about dogs";
 
-    let prompt = ChatPrompt::builder()
-        .system("You are an automated agent for performing tasks. Your output must always be YAML.")
-        .add_message(ChatMessage::from_template(ChatRole::User, template))
-        .build()
-        .unwrap();
+    let prompt = ChatMessageCollection::new()
+        .with_system(StringTemplate::tera(
+            "You are an automated agent for performing tasks. Your output must always be YAML.",
+        ))
+        .with_user(StringTemplate::combine(vec![
+            tool_collection.to_prompt_template().unwrap(),
+            StringTemplate::legacy("Please perform the following task: {{task}}."),
+        ]));
 
-    let result = Step::for_prompt(prompt.into())
+    let result = Step::for_prompt_template(prompt.into())
         .run(&parameters!("task" => task), &exec)
         .await
         .unwrap();
