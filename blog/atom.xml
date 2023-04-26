@@ -2,11 +2,30 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://docs.llm-chain.xyz/blog</id>
     <title>llm-chain Blog</title>
-    <updated>2023-04-17T00:00:00.000Z</updated>
+    <updated>2023-04-26T00:00:00.000Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://docs.llm-chain.xyz/blog"/>
     <subtitle>llm-chain Blog</subtitle>
     <icon>https://docs.llm-chain.xyz/img/favicon.ico</icon>
+    <entry>
+        <title type="html"><![CDATA[Introducing LLM-chain v0.8.0 - Expanding the prompt system]]></title>
+        <id>https://docs.llm-chain.xyz/blog/introducing-llm-chain-v080</id>
+        <link href="https://docs.llm-chain.xyz/blog/introducing-llm-chain-v080"/>
+        <updated>2023-04-26T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[We're excited to announce the release of llm-chain v0.8.0, a significant update to our LLM library. This release introduces a host of improvements and new features, including a completely revamped Prompt system and more streamlined handling of Parameters. Let's dive into the details!]]></summary>
+        <content type="html"><![CDATA[<p>We're excited to announce the release of llm-chain v0.8.0, a significant update to our LLM library. This release introduces a host of improvements and new features, including a completely revamped Prompt system and more streamlined handling of Parameters. Let's dive into the details!</p><h2 class="anchor anchorWithStickyNavbar_LWe7" id="revamped-prompt-system">Revamped Prompt System<a href="#revamped-prompt-system" class="hash-link" aria-label="Direct link to Revamped Prompt System" title="Direct link to Revamped Prompt System">​</a></h2><p>Our new Prompt system has been redesigned from the ground up to provide greater flexibility and efficiency in working with language models. In llm-chain v0.8.0, we've introduced new structs and enums to better represent chat messages and their roles, such as ChatMessage, ChatMessageCollection, and ChatRole. The Data enum has also been introduced to represent either a collection of chat messages or a single text, making it easier to work with different types of data.</p><p>Furthermore, we've created a more powerful PromptTemplate system that allows you to format prompts with a set of parameters. This enables you to dynamically generate prompts for your language models without the need for cumbersome string manipulation.</p><h2 class="anchor anchorWithStickyNavbar_LWe7" id="executors-no-longer-handle-parameters">Executors No Longer Handle Parameters<a href="#executors-no-longer-handle-parameters" class="hash-link" aria-label="Direct link to Executors No Longer Handle Parameters" title="Direct link to Executors No Longer Handle Parameters">​</a></h2><p>With the release of llm-chain v0.8.0, we've shifted the responsibility of handling Parameters from the executors to the main llm-chain crate. This change simplifies the process of working with executors, allowing developers to focus more on the core functionality of their language models.</p><h2 class="anchor anchorWithStickyNavbar_LWe7" id="whats-next">What's Next?<a href="#whats-next" class="hash-link" aria-label="Direct link to What's Next?" title="Direct link to What's Next?">​</a></h2><p>This release marks a significant step forward in the evolution. However, we're not stopping here! We'll continue to refine and expand the capabilities of llm-chain, making it even more powerful and user-friendly.</p><p>We encourage you to check out llm-chain v0.8.0 and experience the benefits of the improved Prompt system and streamlined handling of Parameters. As always, we appreciate your feedback and contributions to help make llm-chain the best language model library out there.</p><p>Upgrade to llm-chain v0.8.0 today and take your language models to the next level!</p>]]></content>
+        <author>
+            <name>will rudenmalm</name>
+            <uri>https://github.com/williamhogman</uri>
+        </author>
+        <category label="llm-chain" term="llm-chain"/>
+        <category label="update" term="update"/>
+        <category label="large language models" term="large language models"/>
+        <category label="rust" term="rust"/>
+        <category label="tera" term="tera"/>
+        <category label="templating" term="templating"/>
+        <category label="prompt system" term="prompt system"/>
+    </entry>
     <entry>
         <title type="html"><![CDATA[Introducing LLM-chain v0.6.0: Powerful Templating and Improved Prompt System]]></title>
         <id>https://docs.llm-chain.xyz/blog/introducing-llm-chain-v060</id>
