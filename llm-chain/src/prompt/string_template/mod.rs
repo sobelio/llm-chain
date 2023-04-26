@@ -1,4 +1,3 @@
-mod legacy;
 mod tera;
 
 mod error;
