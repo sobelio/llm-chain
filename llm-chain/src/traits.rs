@@ -112,7 +112,7 @@ pub trait Executor: Sized {
     /// Creates a tokenizer, depending on the model used by `step`.
     ///
     /// # Parameters
-    ///    
+    ///
     /// * `step`: The step to get an associated tokenizer for.
     ///
     /// # Returns

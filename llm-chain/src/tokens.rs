@@ -93,7 +93,7 @@ impl TokenCount {
     }
 
     /// Returns the number of tokens that could be added to the context window.
-    fn tokens_remaining(&self) -> i32 {
+    pub fn tokens_remaining(&self) -> i32 {
         self.max_tokens - self.tokens_used
     }
 
@@ -142,7 +142,7 @@ pub trait Tokenizer<TokenType: Clone> {
     /// Tokenizes a string.
     ///
     /// # Parameters
-    ///    
+    ///
     /// * `doc`: The string to tokenize.
     ///
     /// # Returns
@@ -153,7 +153,7 @@ pub trait Tokenizer<TokenType: Clone> {
     /// Converts a vector of tokens into a string.
     ///
     /// # Parameters
-    ///    
+    ///
     /// * `tokens`: The slice of tokens to convert.
     ///
     /// # Returns

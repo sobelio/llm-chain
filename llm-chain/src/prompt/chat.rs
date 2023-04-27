@@ -221,6 +221,14 @@ impl<Body> ChatMessageCollection<Body> {
         self
     }
 
+    /// Appends another ChatMessageCollection to this one
+    ///
+    /// # Arguments
+    /// - `other` - The other ChatMessageCollection to append to this one
+    pub fn append(&mut self, other: ChatMessageCollection<Body>) {
+        self.messages.extend(other.messages);
+    }
+
     /// Appends a `ChatMessage` to the collection.
     ///
     /// # Arguments
@@ -336,19 +344,18 @@ impl ChatMessageCollection<String> {
     pub fn trim_context<Tok, TT: Clone>(
         &mut self,
         tokenizer: &Tok,
-        max_tokens: usize,
+        max_tokens: i32,
     ) -> Result<(), TokenizerError>
     where
         Tok: Tokenizer<TT>,
     {
-        let mut total_tokens = 0;
+        let mut total_tokens: i32 = 0;
 
         // Remove the oldest messages from the collection
         // until the total tokens are within the limit.
         while let Some(msg) = self.messages.back() {
             let tokens = tokenizer.tokenize_str(&msg.body)?;
-            total_tokens += tokens.len();
-
+            total_tokens += tokens.len() as i32;
             if total_tokens > max_tokens {
                 self.messages.pop_back();
             } else {
