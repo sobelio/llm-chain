@@ -79,6 +79,37 @@ impl Data<String> {
             Self::Chat(chat) => chat.to_string(),
         }
     }
+
+    /// Combines two `Data` values into one.
+    ///
+    /// If both values are `Chat`, the two chat collections will be combined.
+    /// If one value is `Chat` and the other is `Text`, the text will be added as a message to the chat collection.
+    ///
+    /// # Arguments
+    /// - `other` - The other `Data` value to combine with.
+    pub fn combine(&self, other: &Self) -> Self {
+        match (self, other) {
+            (Self::Chat(chat1), Self::Chat(chat2)) => {
+                let mut chat = chat1.clone();
+                chat.append(chat2.clone());
+                Self::Chat(chat)
+            }
+            (Self::Chat(chat), Self::Text(text)) => {
+                let mut chat = chat.clone();
+                chat.add_message(ChatMessage::new(ChatRole::User, text.clone()));
+                Self::Chat(chat)
+            }
+            (Self::Text(text), Self::Chat(chat)) => {
+                let mut chat = chat.clone();
+                chat.add_message(ChatMessage::new(ChatRole::User, text.clone()));
+                Self::Chat(chat)
+            }
+            (Self::Text(text1), Self::Text(text2)) => {
+                let combined_text = format!("{}\n\n{}", text1, text2);
+                Self::Text(combined_text)
+            }
+        }
+    }
 }
 
 impl<T> From<T> for Data<T> {
@@ -100,7 +131,6 @@ impl<T> From<ChatMessage<T>> for Data<T> {
 }
 
 use crate::frame::FormatAndExecuteError;
-// move to another file
 use crate::prompt::{StringTemplate, StringTemplateError};
 use crate::step::Step;
 use crate::traits::Executor;
