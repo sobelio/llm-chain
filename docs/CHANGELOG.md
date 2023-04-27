@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+## [0.8.1] 2023-04-27
+
+### Added
+- Conversational chain type, easily build bots that accumulate messages in a conversation.
+
 ## [0.8.0] 2023-04-26
 
 ### Added
