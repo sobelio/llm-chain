@@ -1106,6 +1106,7 @@ dependencies = [
 name = "llm-chain-openai"
 version = "0.8.2"
 dependencies = [
+ "anyhow",
  "async-openai",
  "async-trait",
  "futures",
