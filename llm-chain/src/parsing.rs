@@ -195,12 +195,12 @@ pub fn find_yaml<T: DeserializeOwned>(text: &str) -> Result<Vec<T>, ExtractionEr
 /// # Examples
 ///
 /// ```
-/// use llm_chain::parsing::extract_labels;
+/// use llm_chain::parsing::extract_labeled_text;
 /// let data = "
 /// - alpha: beta
 /// - *gamma*: delta
 /// ";
-/// let labs = extract_labels(data);
+/// let labs = extract_labeled_text(data);
 /// println!("{:?}", labs);
 /// assert_eq!(labs[0], ("alpha".to_string(), "beta".to_string()));
 /// ```
