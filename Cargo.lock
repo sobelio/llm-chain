@@ -1061,7 +1061,7 @@ checksum = "36eb31c1778188ae1e64398743890d0877fef36d11521ac60406b42016e8c2cf"
 
 [[package]]
 name = "llm-chain"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1082,7 +1082,7 @@ dependencies = [
 
 [[package]]
 name = "llm-chain-llama"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1095,14 +1095,14 @@ dependencies = [
 
 [[package]]
 name = "llm-chain-llama-sys"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "bindgen",
 ]
 
 [[package]]
 name = "llm-chain-openai"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "async-openai",
  "async-trait",
