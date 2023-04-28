@@ -10,11 +10,12 @@
 //! With these functions, you can easily work with the outputs of LLMs, simplifying the process of integrating LLMs into your applications and workflows.
 
 use markdown::{
-    mdast::{Code, Node},
+    mdast::{Code, Node, Text},
     to_mdast, ParseOptions,
 };
 use serde::de::DeserializeOwned;
 use serde_yaml::Value;
+use std::collections::VecDeque;
 use thiserror::Error;
 
 /// Errors occuring when parsing
@@ -145,7 +146,7 @@ pub fn find_yaml<T: DeserializeOwned>(text: &str) -> Result<Vec<T>, ExtractionEr
     // Nodes to visit.
     let mut nodes = vec![ast];
 
-    let mut found: Vec<T> = Vec::new();
+    let mut found: VecDeque<_> = VecDeque::new();
     while let Some(node) = nodes.pop() {
         if let Some(children) = node.children() {
             children.iter().for_each(|child| nodes.push(child.clone()));
@@ -158,7 +159,7 @@ pub fn find_yaml<T: DeserializeOwned>(text: &str) -> Result<Vec<T>, ExtractionEr
                 "yaml" | "yml" | "json" | "" => {
                     let code_block = value.as_str();
                     match extract_yaml(code_block) {
-                        Ok(o) => found.push(o),
+                        Ok(o) => found.push_front(o),
                         Err(e) => {
                             current_error =
                                 ExtractionErrorImpl::most_representative(current_error, e)
@@ -170,8 +171,140 @@ pub fn find_yaml<T: DeserializeOwned>(text: &str) -> Result<Vec<T>, ExtractionEr
         }
     }
     if !found.is_empty() {
-        Ok(found)
+        Ok(found.into())
     } else {
         Err(current_error.into())
     }
+}
+
+/// Extracts labeled text from markdown
+///
+/// LLMs often generate text that looks something like this
+/// ```markdown
+/// - *foo*: bar
+/// - hello: world
+/// ```
+/// Which we want to parse as key value pairs (foo, bar), (hello, world).
+///
+/// # Parameters
+/// - `text` the text to parse
+///
+/// # Returns
+/// Vec<(String, String)> A vector of key value pairs.
+///
+/// # Examples
+///
+/// ```
+/// use llm_chain::parsing::extract_labeled_text;
+/// let data = "
+/// - alpha: beta
+/// - *gamma*: delta
+/// ";
+/// let labs = extract_labeled_text(data);
+/// println!("{:?}", labs);
+/// assert_eq!(labs[0], ("alpha".to_string(), "beta".to_string()));
+/// ```
+pub fn extract_labeled_text(text: &str) -> Vec<(String, String)> {
+    let options = ParseOptions::default();
+    let ast = to_mdast(text, &options).expect("markdown parsing can't fail");
+    let mut nodes = VecDeque::new();
+    nodes.push_back(ast);
+    let mut extracted_labels = Vec::new();
+
+    while let Some(node) = nodes.pop_front() {
+        let found = match &node {
+            Node::Text(Text { value, .. }) => extract_label_and_text(value.to_owned())
+                .map(|(label, text)| (label.to_owned(), text.to_owned())),
+            Node::Paragraph(_) | Node::ListItem(_) => {
+                find_labeled_text(&node).map(|(label, text)| (label.to_owned(), text.to_owned()))
+            }
+            _ => None,
+        };
+        if let Some(kv) = found {
+            // If found push to found
+            extracted_labels.push(kv)
+        } else if let Some(children) = node.children() {
+            // If not found recur into it.
+            let mut index = 0;
+            for child in children.iter().cloned() {
+                nodes.insert(index, child);
+                index += 1;
+            }
+        }
+    }
+    extracted_labels
+}
+
+/// Finds labeled text
+///
+/// This function looks for patterns such as `**label**: text.
+///
+/// Returns an option indicating whether a label was found, and if so, the label and text.
+fn find_labeled_text(n: &Node) -> Option<(String, String)> {
+    if let Node::Text(Text { value, .. }) = n {
+        extract_label_and_text(value.to_owned())
+    } else {
+        let children = n.children()?;
+        // There should be exactly two children...
+        if children.len() == 2 {
+            let key = children
+                .get(0)
+                .map(inner_text)
+                .map(format_key)
+                .filter(|k| !k.is_empty());
+            let value = children.get(1).map(inner_text).map(format_value);
+            key.and_then(|key| value.map(|value| (key, value)))
+        } else {
+            None
+        }
+    }
+}
+
+fn extract_label_and_text(text: String) -> Option<(String, String)> {
+    let value_split: Vec<&str> = text.splitn(2, ':').collect();
+
+    if value_split.len() == 2 {
+        let label = value_split[0].trim().to_string();
+        if label.is_empty() {
+            return None;
+        }
+        let text = value_split[1].trim().to_string();
+        Some((label, text))
+    } else {
+        None
+    }
+}
+
+/// Returns the inner text
+fn inner_text(n: &Node) -> String {
+    if let Node::Text(Text { value, .. }) = n {
+        return value.to_owned();
+    }
+    let mut deq = VecDeque::new();
+    deq.push_back(n.clone());
+    let mut text = String::new();
+    while let Some(node) = deq.pop_front() {
+        if let Some(children) = node.children() {
+            deq.extend(children.iter().cloned());
+        }
+        if let Node::Text(Text { value, .. }) = node {
+            text.push_str(value.as_str());
+        }
+    }
+    text
+}
+
+// Formats the key trimming it and remvove a potential ":" suffix
+fn format_key(s: String) -> String {
+    let key = s.trim();
+    key.strip_suffix(":").unwrap_or(key).to_owned()
+}
+
+// Formats the value trimming, stripping potential ":" and then retrimming the start
+fn format_value(s: String) -> String {
+    s.trim()
+        .strip_prefix(":")
+        .unwrap_or(&s)
+        .trim_start()
+        .to_owned()
 }
