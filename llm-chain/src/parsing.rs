@@ -204,22 +204,6 @@ pub fn find_yaml<T: DeserializeOwned>(text: &str) -> Result<Vec<T>, ExtractionEr
 /// println!("{:?}", labs);
 /// assert_eq!(labs[0], ("alpha".to_string(), "beta".to_string()));
 /// ```
-///
-/// # Examples
-///
-/// ```
-/// use llm_chain::parsing::extract_labels;
-///
-/// assert_eq!(extract_labels(text), );
-/// ```
-///
-/// # Examples
-///
-/// ```
-/// use llm_chain::parsing::extract_labeled_text;
-///
-/// assert_eq!(extract_labels(text), );
-/// ```
 pub fn extract_labeled_text(text: &str) -> Vec<(String, String)> {
     let options = ParseOptions::default();
     let ast = to_mdast(text, &options).expect("markdown parsing can't fail");
