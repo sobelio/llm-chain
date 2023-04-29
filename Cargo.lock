@@ -1113,7 +1113,6 @@ dependencies = [
  "llm-chain",
  "qdrant-client",
  "serde",
- "serde_yaml",
  "thiserror",
  "tiktoken-rs",
  "tokio",

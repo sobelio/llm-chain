@@ -23,3 +23,4 @@
 
 pub mod chatgpt;
 pub mod embeddings;
+pub mod self_ask_with_search;
