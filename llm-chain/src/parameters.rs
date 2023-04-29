@@ -28,9 +28,7 @@ type Map = BTreeMap<String, Box<dyn ParamFull>>;
 /// assert_eq!(p.get("text").unwrap().as_str(), "Hello world!");
 /// assert_eq!(p.get("name").unwrap().as_str(), "John Doe");
 /// ```
-///
-///
-#[derive(Default, Debug)]
+#[derive(Clone, Default, Debug, PartialEq)]
 pub struct Parameters {
     map: Map,
 }
