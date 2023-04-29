@@ -46,6 +46,17 @@ impl<E: traits::Executor> Chain<E> {
             })?)
     }
 
+    /// Constructs a new `Chain` with the given conversation state by passing a ChatMessageCollection<String> (clone).
+    /// Self,
+    /// # Arguments
+    /// * `state` - The initial prompt state to use.
+    pub fn new_with_message_collection(state: &ChatMessageCollection<String>) -> Chain<E> {
+        Self {
+            state: state.clone(),
+            _phantom: std::marker::PhantomData,
+        }
+    }
+
     /// Sends a message to the LLM and returns the response.
     ///
     /// This method sends a message to the LLM, adding it and the response to the internal state.
@@ -84,7 +95,7 @@ impl<E: traits::Executor> Chain<E> {
         prompt: &Prompt,
         exec: &E,
     ) -> Result<E::Output, Error<E::Error>> {
-        let tok = exec.tokens_used(options, &prompt)?;
+        let tok = exec.tokens_used(options, prompt)?;
         let tokens_remaining = tok.tokens_remaining();
         let tokenizer = exec.get_tokenizer(options)?;
         self.state.trim_context(&tokenizer, tokens_remaining)?;
