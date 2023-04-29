@@ -10,14 +10,16 @@ pub struct ToolCollection<T> {
 
 #[derive(Error, Debug)]
 pub enum ToolUseError<E: ToolError> {
+    #[error("Model is not trying to invoke tools")]
+    NoToolInvocation,
+    #[error("You must output at most one tool invocation")]
+    MultipleInvocations,
     #[error("Tool not found")]
     ToolNotFound,
     #[error("You must output YAML: {0}")]
     InvalidYaml(#[from] ExtractionError),
     #[error("Invalid format: {0}")]
     InvalidFormat(#[from] serde_yaml::Error),
-    #[error("You must output exactly one tool invocation")]
-    InvalidInvocation,
     #[error("Tool invocation failed: {0}")]
     ToolInvocationFailed(String),
     #[error(transparent)]
@@ -49,6 +51,20 @@ where
         tool.invoke(input.clone()).await.map_err(|e| e.into())
     }
 
+    pub fn get_tool_invocation(
+        &self,
+        data: &str,
+    ) -> Result<ToolInvocationInput, ToolUseError<<T as Tool>::Error>> {
+        let tool_invocations: Vec<ToolInvocationInput> = find_yaml::<ToolInvocationInput>(data)?;
+        if tool_invocations.len() > 1 {
+            return Err(ToolUseError::MultipleInvocations);
+        }
+        tool_invocations
+            .first()
+            .cloned()
+            .ok_or(ToolUseError::NoToolInvocation)
+    }
+
     /// Process chat input and execute the appropriate tool.
     ///
     /// The input string should contain a YAML block describing the tool invocation.
@@ -62,12 +78,9 @@ where
         &self,
         data: &str,
     ) -> Result<String, ToolUseError<<T as Tool>::Error>> {
-        let tool_invocations: Vec<ToolInvocationInput> = find_yaml::<ToolInvocationInput>(data)?;
-        if tool_invocations.len() != 1 {
-            return Err(ToolUseError::InvalidInvocation);
-        }
+        let tool_invocation = self.get_tool_invocation(data)?;
         let output = self
-            .invoke(&tool_invocations[0].command, &tool_invocations[0].input)
+            .invoke(&tool_invocation.command, &tool_invocation.input)
             .await?;
         serde_yaml::to_string(&output).map_err(|e| e.into())
     }
@@ -88,8 +101,8 @@ where
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ToolInvocationInput {
-    command: String,
-    input: serde_yaml::Value,
+    pub command: String,
+    pub input: serde_yaml::Value,
 }
