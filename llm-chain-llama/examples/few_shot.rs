@@ -1,6 +1,6 @@
-use llm_chain::prompt::{ChatMessageCollection, Conversation};
+use llm_chain::prompt::{Conversation};
 use llm_chain::{
-    chains::conversation::Chain, executor, output::Output, parameters, prompt, step::Step,
+    chains::conversation::Chain, executor, parameters, prompt, step::Step, output::Output
 };
 use llm_chain_llama::PerInvocation;
 /// This example demonstrates how to use the llm-chain for few-shot prompting
@@ -24,7 +24,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .run(&parameters!().with("full_name", "Elon Musk"), &exec)
             .await?;
     println!("{} (zero-shot answer)", res); // probably not correct
-    let conversation: Conversation = ChatMessageCollection::new()
+    let conversation = Conversation::new()
         .with_system(system_prompt.to_string())
         .with_user_template(
             user_prompt,
