@@ -2,7 +2,7 @@ use llm_chain::executor;
 use llm_chain::output::Output;
 use llm_chain::parameters;
 
-use llm_chain::prompt::{ChatMessageCollection, StringTemplate};
+use llm_chain::prompt::{StringTemplate, ConversationTemplate};
 use llm_chain::step::Step;
 use llm_chain::tools::tools::BashTool;
 use llm_chain::tools::ToolCollection;
@@ -23,7 +23,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let task = "Find the file GOAL.txt and tell me its content";
 
-    let prompt = ChatMessageCollection::new()
+    
+    let prompt = ConversationTemplate::new()
         .with_system_template(
             "You are an automated agent for performing tasks. Your output must always be YAML.",
         )
