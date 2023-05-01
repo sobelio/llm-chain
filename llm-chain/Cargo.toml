@@ -16,7 +16,7 @@ async = ["dep:tokio"]
 qdrant = ["dep:qdrant-client"]
 
 [dependencies]
-anyhow = "1.0.70"
+anyhow = "1.0.71"
 async-trait = "0.1.68"
 dynfmt = { version = "0.1.5", features = ["curly"], default-features = false }
 futures = "0.3.28"
