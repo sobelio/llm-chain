@@ -13,18 +13,23 @@ use crate::options::LlamaInvocation;
 // Represents the configuration parameters for a LLamaContext.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContextParams {
-    n_ctx: i32,
-    n_parts: i32,
-    seed: i32,
-    f16_kv: bool,
-    logits_all: bool,
-    vocab_only: bool,
-    use_mlock: bool,
-    use_mmap: bool,
-    embedding: bool,
+    pub n_ctx: i32,
+    pub n_parts: i32,
+    pub seed: i32,
+    pub f16_kv: bool,
+    pub logits_all: bool,
+    pub vocab_only: bool,
+    pub use_mlock: bool,
+    pub use_mmap: bool,
+    pub embedding: bool,
 }
 
 impl ContextParams {
+    pub fn new() -> ContextParams {
+        unsafe {
+            llama_context_default_params()
+        }.into()
+    }
     // Returns the default parameters or the user-specified parameters.
     pub(crate) fn or_default(params: Option<&ContextParams>) -> llama_context_params {
         match params {
@@ -48,6 +53,22 @@ impl From<ContextParams> for llama_context_params {
             embedding: params.embedding,
             progress_callback: None,
             progress_callback_user_data: null_mut(),
+        }
+    }
+}
+
+impl From<llama_context_params> for ContextParams {
+    fn from(params: llama_context_params) -> Self {
+        ContextParams {
+            n_ctx: params.n_ctx,
+            n_parts: params.n_parts,
+            seed: params.seed,
+            f16_kv: params.f16_kv,
+            logits_all: params.logits_all,
+            vocab_only: params.vocab_only,
+            use_mlock: params.use_mlock,
+            use_mmap: params.use_mmap,
+            embedding: params.embedding,
         }
     }
 }

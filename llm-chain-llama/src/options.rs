@@ -102,5 +102,19 @@ impl PerExecutor {
         self.model_path = Some(model_path.to_string());
         self
     }
+
+    /// Sets the context_params for the current `PerExecutor` instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `context_params` - LLama Context Params  
+    ///
+    /// # Returns
+    ///
+    /// A new `PerExecutor` instance with the updated context_params
+    pub fn with_context_params(mut self, context_params: ContextParams) -> Self {
+        self.context_params = Some(context_params);
+        self
+    }
 }
 impl Options for PerExecutor {}
