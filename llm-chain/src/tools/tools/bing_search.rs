@@ -76,7 +76,8 @@ struct BingWebPages {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct BingSearchResult {
-    webPages: BingWebPages,
+    #[serde(rename = "webPages")]
+    web_pages: BingWebPages,
 }
 
 #[derive(Debug, Error)]
@@ -110,7 +111,7 @@ impl Tool for BingSearch {
             .json::<BingSearchResult>()
             .await?;
         let answer = response
-            .webPages
+            .web_pages
             .value
             .first()
             .ok_or(BingSearchError::NoResults)?
