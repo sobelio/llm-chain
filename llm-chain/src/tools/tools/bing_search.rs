@@ -110,7 +110,13 @@ impl Tool for BingSearch {
             .await?
             .json::<BingSearchResult>()
             .await?;
-        let answer = response.web_pages.value.clone();
+        let answer = response
+            .web_pages
+            .value
+            .first()
+            .ok_or(BingSearchError::NoResults)?
+            .snippet
+            .clone();
         Ok(answer.into())
     }
 
