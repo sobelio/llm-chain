@@ -1,21 +1,13 @@
-use std::time::Duration;
-
-use crate::chatgpt::PerInvocation;
-use async_trait::async_trait;
-use llm_chain::{
-    executor,
+use crate::{
     output::Output,
     parameters,
-    prompt::{Prompt, PromptTemplate},
-    step::Step,
-    tools::{Format, Tool, ToolCollection, ToolDescription, ToolError, ToolUseError},
+    prompt::PromptTemplate,
+    tools::{tools::BingSearch, Tool, ToolCollection, ToolError},
     traits::Executor,
     Parameters,
 };
+use std::time::{Duration, Instant};
 use thiserror::Error;
-use tokio::time::Instant;
-
-pub struct SearchTool;
 
 #[derive(Debug, Error)]
 #[error("My error occurred")]
@@ -24,34 +16,17 @@ pub struct MyError(String);
 impl ToolError for MyError {}
 
 impl From<serde_yaml::Error> for MyError {
-    fn from(value: serde_yaml::Error) -> Self {
+    fn from(_: serde_yaml::Error) -> Self {
         Self("From yaml error occurred".into())
     }
 }
 
-#[async_trait]
-impl Tool for SearchTool {
-    type Input = String;
-
-    type Output = String;
-
-    type Error = MyError;
-
-    async fn invoke_typed(&self, input: &Self::Input) -> Result<Self::Output, Self::Error> {
-        Ok(input.into())
-    }
-
-    fn description(&self) -> llm_chain::tools::ToolDescription {
-        ToolDescription {
-            name: "Intermediate Answer".into(),
-            description: "useful for when tou need to ask with search".into(),
-            description_context: "useful for when tou need to ask with search".into(),
-            input_format: Format::new(vec![]),
-            output_format: Format::new(vec![]),
-        }
-    }
-}
-
+/// TODO: This prompt has some issues:
+///
+/// - models do not always format their output correctly, e.x. respond with "So the final answer could be: ..." instead of "So the final answer is: ..."
+/// - some models have safety measures against asking about events which are in the future (from the point of view of the model); they will not even attempt to use the search tool
+/// - models sometimes finish on "Intermediate answer: ..." if it contains the final answer to the question
+/// - models sometimes immediately answer with "Yes, ..." or "No, ..."; they should always structure their final answer with "So the final answer is: ..." (or equivalent)
 const PROMPT: &str = "Question: Who lived longer, Muhammad Ali or Alan Turing?
 Are follow up questions needed here: Yes.
 Follow up: How old was Muhammad Ali when he died?
@@ -88,24 +63,25 @@ Follow up: Where is Martin Campbell from?
 Intermediate answer: New Zealand.
 So the final answer is: No
 
-Question: {input}
-Are followup questions needed here:{agent_scratchpad}";
+Question: {{input}}
+Are followup questions needed here:{{agent_scratchpad}}";
 
 #[derive(Debug, PartialEq)]
 pub struct AgentAction {
-    tool: String,
-    tool_input: serde_yaml::Value,
-    log: String,
+    pub tool: String,
+    pub tool_input: serde_yaml::Value,
+    pub log: String,
 }
 #[derive(Debug, PartialEq)]
 pub struct AgentFinish {
-    return_values: Parameters,
-    log: String,
+    pub return_values: Parameters,
+    pub log: String,
 }
 
+#[derive(Debug)]
 pub struct AgentIntermediateStep {
-    action: AgentAction,
-    observation: serde_yaml::Value,
+    pub action: AgentAction,
+    pub observation: serde_yaml::Value,
 }
 
 pub enum AgentIntermediateStepOutput {
@@ -118,38 +94,109 @@ pub enum AgentDecision {
     Action(AgentAction),
     Finish(AgentFinish),
 }
-
 pub trait AgentOutputParser {
     fn parse(&self, text: String) -> Result<AgentDecision, MyError>;
 }
 
-pub struct DefaultAgentOutputParser;
+pub struct SelfAskWithSearchAgentOutputParser {
+    followup_prefix: String,
+    intermediate_answer_prefix: String,
+    acceptable_finish_prefixes: Vec<String>,
+}
 
-impl AgentOutputParser for DefaultAgentOutputParser {
+impl SelfAskWithSearchAgentOutputParser {
+    pub fn new(
+        followup_prefix: &str,
+        intermediate_answer_prefix: &str,
+        acceptable_finish_prefixes: &[&str],
+    ) -> Self {
+        Self {
+            followup_prefix: followup_prefix.into(),
+            intermediate_answer_prefix: intermediate_answer_prefix.into(),
+            acceptable_finish_prefixes: acceptable_finish_prefixes
+                .iter()
+                .map(|s| s.to_string())
+                .collect(),
+        }
+    }
+}
+
+impl Default for SelfAskWithSearchAgentOutputParser {
+    fn default() -> Self {
+        Self::new(
+            "Follow up:",
+            "Intermediate Answer:",
+            &[
+                "Final answer:",
+                "So the final answer is:",
+                "So the final answer could be:",
+            ],
+        )
+    }
+}
+
+impl AgentOutputParser for SelfAskWithSearchAgentOutputParser {
+    // fn parse(&self, text: String) -> Result<AgentDecision, MyError> {
+    //     let text_clone = text.clone();
+    //     let last_line = text_clone
+    //         .trim()
+    //         .split("\n")
+    //         .last()
+    //         .ok_or(MyError("Empty text".to_owned() + &text.clone()))?
+    //         .trim();
+    //     if last_line.contains(&self.followup_prefix) {
+    //         let raw_follow_up_question = last_line.replace(&self.followup_prefix, "");
+    //         let follow_up_question = raw_follow_up_question.trim();
+
+    //         Ok(AgentDecision::Action(AgentAction {
+    //             tool: self.intermediate_answer_prefix.clone(),
+    //             tool_input: follow_up_question.into(),
+    //             log: text,
+    //         }))
+    //     } else if let Some(finish_prefix) = self
+    //         .acceptable_finish_prefixes
+    //         .iter()
+    //         .find(|&prefix| last_line.contains(prefix))
+    //     {
+    //         let raw_final_answer = last_line.replace(finish_prefix, "");
+    //         let final_answer = raw_final_answer.trim();
+    //         Ok(AgentDecision::Finish(AgentFinish {
+    //             return_values: parameters!("output" => final_answer),
+    //             log: text,
+    //         }))
+    //     } else {
+    //         Err(MyError(
+    //             "Neither finish line nor follow up line is last".to_owned() + &text,
+    //         ))
+    //     }
+    // }
+
     fn parse(&self, text: String) -> Result<AgentDecision, MyError> {
-        let followup_prefix = "Follow up:";
-        let intermediate_answer_prefix = "Intermediate Answer";
-        let finish_prefix = "So the final answer is:";
-
-        let text_clone = text.clone();
-        let last_line = text_clone
-            .trim()
-            .split("\n")
-            .last()
-            .ok_or(MyError("Empty text".to_owned() + &text.clone()))?
-            .trim();
-        if last_line.contains(followup_prefix) {
-            let raw_follow_up_question = last_line.replace(followup_prefix, "");
-            let follow_up_question = raw_follow_up_question.trim();
-
+        if let Some(followup_idx) = text.find(&self.followup_prefix) {
+            let followup_question = if let Some(intermediate_answer_idx) =
+                text.find(&self.intermediate_answer_prefix)
+            {
+                text.chars()
+                    .skip(followup_idx + self.followup_prefix.len())
+                    .take(intermediate_answer_idx - (followup_idx + self.followup_prefix.len()))
+                    .collect::<String>()
+            } else {
+                text.chars()
+                    .skip(followup_idx + self.followup_prefix.len())
+                    .take_while(|&c| c != '\n')
+                    .collect::<String>()
+            };
             Ok(AgentDecision::Action(AgentAction {
-                tool: intermediate_answer_prefix.into(),
-                tool_input: follow_up_question.into(),
+                tool: "Intermediate Answer".into(),
+                tool_input: followup_question.trim().into(),
                 log: text,
             }))
-        } else if last_line.contains(finish_prefix) {
-            let raw_final_answer = last_line.replace(finish_prefix, "");
-            let final_answer = raw_final_answer.trim();
+        } else if let Some((idx, prefix)) = self
+            .acceptable_finish_prefixes
+            .iter()
+            .find_map(|prefix| text.find(prefix).map(|idx| (idx, prefix)))
+        {
+            let final_answer = text.chars().skip(idx + prefix.len()).collect::<String>();
             Ok(AgentDecision::Finish(AgentFinish {
                 return_values: parameters!("output" => final_answer),
                 log: text,
@@ -163,8 +210,8 @@ impl AgentOutputParser for DefaultAgentOutputParser {
 }
 
 pub struct EarlyStoppingConfig {
-    max_iterations: Option<u32>,
-    max_time_elapsed_seconds: Option<f64>,
+    pub max_iterations: Option<u32>,
+    pub max_time_elapsed_seconds: Option<f64>,
 }
 
 impl Default for EarlyStoppingConfig {
@@ -176,28 +223,28 @@ impl Default for EarlyStoppingConfig {
     }
 }
 
-pub struct Agent {
-    executor: crate::chatgpt::Executor,
-    tools: ToolCollection<SearchTool>,
+pub struct Agent<E: Executor> {
+    executor: E,
+    search_tool: BingSearch,
     early_stopping_config: EarlyStoppingConfig,
     observation_prefix: String,
     llm_prefix: String,
-    output_parser: DefaultAgentOutputParser,
+    output_parser: SelfAskWithSearchAgentOutputParser,
 }
 
-impl Agent {
+impl<E: Executor> Agent<E> {
     pub fn new(
-        executor: crate::chatgpt::Executor,
-        tools: ToolCollection<SearchTool>,
+        executor: E,
+        search_tool: BingSearch,
         early_stopping_config: EarlyStoppingConfig,
     ) -> Self {
         Self {
             executor,
-            tools,
+            search_tool,
             early_stopping_config,
             observation_prefix: "Intermediate answer: ".to_string(),
             llm_prefix: "".to_string(),
-            output_parser: DefaultAgentOutputParser,
+            output_parser: SelfAskWithSearchAgentOutputParser::default(),
         }
     }
 
@@ -233,10 +280,10 @@ impl Agent {
         match decision {
             AgentDecision::Action(action) => {
                 let observation = self
-                    .tools
-                    .invoke(&action.tool, &action.tool_input)
+                    .search_tool
+                    .invoke(action.tool_input.clone())
                     .await
-                    .map_err(|_| MyError("Bad tool invocation".into()))?;
+                    .map_err(|e| MyError("Bad tool invocation".to_string() + &e.to_string()))?;
 
                 Ok(AgentIntermediateStepOutput::Step(AgentIntermediateStep {
                     action,
@@ -285,7 +332,10 @@ impl Agent {
         ))
     }
 
-    pub async fn run(&self, query: &str) -> Result<AgentFinish, MyError> {
+    pub async fn run(
+        &self,
+        query: &str,
+    ) -> Result<(AgentFinish, Vec<AgentIntermediateStep>), MyError> {
         let mut intermediate_steps = vec![];
 
         let mut iterations = 0;
@@ -297,7 +347,9 @@ impl Agent {
             iterations += 1;
             match decision {
                 AgentIntermediateStepOutput::Step(step) => intermediate_steps.push(step),
-                AgentIntermediateStepOutput::Finish(finish) => return Ok(finish),
+                AgentIntermediateStepOutput::Finish(finish) => {
+                    return Ok((finish, intermediate_steps))
+                }
             }
         }
         Err(MyError(
@@ -309,15 +361,16 @@ impl Agent {
 #[cfg(test)]
 mod tests {
 
-    use llm_chain::parameters;
+    use crate::parameters;
 
     use super::{
-        AgentAction, AgentDecision, AgentFinish, AgentOutputParser, DefaultAgentOutputParser,
+        AgentAction, AgentDecision, AgentFinish, AgentOutputParser,
+        SelfAskWithSearchAgentOutputParser,
     };
 
     #[test]
     fn test_parses_followup() {
-        let parser = DefaultAgentOutputParser;
+        let parser = SelfAskWithSearchAgentOutputParser::default();
         let text = "
         Whatever
         Whatever
@@ -335,7 +388,7 @@ mod tests {
 
     #[test]
     fn test_parses_follow_up_ignores_trailing_whitespace() {
-        let parser = DefaultAgentOutputParser;
+        let parser = SelfAskWithSearchAgentOutputParser::default();
         let text = "
         Whatever
         Whatever
@@ -354,7 +407,7 @@ mod tests {
 
     #[test]
     fn test_parses_final_answer() {
-        let parser = DefaultAgentOutputParser;
+        let parser = SelfAskWithSearchAgentOutputParser::default();
         let text = "
         Whatever
         Whatever
@@ -371,7 +424,7 @@ mod tests {
 
     #[test]
     fn test_parses_final_answer_ignores_trailing_whitespace() {
-        let parser = DefaultAgentOutputParser;
+        let parser = SelfAskWithSearchAgentOutputParser::default();
         let text = "
         Whatever
         Whatever
@@ -389,7 +442,7 @@ mod tests {
 
     #[test]
     fn test_parses_final_answer_with_colons() {
-        let parser = DefaultAgentOutputParser;
+        let parser = SelfAskWithSearchAgentOutputParser::default();
         let text = "
         Whatever
         Whatever
@@ -403,24 +456,4 @@ mod tests {
             })
         );
     }
-
-    // fn test_agent() {
-    //     let executor = executor!().unwrap();
-    //     let search_tool = SearchTool;
-    //     let mut tools = ToolCollection::<SearchTool>::new();
-    //     tools.add_tool(search_tool);
-    //     let agent = Agent::new(
-    //         executor,
-    //         tools,
-    //         EarlyStoppingConfig {
-    //             max_iterations: Some(15),
-    //             max_time_elapsed_seconds: Some(15.0),
-    //         },
-    //     );
-    //     let res = agent
-    //         .run("Give me a birth date of an associate of the inventor of Catan")
-    //         .await
-    //         .unwrap();
-    //     println!("Agent response: {}", res.return_values.get_text().unwrap());
-    // }
 }
