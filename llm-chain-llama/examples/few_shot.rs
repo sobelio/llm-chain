@@ -2,7 +2,7 @@ use llm_chain::prompt::{Conversation};
 use llm_chain::{
     chains::conversation::Chain, executor, parameters, prompt, step::Step, output::Output
 };
-use llm_chain_llama::PerInvocation;
+use llm_chain_llama::{PerInvocation, PerExecutor, ContextParams};
 /// This example demonstrates how to use the llm-chain for few-shot prompting
 ///
 /// This example can be seen as a "chain of thought"
@@ -14,13 +14,16 @@ use llm_chain_llama::PerInvocation;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut inv_options = PerInvocation::new();
     inv_options.n_threads = Some(4); // default is one
-    inv_options.stop_sequence = Some("\n".to_string());
-    let exec = executor!(llama)?;
+    inv_options.stop_sequence = Some("\n".to_string()); // User: is another option
+    let mut context_params = ContextParams::new();
+    context_params.n_ctx = 2048; // default is 512
+    let exc_options = PerExecutor::new().with_context_params(context_params);
+    let exec = executor!(llama, exc_options, inv_options.clone())?;
 
     let system_prompt = "Given two words, you are tasked to concatenate the last letter of each word together. answer as Assistant:";
     let user_prompt = "Take the last letters of the words in {{ full_name }} and concatenate them";
     let res =
-        Step::for_prompt_and_options(prompt!(system_prompt, user_prompt), inv_options.clone())
+        Step::for_prompt_template(prompt!(system_prompt, user_prompt))
             .run(&parameters!().with("full_name", "Elon Musk"), &exec)
             .await?;
     println!("{} (zero-shot answer)", res); // probably not correct
