@@ -1,4 +1,5 @@
 use llm_chain::traits::Options;
+use llm_chain::prompt::Prompt;
 use serde::{Deserialize, Serialize};
 
 use crate::context::ContextParams;
@@ -12,7 +13,7 @@ pub struct LlamaInvocation {
     pub(crate) temp: f32,
     pub(crate) repeat_penalty: f32,
     pub(crate) stop_sequence: String,
-    pub(crate) prompt: String,
+    pub(crate) prompt: Prompt,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -39,12 +40,12 @@ impl PerInvocation {
     ///
     /// # Arguments
     ///
-    /// * `prompt` - The prompt string for the invocation.
+    /// * `prompt` - The prompt for the invocation.
     ///
     /// # Returns
     ///
     /// A LlamaInvocation instance with the specified configuration and prompt.
-    pub(crate) fn to_invocation(&self, prompt: &str) -> LlamaInvocation {
+    pub(crate) fn to_invocation(&self, prompt: &Prompt) -> LlamaInvocation {
         LlamaInvocation {
             n_threads: self.n_threads.unwrap_or(1),
             n_tok_predict: self.n_tok_predict.unwrap_or(0),
@@ -56,7 +57,7 @@ impl PerInvocation {
                 .stop_sequence
                 .clone()
                 .unwrap_or_else(|| "\n\n".to_string()),
-            prompt: prompt.to_string(),
+            prompt: prompt.clone()
         }
     }
 }
@@ -99,6 +100,20 @@ impl PerExecutor {
     /// A new `PerExecutor` instance with the updated model path.
     pub fn with_model_path(mut self, model_path: &str) -> Self {
         self.model_path = Some(model_path.to_string());
+        self
+    }
+
+    /// Sets the context_params for the current `PerExecutor` instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `context_params` - LLama Context Params  
+    ///
+    /// # Returns
+    ///
+    /// A new `PerExecutor` instance with the updated context_params
+    pub fn with_context_params(mut self, context_params: ContextParams) -> Self {
+        self.context_params = Some(context_params);
         self
     }
 }

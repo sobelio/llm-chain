@@ -7,7 +7,7 @@ use crate::LLamaTextSplitter;
 use crate::output::Output;
 use async_trait::async_trait;
 
-use llm_chain::prompt::{Prompt};
+use llm_chain::prompt::{Prompt, ChatRole};
 
 use llm_chain::tokens::{PromptTokensError, TokenCount};
 use llm_chain::tokens::{Tokenizer, TokenizerError};
@@ -48,6 +48,7 @@ fn run_model(
     callback: &Option<fn(&Output)>,
 ) -> Output {
     // Tokenize the stop sequence and input prompt.
+
     let tokenized_stop_prompt = tokenize(
         input_ctx,
         input.stop_sequence.as_str(),
@@ -55,17 +56,17 @@ fn run_model(
         false,
     )
     .unwrap();
+
+    let prompt_text = input.prompt.to_text();
     let tokenized_input = tokenize(
         input_ctx,
-        input.prompt.as_str(),
+        prompt_text.as_str(),
         context_params_c.n_ctx as usize,
         true,
     )
     .unwrap();
-
     // Embd contains the prompt and the completion. The longer the prompt, the shorter the completion.
     let mut embd = tokenized_input.clone();
-    embd.resize(context_params_c.n_ctx as usize, 0);
 
     // Evaluate the prompt in full.
     input_ctx
@@ -76,12 +77,36 @@ fn run_model(
             &input,
         )
         .unwrap();
-    let token_eos = llama_token_eos();
-
-    // Generate remaining tokens.
     let mut n_remaining = context_params_c.n_ctx - tokenized_input.len() as i32;
     let mut n_used = tokenized_input.len() - 1;
+    if let llm_chain::prompt::Data::Chat(_) = input.prompt {
+        // Tokenize answer prefix
+        // XXX: Make the format dynamic
+        let prefix = if prompt_text.ends_with('\n') { "" } else { "\n" };
+        let tokenized_answer_prefix = tokenize(
+            input_ctx,
+            format!("{}{}:", prefix, ChatRole::Assistant).as_str(),
+            context_params_c.n_ctx as usize,
+            false,
+        )
+        .unwrap();
+        // Evaluate the answer prefix (the role -- should be Assistant: )
+        input_ctx
+            .llama_eval(
+                tokenized_answer_prefix.as_slice(),
+                tokenized_answer_prefix.len() as i32,
+                n_used as i32,
+                &input,
+            )
+            .unwrap();
+        n_remaining -= tokenized_answer_prefix.len() as i32;
+        n_used += tokenized_answer_prefix.len();
+        embd.extend(tokenized_answer_prefix);
+    }
+    embd.resize(context_params_c.n_ctx as usize, 0);
+    let token_eos = llama_token_eos();
     let mut stop_sequence_i = 0;
+    // Generate remaining tokens.
     while n_remaining > 0 {
         let tok = input_ctx.llama_sample(embd.as_slice(), n_used as i32, &input);
         n_used += 1;
@@ -173,7 +198,7 @@ impl ExecutorTrait for Executor {
             Some(options) => options.clone(),
             None => self.invocation_options.clone().unwrap_or_default(),
         };
-        let invocation = config.to_invocation(&prompt.to_text());
+        let invocation = config.to_invocation(&prompt);
         Ok(self.run_model(invocation))
     }
 
