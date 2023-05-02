@@ -9,10 +9,12 @@ use crate::step::Step;
 use crate::tokens::{PromptTokensError, TokenizerError};
 use crate::traits::{self, ExecutorError};
 use crate::{parameters, Parameters};
+use serde::{Deserialize, Serialize};
 
 /// `Chain` represents a conversation between an entity and an LLM.
 ///
 /// It holds the conversation state and provides methods for sending messages and receiving responses.
+#[derive(Serialize, Deserialize)]
 pub struct Chain<E: traits::Executor> {
     state: ChatMessageCollection<String>,
     _phantom: std::marker::PhantomData<E>,
@@ -44,6 +46,17 @@ impl<E: traits::Executor> Chain<E> {
                 state,
                 _phantom: std::marker::PhantomData,
             })?)
+    }
+
+    /// Constructs a new `Chain` with the given conversation state by passing a ChatMessageCollection<String> (clone).
+    /// Self,
+    /// # Arguments
+    /// * `state` - The initial prompt state to use.
+    pub fn new_with_message_collection(state: &ChatMessageCollection<String>) -> Chain<E> {
+        Self {
+            state: state.clone(),
+            _phantom: std::marker::PhantomData,
+        }
     }
 
     /// Sends a message to the LLM and returns the response.

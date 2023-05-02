@@ -4,7 +4,8 @@ use std::fmt;
 
 use crate::tokens::{Tokenizer, TokenizerError};
 
-use super::StringTemplate;
+use super::{StringTemplate, StringTemplateError};
+use crate::Parameters;
 
 /// The `ChatRole` enum represents the role of a chat message sender in a conversation.
 ///
@@ -363,6 +364,75 @@ impl ChatMessageCollection<String> {
             }
         }
         Ok(())
+    }
+
+    /// Adds a user message to the conversation by templating the specified template string and parameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `body` - A template string representing the message body.
+    /// * `parameters` - Parameters used to template the message body
+    ///
+    /// # Returns
+    ///
+    /// Result<Self, StringTemplateError> If Ok()
+    /// A Result containing a modified `ChatMessageCollection` with the new user message added on success, or an error if the body couldn't be templated
+
+    pub fn with_user_template(
+        self,
+        body: &str,
+        parameters: &Parameters,
+    ) -> Result<Self, StringTemplateError> {
+        match StringTemplate::tera(body).format(parameters) {
+            Err(e) => Err(e),
+            Ok(templated_body) => Ok(self.with_user(templated_body)),
+        }
+    }
+
+    /// Adds a system message to the conversation by templating the specified template string and parameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `body` - A template string representing the message body.
+    /// * `parameters` - Parameters used to template the message body
+    ///
+    /// # Returns
+    ///
+    /// Result<Self, StringTemplateError> If Ok()
+    /// A Result containing a modified `ChatMessageCollection` with the new system message added on success, or an error if the body couldn't be templated
+
+    pub fn with_system_template(
+        self,
+        body: &str,
+        parameters: &Parameters,
+    ) -> Result<Self, StringTemplateError> {
+        match StringTemplate::tera(body).format(parameters) {
+            Err(e) => Err(e),
+            Ok(templated_body) => Ok(self.with_system(templated_body)),
+        }
+    }
+
+    /// Adds a assistant message to the conversation by templating the specified template string and parameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `body` - A template string representing the message body.
+    /// * `parameters` - Parameters used to template the message body
+    ///
+    /// # Returns
+    ///
+    /// Result<Self, StringTemplateError> If Ok()
+    /// A Result containing a modified `ChatMessageCollection` with the new assistant message added on success, or an error if the body couldn't be templated
+
+    pub fn with_assistant_template(
+        self,
+        body: &str,
+        parameters: &Parameters,
+    ) -> Result<Self, StringTemplateError> {
+        match StringTemplate::tera(body).format(parameters) {
+            Err(e) => Err(e),
+            Ok(templated_body) => Ok(self.with_assistant(templated_body)),
+        }
     }
 }
 
