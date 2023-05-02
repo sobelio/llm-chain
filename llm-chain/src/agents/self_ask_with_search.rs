@@ -1,25 +1,13 @@
 use crate::{
     output::Output,
     parameters,
-    prompt::PromptTemplate,
-    tools::{Tool, ToolError},
+    prompt::{PromptTemplate, StringTemplateError},
+    tools::Tool,
     traits::Executor,
     Parameters,
 };
 use std::time::{Duration, Instant};
 use thiserror::Error;
-
-#[derive(Debug, Error)]
-#[error("My error occurred")]
-pub struct MyError(String);
-
-impl ToolError for MyError {}
-
-impl From<serde_yaml::Error> for MyError {
-    fn from(_: serde_yaml::Error) -> Self {
-        Self("From yaml error occurred".into())
-    }
-}
 
 /// TODO: This prompt has some issues:
 ///
@@ -95,7 +83,35 @@ pub enum AgentDecision {
     Finish(AgentFinish),
 }
 pub trait AgentOutputParser {
-    fn parse(&self, text: String) -> Result<AgentDecision, MyError>;
+    type Error;
+    fn parse(&self, text: String) -> Result<AgentDecision, Self::Error>;
+}
+
+#[derive(Debug, Error)]
+pub enum SelfAskWithSearchAgentError<T, E>
+where
+    T: Tool,
+    E: Executor,
+{
+    #[error("Search tool input yaml was not of type string: {0:?}")]
+    ToolInputNotString(serde_yaml::Value),
+    #[error(transparent)]
+    SearchToolError(<T as Tool>::Error),
+    #[error(transparent)]
+    ExecutorError(<E as Executor>::Error),
+    #[error(transparent)]
+    ParserError(#[from] ParserError),
+    #[error(transparent)]
+    YamlError(#[from] serde_yaml::Error),
+    #[error(transparent)]
+    StringTemplateError(#[from] StringTemplateError),
+    #[error("Model response was empty or contained no choices")]
+    NoChoicesReturned,
+    #[error("Max number of iterations or timeout exceeded. Elapsed: {time_elapsed_seconds}s, {iterations_elapsed} iterations")]
+    RuntimeExceeded {
+        time_elapsed_seconds: f64,
+        iterations_elapsed: u32,
+    },
 }
 
 pub struct SelfAskWithSearchAgentOutputParser {
@@ -135,8 +151,13 @@ impl Default for SelfAskWithSearchAgentOutputParser {
     }
 }
 
+#[derive(Debug, Error)]
+#[error("No finish line or follow up question was returned by the model: {0}")]
+pub struct ParserError(String);
+
 impl AgentOutputParser for SelfAskWithSearchAgentOutputParser {
-    fn parse(&self, text: String) -> Result<AgentDecision, MyError> {
+    type Error = ParserError;
+    fn parse(&self, text: String) -> Result<AgentDecision, Self::Error> {
         if let Some(followup_idx) = text.find(&self.followup_prefix) {
             let (followup_question, log) = if let Some(intermediate_answer_idx) =
                 text.find(&self.intermediate_answer_prefix)
@@ -188,9 +209,7 @@ impl AgentOutputParser for SelfAskWithSearchAgentOutputParser {
                 log: text,
             }))
         } else {
-            Err(MyError(
-                "Neither finish line nor follow up line is last".to_owned() + &text,
-            ))
+            Err(ParserError(text))
         }
     }
 }
@@ -266,7 +285,7 @@ where
         &self,
         intermediate_steps: &Vec<AgentIntermediateStep>,
         query: &str,
-    ) -> Result<AgentIntermediateStepOutput, MyError> {
+    ) -> Result<AgentIntermediateStepOutput, SelfAskWithSearchAgentError<T, E>> {
         let output = self.plan(intermediate_steps, query).await?;
 
         let decision = self.output_parser.parse(output)?;
@@ -278,15 +297,14 @@ where
                         &action
                             .tool_input
                             .as_str()
-                            .ok_or(MyError(format!(
-                                "Yaml tool input error: {:?}",
-                                action.tool_input
-                            )))?
+                            .ok_or(SelfAskWithSearchAgentError::ToolInputNotString(
+                                action.tool_input.clone(),
+                            ))?
                             .to_string()
                             .into(),
                     )
                     .await
-                    .map_err(|e| MyError("Bad tool invocation".to_string() + &e.to_string()))?;
+                    .map_err(SelfAskWithSearchAgentError::SearchToolError)?;
 
                 Ok(AgentIntermediateStepOutput::Step(AgentIntermediateStep {
                     action,
@@ -322,26 +340,24 @@ where
         &self,
         intermediate_steps: &Vec<AgentIntermediateStep>,
         query: &str,
-    ) -> Result<String, MyError> {
+    ) -> Result<String, SelfAskWithSearchAgentError<T, E>> {
         let scratchpad = self.build_agent_scratchpad(intermediate_steps);
         let template_parameters = parameters!("input" => query, "agent_scratchpad" => scratchpad);
-        let prompt = PromptTemplate::Text(PROMPT.into())
-            .format(&template_parameters)
-            .map_err(|_| MyError("Template formatting error".into()))?;
+        let prompt = PromptTemplate::Text(PROMPT.into()).format(&template_parameters)?;
         let plan = self
             .executor
             .execute(None, &prompt)
             .await
-            .map_err(|_| MyError("Error while getting a response from the model".into()))?;
-        plan.primary_textual_output().await.ok_or(MyError(
-            "Could not get text output from model response".into(),
-        ))
+            .map_err(SelfAskWithSearchAgentError::ExecutorError)?;
+        plan.primary_textual_output()
+            .await
+            .ok_or(SelfAskWithSearchAgentError::NoChoicesReturned)
     }
 
     pub async fn run(
         &self,
         query: &str,
-    ) -> Result<(AgentFinish, Vec<AgentIntermediateStep>), MyError> {
+    ) -> Result<(AgentFinish, Vec<AgentIntermediateStep>), SelfAskWithSearchAgentError<T, E>> {
         let mut intermediate_steps = vec![];
 
         let mut iterations = 0;
@@ -358,9 +374,10 @@ where
                 }
             }
         }
-        Err(MyError(
-            "Agent exceeded max time or number of iterations".into(),
-        ))
+        Err(SelfAskWithSearchAgentError::RuntimeExceeded {
+            time_elapsed_seconds: full_duration.as_secs_f64(),
+            iterations_elapsed: iterations,
+        })
     }
 }
 
