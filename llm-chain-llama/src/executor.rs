@@ -65,16 +65,6 @@ fn run_model(
         true,
     )
     .unwrap();
-    // Tokenize answer prefix
-    // XXX: Make the format dynamic
-    let prefix = if prompt_text.ends_with('\n') { "" } else { "\n" };
-    let tokenized_answer_prefix = tokenize(
-        input_ctx,
-        format!("{}{}:", prefix, ChatRole::Assistant).as_str(),
-        context_params_c.n_ctx as usize,
-        false,
-    )
-    .unwrap();
     // Embd contains the prompt and the completion. The longer the prompt, the shorter the completion.
     let mut embd = tokenized_input.clone();
 
@@ -90,6 +80,16 @@ fn run_model(
     let mut n_remaining = context_params_c.n_ctx - tokenized_input.len() as i32;
     let mut n_used = tokenized_input.len() - 1;
     if let llm_chain::prompt::Data::Chat(_) = input.prompt {
+        // Tokenize answer prefix
+        // XXX: Make the format dynamic
+        let prefix = if prompt_text.ends_with('\n') { "" } else { "\n" };
+        let tokenized_answer_prefix = tokenize(
+            input_ctx,
+            format!("{}{}:", prefix, ChatRole::Assistant).as_str(),
+            context_params_c.n_ctx as usize,
+            false,
+        )
+        .unwrap();
         // Evaluate the answer prefix (the role -- should be Assistant: )
         input_ctx
             .llama_eval(
