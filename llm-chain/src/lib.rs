@@ -22,6 +22,7 @@
 //!
 
 // Core components
+pub mod agents;
 pub mod chains;
 pub mod executor;
 pub mod frame;

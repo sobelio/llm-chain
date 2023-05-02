@@ -1,5 +1,3 @@
-use std::{borrow::Borrow, collections::HashMap};
-
 use async_trait::async_trait;
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
@@ -27,6 +25,12 @@ impl From<&str> for BingSearchInput {
         Self {
             query: value.into(),
         }
+    }
+}
+
+impl From<String> for BingSearchInput {
+    fn from(value: String) -> Self {
+        Self { query: value }
     }
 }
 

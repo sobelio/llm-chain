@@ -6,7 +6,7 @@ mod prompt;
 
 mod text_splitter;
 
-pub use executor::Executor;
+pub use executor::{Error, Executor};
 pub use options::{Model, PerExecutor, PerInvocation};
 pub use output::Output;
 

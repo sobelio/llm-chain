@@ -57,6 +57,13 @@ impl Output {
             _ => None,
         }
     }
+
+    pub fn as_response(&self) -> Option<CreateChatCompletionResponse> {
+        match &self.0 {
+            OutputInner::Response(response) => Some(response.clone()),
+            OutputInner::Stream(_) => None,
+        }
+    }
 }
 
 /// Implement the Display trait to provide a human-readable representation of the Output.
