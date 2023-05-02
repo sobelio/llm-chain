@@ -22,4 +22,4 @@ serde = { version = "1.0.160", features = ["derive"] }
 thiserror = "1.0.40"
 
 [dev-dependencies]
-tokio = { version = "1.27.0", features = ["macros", "rt"] }
+tokio = { version = "1.28.0", features = ["macros", "rt"] }
