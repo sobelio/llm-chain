@@ -2,10 +2,7 @@ use crate::{
     output::Output,
     parameters,
     prompt::PromptTemplate,
-    tools::{
-        tools::{BingSearch, BingSearchInput},
-        Tool, ToolError,
-    },
+    tools::{Tool, ToolError},
     traits::Executor,
     Parameters,
 };
@@ -141,33 +138,43 @@ impl Default for SelfAskWithSearchAgentOutputParser {
 impl AgentOutputParser for SelfAskWithSearchAgentOutputParser {
     fn parse(&self, text: String) -> Result<AgentDecision, MyError> {
         if let Some(followup_idx) = text.find(&self.followup_prefix) {
-            let followup_question = if let Some(intermediate_answer_idx) =
+            let (followup_question, log) = if let Some(intermediate_answer_idx) =
                 text.find(&self.intermediate_answer_prefix)
             {
-                text.chars()
+                let followup_question = text
+                    .chars()
                     .skip(followup_idx + self.followup_prefix.len())
                     .take(intermediate_answer_idx - (followup_idx + self.followup_prefix.len()))
                     .collect::<String>()
+                    .trim()
+                    .to_owned();
+
+                let log = text.chars().take(intermediate_answer_idx).collect();
+                (followup_question, log)
             } else {
-                text.chars()
+                let followup_question = text
+                    .chars()
                     .skip(followup_idx + self.followup_prefix.len())
                     .take_while(|&c| c != '\n')
                     .collect::<String>()
-            };
+                    .trim()
+                    .to_owned();
 
-            let log = text
-                .char_indices()
-                .map_while(|(idx, c)| {
-                    if c != '\n' || idx < followup_idx {
-                        Some(c)
-                    } else {
-                        None
-                    }
-                })
-                .collect();
+                let log = text
+                    .char_indices()
+                    .map_while(|(idx, c)| {
+                        if c != '\n' || idx < followup_idx {
+                            Some(c)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                (followup_question, log)
+            };
             Ok(AgentDecision::Action(AgentAction {
                 tool: "Intermediate Answer".into(),
-                tool_input: followup_question.trim().into(),
+                tool_input: followup_question.into(),
                 log,
             }))
         } else if let Some((idx, prefix)) = self
@@ -202,21 +209,29 @@ impl Default for EarlyStoppingConfig {
     }
 }
 
-pub struct Agent<E: Executor> {
+pub struct Agent<E, T>
+where
+    E: Executor,
+    T: Tool,
+    T::Input: From<String>,
+    T::Output: Into<String>,
+{
     executor: E,
-    search_tool: BingSearch,
+    search_tool: T,
     early_stopping_config: EarlyStoppingConfig,
     observation_prefix: String,
     llm_prefix: String,
     output_parser: SelfAskWithSearchAgentOutputParser,
 }
 
-impl<E: Executor> Agent<E> {
-    pub fn new(
-        executor: E,
-        search_tool: BingSearch,
-        early_stopping_config: EarlyStoppingConfig,
-    ) -> Self {
+impl<E, T> Agent<E, T>
+where
+    E: Executor,
+    T: Tool,
+    T::Input: From<String>,
+    T::Output: Into<String>,
+{
+    pub fn new(executor: E, search_tool: T, early_stopping_config: EarlyStoppingConfig) -> Self {
         Self {
             executor,
             search_tool,
@@ -259,15 +274,23 @@ impl<E: Executor> Agent<E> {
             AgentDecision::Action(action) => {
                 let observation = self
                     .search_tool
-                    .invoke_typed(&BingSearchInput::from(action.tool_input.as_str().ok_or(
-                        MyError(format!("Yaml tool input error: {:?}", action.tool_input)),
-                    )?))
+                    .invoke_typed(
+                        &action
+                            .tool_input
+                            .as_str()
+                            .ok_or(MyError(format!(
+                                "Yaml tool input error: {:?}",
+                                action.tool_input
+                            )))?
+                            .to_string()
+                            .into(),
+                    )
                     .await
                     .map_err(|e| MyError("Bad tool invocation".to_string() + &e.to_string()))?;
 
                 Ok(AgentIntermediateStepOutput::Step(AgentIntermediateStep {
                     action,
-                    observation: serde_yaml::to_value(observation.result)?,
+                    observation: serde_yaml::to_value(Into::<String>::into(observation))?,
                 }))
             }
             AgentDecision::Finish(finish) => Ok(AgentIntermediateStepOutput::Finish(finish)),
@@ -345,7 +368,6 @@ impl<E: Executor> Agent<E> {
 mod tests {
 
     use async_trait::async_trait;
-    use mockall::mock;
     use serde::{Deserialize, Serialize};
     use thiserror::Error;
 
@@ -354,7 +376,7 @@ mod tests {
         output::Output,
         parameters,
         tokens::Tokenizer,
-        tools::{tools::BingSearch, Tool},
+        tools::{Tool, ToolError},
         traits::{Executor, ExecutorError, Options},
         TextSplitter,
     };
@@ -396,7 +418,7 @@ mod tests {
             AgentDecision::Action(AgentAction {
                 tool: "Intermediate Answer".into(),
                 tool_input: "my follow up question abc?".into(),
-                log: text.into()
+                log: text.trim_end().into()
             })
         );
     }
@@ -476,14 +498,22 @@ mod tests {
 
         impl ExecutorError for MockError {}
 
+        impl ToolError for MockError {}
+
+        impl From<serde_yaml::Error> for MockError {
+            fn from(_: serde_yaml::Error) -> Self {
+                Self
+            }
+        }
+
         struct MockTextSplitter;
 
         impl<T: Clone> Tokenizer<T> for MockTextSplitter {
-            fn tokenize_str(&self, doc: &str) -> Result<Vec<T>, crate::tokens::TokenizerError> {
+            fn tokenize_str(&self, _: &str) -> Result<Vec<T>, crate::tokens::TokenizerError> {
                 todo!()
             }
 
-            fn to_string(&self, tokens: Vec<T>) -> Result<String, crate::tokens::TokenizerError> {
+            fn to_string(&self, _: Vec<T>) -> Result<String, crate::tokens::TokenizerError> {
                 todo!()
             }
         }
@@ -491,9 +521,9 @@ mod tests {
         impl<T: Clone> TextSplitter<T> for MockTextSplitter {
             fn split_text(
                 &self,
-                doc: &str,
-                max_tokens_per_chunk: usize,
-                chunk_overlap: usize,
+                _: &str,
+                _: usize,
+                _: usize,
             ) -> Result<Vec<String>, crate::tokens::TokenizerError> {
                 todo!()
             }
@@ -518,42 +548,42 @@ mod tests {
             type TextSplitter<'a> = MockTextSplitter;
 
             fn new_with_options(
-                executor_options: Option<Self::PerExecutorOptions>,
-                invocation_options: Option<Self::PerInvocationOptions>,
+                _: Option<Self::PerExecutorOptions>,
+                _: Option<Self::PerInvocationOptions>,
             ) -> Result<Self, crate::traits::ExecutorCreationError> {
                 todo!()
             }
 
             async fn execute(
                 &self,
-                options: Option<&Self::PerInvocationOptions>,
-                prompt: &crate::prompt::Prompt,
+                _: Option<&Self::PerInvocationOptions>,
+                _: &crate::prompt::Prompt,
             ) -> Result<Self::Output, Self::Error> {
                 todo!()
             }
 
             fn tokens_used(
                 &self,
-                options: Option<&Self::PerInvocationOptions>,
-                prompt: &crate::prompt::Prompt,
+                _: Option<&Self::PerInvocationOptions>,
+                _: &crate::prompt::Prompt,
             ) -> Result<crate::tokens::TokenCount, crate::tokens::PromptTokensError> {
                 todo!()
             }
 
-            fn max_tokens_allowed(&self, options: Option<&Self::PerInvocationOptions>) -> i32 {
+            fn max_tokens_allowed(&self, _: Option<&Self::PerInvocationOptions>) -> i32 {
                 todo!()
             }
 
             fn get_tokenizer(
                 &self,
-                options: Option<&Self::PerInvocationOptions>,
+                _: Option<&Self::PerInvocationOptions>,
             ) -> Result<Self::StepTokenizer<'_>, crate::tokens::TokenizerError> {
                 todo!()
             }
 
             fn get_text_splitter(
                 &self,
-                options: Option<&Self::PerInvocationOptions>,
+                _: Option<&Self::PerInvocationOptions>,
             ) -> Result<Self::TextSplitter<'_>, Self::Error> {
                 todo!()
             }
@@ -562,11 +592,29 @@ mod tests {
                 Self::new_with_options(None, None)
             }
         }
+        struct MockSearch;
+
+        #[async_trait]
+        impl Tool for MockSearch {
+            type Input = String;
+
+            type Output = String;
+
+            type Error = MockError;
+
+            async fn invoke_typed(&self, _: &Self::Input) -> Result<Self::Output, Self::Error> {
+                todo!()
+            }
+
+            fn description(&self) -> crate::tools::ToolDescription {
+                todo!()
+            }
+        }
         let mock_executor = MockExecutor;
-        let fake_search = BingSearch::new("my-api-key".into());
+        let mock_search = MockSearch;
         let agent = Agent::new(
             mock_executor,
-            fake_search,
+            mock_search,
             EarlyStoppingConfig {
                 max_iterations: None,
                 max_time_elapsed_seconds: None,
