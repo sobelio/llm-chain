@@ -18,7 +18,7 @@ async-openai = "0.10.3"
 async-trait = "0.1.68"
 llm-chain = { path = "../llm-chain", version = "0.8.2", default-features = false }
 serde = { version = "1.0.160" }
-tiktoken-rs = { version = "0.4.1", features = ["async-openai"] }
+tiktoken-rs = { version = "0.4.2", features = ["async-openai"] }
 thiserror = "1.0.40"
 tokio = "1.27.0"
 
