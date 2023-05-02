@@ -2,7 +2,10 @@ use crate::{
     output::Output,
     parameters,
     prompt::PromptTemplate,
-    tools::{tools::BingSearch, Tool, ToolCollection, ToolError},
+    tools::{
+        tools::{BingSearch, BingSearchInput},
+        Tool, ToolError,
+    },
     traits::Executor,
     Parameters,
 };
@@ -136,41 +139,6 @@ impl Default for SelfAskWithSearchAgentOutputParser {
 }
 
 impl AgentOutputParser for SelfAskWithSearchAgentOutputParser {
-    // fn parse(&self, text: String) -> Result<AgentDecision, MyError> {
-    //     let text_clone = text.clone();
-    //     let last_line = text_clone
-    //         .trim()
-    //         .split("\n")
-    //         .last()
-    //         .ok_or(MyError("Empty text".to_owned() + &text.clone()))?
-    //         .trim();
-    //     if last_line.contains(&self.followup_prefix) {
-    //         let raw_follow_up_question = last_line.replace(&self.followup_prefix, "");
-    //         let follow_up_question = raw_follow_up_question.trim();
-
-    //         Ok(AgentDecision::Action(AgentAction {
-    //             tool: self.intermediate_answer_prefix.clone(),
-    //             tool_input: follow_up_question.into(),
-    //             log: text,
-    //         }))
-    //     } else if let Some(finish_prefix) = self
-    //         .acceptable_finish_prefixes
-    //         .iter()
-    //         .find(|&prefix| last_line.contains(prefix))
-    //     {
-    //         let raw_final_answer = last_line.replace(finish_prefix, "");
-    //         let final_answer = raw_final_answer.trim();
-    //         Ok(AgentDecision::Finish(AgentFinish {
-    //             return_values: parameters!("output" => final_answer),
-    //             log: text,
-    //         }))
-    //     } else {
-    //         Err(MyError(
-    //             "Neither finish line nor follow up line is last".to_owned() + &text,
-    //         ))
-    //     }
-    // }
-
     fn parse(&self, text: String) -> Result<AgentDecision, MyError> {
         if let Some(followup_idx) = text.find(&self.followup_prefix) {
             let followup_question = if let Some(intermediate_answer_idx) =
@@ -186,10 +154,21 @@ impl AgentOutputParser for SelfAskWithSearchAgentOutputParser {
                     .take_while(|&c| c != '\n')
                     .collect::<String>()
             };
+
+            let log = text
+                .char_indices()
+                .map_while(|(idx, c)| {
+                    if c != '\n' || idx < followup_idx {
+                        Some(c)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
             Ok(AgentDecision::Action(AgentAction {
                 tool: "Intermediate Answer".into(),
                 tool_input: followup_question.trim().into(),
-                log: text,
+                log,
             }))
         } else if let Some((idx, prefix)) = self
             .acceptable_finish_prefixes
@@ -198,7 +177,7 @@ impl AgentOutputParser for SelfAskWithSearchAgentOutputParser {
         {
             let final_answer = text.chars().skip(idx + prefix.len()).collect::<String>();
             Ok(AgentDecision::Finish(AgentFinish {
-                return_values: parameters!("output" => final_answer),
+                return_values: parameters!("output" => final_answer.trim()),
                 log: text,
             }))
         } else {
@@ -276,18 +255,19 @@ impl<E: Executor> Agent<E> {
         let output = self.plan(intermediate_steps, query).await?;
 
         let decision = self.output_parser.parse(output)?;
-
         match decision {
             AgentDecision::Action(action) => {
                 let observation = self
                     .search_tool
-                    .invoke(action.tool_input.clone())
+                    .invoke_typed(&BingSearchInput::from(action.tool_input.as_str().ok_or(
+                        MyError(format!("Yaml tool input error: {:?}", action.tool_input)),
+                    )?))
                     .await
                     .map_err(|e| MyError("Bad tool invocation".to_string() + &e.to_string()))?;
 
                 Ok(AgentIntermediateStepOutput::Step(AgentIntermediateStep {
                     action,
-                    observation,
+                    observation: serde_yaml::to_value(observation.result)?,
                 }))
             }
             AgentDecision::Finish(finish) => Ok(AgentIntermediateStepOutput::Finish(finish)),
@@ -295,7 +275,10 @@ impl<E: Executor> Agent<E> {
     }
 
     /// Convert the intermediate steps into a single text to pass to the agent so he can continue his thought process
-    fn build_agent_scratchpad(&self, intermediate_steps: &Vec<AgentIntermediateStep>) -> String {
+    pub fn build_agent_scratchpad(
+        &self,
+        intermediate_steps: &Vec<AgentIntermediateStep>,
+    ) -> String {
         let mut scratchpad = "".to_string();
         for intermediate_step in intermediate_steps {
             scratchpad += &intermediate_step.action.log;
@@ -361,10 +344,23 @@ impl<E: Executor> Agent<E> {
 #[cfg(test)]
 mod tests {
 
-    use crate::parameters;
+    use async_trait::async_trait;
+    use mockall::mock;
+    use serde::{Deserialize, Serialize};
+    use thiserror::Error;
+
+    use crate::{
+        agents::self_ask_with_search::{AgentIntermediateStep, EarlyStoppingConfig},
+        output::Output,
+        parameters,
+        tokens::Tokenizer,
+        tools::{tools::BingSearch, Tool},
+        traits::{Executor, ExecutorError, Options},
+        TextSplitter,
+    };
 
     use super::{
-        AgentAction, AgentDecision, AgentFinish, AgentOutputParser,
+        Agent, AgentAction, AgentDecision, AgentFinish, AgentOutputParser,
         SelfAskWithSearchAgentOutputParser,
     };
 
@@ -455,5 +451,156 @@ mod tests {
                 log: text.into()
             })
         );
+    }
+
+    #[test]
+    fn test_builds_agent_sratchpad() {
+        #[derive(Debug, Serialize, Deserialize, Clone)]
+        struct MockOptions;
+
+        impl Options for MockOptions {}
+
+        #[derive(Clone)]
+        struct MockOutput;
+
+        #[async_trait]
+        impl Output for MockOutput {
+            async fn primary_textual_output_choices(&self) -> Vec<String> {
+                todo!()
+            }
+        }
+
+        #[derive(Debug, Error)]
+        #[error("Mocked executor error")]
+        struct MockError;
+
+        impl ExecutorError for MockError {}
+
+        struct MockTextSplitter;
+
+        impl<T: Clone> Tokenizer<T> for MockTextSplitter {
+            fn tokenize_str(&self, doc: &str) -> Result<Vec<T>, crate::tokens::TokenizerError> {
+                todo!()
+            }
+
+            fn to_string(&self, tokens: Vec<T>) -> Result<String, crate::tokens::TokenizerError> {
+                todo!()
+            }
+        }
+
+        impl<T: Clone> TextSplitter<T> for MockTextSplitter {
+            fn split_text(
+                &self,
+                doc: &str,
+                max_tokens_per_chunk: usize,
+                chunk_overlap: usize,
+            ) -> Result<Vec<String>, crate::tokens::TokenizerError> {
+                todo!()
+            }
+        }
+
+        struct MockExecutor;
+
+        #[async_trait]
+        impl Executor for MockExecutor {
+            type PerInvocationOptions = MockOptions;
+
+            type PerExecutorOptions = MockOptions;
+
+            type Output = MockOutput;
+
+            type Error = MockError;
+
+            type Token = ();
+
+            type StepTokenizer<'a> = MockTextSplitter;
+
+            type TextSplitter<'a> = MockTextSplitter;
+
+            fn new_with_options(
+                executor_options: Option<Self::PerExecutorOptions>,
+                invocation_options: Option<Self::PerInvocationOptions>,
+            ) -> Result<Self, crate::traits::ExecutorCreationError> {
+                todo!()
+            }
+
+            async fn execute(
+                &self,
+                options: Option<&Self::PerInvocationOptions>,
+                prompt: &crate::prompt::Prompt,
+            ) -> Result<Self::Output, Self::Error> {
+                todo!()
+            }
+
+            fn tokens_used(
+                &self,
+                options: Option<&Self::PerInvocationOptions>,
+                prompt: &crate::prompt::Prompt,
+            ) -> Result<crate::tokens::TokenCount, crate::tokens::PromptTokensError> {
+                todo!()
+            }
+
+            fn max_tokens_allowed(&self, options: Option<&Self::PerInvocationOptions>) -> i32 {
+                todo!()
+            }
+
+            fn get_tokenizer(
+                &self,
+                options: Option<&Self::PerInvocationOptions>,
+            ) -> Result<Self::StepTokenizer<'_>, crate::tokens::TokenizerError> {
+                todo!()
+            }
+
+            fn get_text_splitter(
+                &self,
+                options: Option<&Self::PerInvocationOptions>,
+            ) -> Result<Self::TextSplitter<'_>, Self::Error> {
+                todo!()
+            }
+
+            fn new() -> Result<Self, crate::traits::ExecutorCreationError> {
+                Self::new_with_options(None, None)
+            }
+        }
+        let mock_executor = MockExecutor;
+        let fake_search = BingSearch::new("my-api-key".into());
+        let agent = Agent::new(
+            mock_executor,
+            fake_search,
+            EarlyStoppingConfig {
+                max_iterations: None,
+                max_time_elapsed_seconds: None,
+            },
+        );
+        let intermediate_steps = vec![
+            AgentIntermediateStep {
+                action: AgentAction {
+                    tool: "Intermediate Answer".into(),
+                    tool_input: "How old was Muhammad Ali when he died?".into(),
+                    log: "Yes.
+Follow up: How old was Muhammad Ali when he died?"
+                        .into(),
+                },
+                observation: "Muhammad Ali was 74 years old when he died.".into(),
+            },
+            AgentIntermediateStep {
+                action: AgentAction {
+                    tool: "Intermediate Answer".into(),
+                    tool_input: "How old was Alan Turing when he died?".into(),
+                    log: "Follow up: How old was Alan Turing when he died?".into(),
+                },
+                observation: "Alan Turing was 41 years old when he died.".into(),
+            },
+        ];
+
+        let expected_scratchpad = "Yes.
+Follow up: How old was Muhammad Ali when he died?
+Intermediate answer: Muhammad Ali was 74 years old when he died.
+Follow up: How old was Alan Turing when he died?
+Intermediate answer: Alan Turing was 41 years old when he died.\n";
+
+        let scratchpad = agent.build_agent_scratchpad(&intermediate_steps);
+
+        assert_eq!(scratchpad, expected_scratchpad);
     }
 }

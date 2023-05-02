@@ -22,9 +22,11 @@ async fn main() {
         .await
         .unwrap();
     println!(
+        "Are followup questions needed here: {}",
+        agent.build_agent_scratchpad(&intermediate_steps)
+    );
+    println!(
         "Agent final answer: {}",
         res.return_values.get("output").unwrap()
     );
-    println!("Agent full response: {}", res.log);
-    println!("Intermediate steps: {:#?}", intermediate_steps);
 }
