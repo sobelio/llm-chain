@@ -27,3 +27,5 @@ tokio = "1.28.0"
 qdrant-client = "1.1.1"
 llm-chain = { path = "../llm-chain" }
 anyhow = "1.0.70"
+serde_yaml = "0.9.21"
+

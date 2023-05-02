@@ -2,8 +2,8 @@ use crate::{
     output::Output,
     parameters,
     prompt::{PromptTemplate, StringTemplateError},
-    tools::Tool,
-    traits::Executor,
+    tools::{Tool, ToolError},
+    traits::{Executor, ExecutorError},
     Parameters,
 };
 use std::time::{Duration, Instant};
@@ -90,15 +90,15 @@ pub trait AgentOutputParser {
 #[derive(Debug, Error)]
 pub enum SelfAskWithSearchAgentError<T, E>
 where
-    T: Tool,
-    E: Executor,
+    T: std::fmt::Debug + std::error::Error + ToolError,
+    E: std::fmt::Debug + std::error::Error + ExecutorError,
 {
     #[error("Search tool input yaml was not of type string: {0:?}")]
     ToolInputNotString(serde_yaml::Value),
     #[error(transparent)]
-    SearchToolError(<T as Tool>::Error),
+    SearchToolError(T),
     #[error(transparent)]
-    ExecutorError(<E as Executor>::Error),
+    ExecutorError(E),
     #[error(transparent)]
     ParserError(#[from] ParserError),
     #[error(transparent)]
@@ -285,7 +285,10 @@ where
         &self,
         intermediate_steps: &Vec<AgentIntermediateStep>,
         query: &str,
-    ) -> Result<AgentIntermediateStepOutput, SelfAskWithSearchAgentError<T, E>> {
+    ) -> Result<
+        AgentIntermediateStepOutput,
+        SelfAskWithSearchAgentError<<T as Tool>::Error, <E as Executor>::Error>,
+    > {
         let output = self.plan(intermediate_steps, query).await?;
 
         let decision = self.output_parser.parse(output)?;
@@ -340,7 +343,8 @@ where
         &self,
         intermediate_steps: &Vec<AgentIntermediateStep>,
         query: &str,
-    ) -> Result<String, SelfAskWithSearchAgentError<T, E>> {
+    ) -> Result<String, SelfAskWithSearchAgentError<<T as Tool>::Error, <E as Executor>::Error>>
+    {
         let scratchpad = self.build_agent_scratchpad(intermediate_steps);
         let template_parameters = parameters!("input" => query, "agent_scratchpad" => scratchpad);
         let prompt = PromptTemplate::Text(PROMPT.into()).format(&template_parameters)?;
@@ -357,7 +361,10 @@ where
     pub async fn run(
         &self,
         query: &str,
-    ) -> Result<(AgentFinish, Vec<AgentIntermediateStep>), SelfAskWithSearchAgentError<T, E>> {
+    ) -> Result<
+        (AgentFinish, Vec<AgentIntermediateStep>),
+        SelfAskWithSearchAgentError<<T as Tool>::Error, <E as Executor>::Error>,
+    > {
         let mut intermediate_steps = vec![];
 
         let mut iterations = 0;

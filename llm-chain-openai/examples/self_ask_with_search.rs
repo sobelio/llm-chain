@@ -1,7 +1,7 @@
 use llm_chain::{
     agents::self_ask_with_search::{Agent, EarlyStoppingConfig},
     executor,
-    tools::{tools::BingSearch, ToolCollection},
+    tools::tools::BingSearch,
 };
 
 #[tokio::main(flavor = "current_thread")]
