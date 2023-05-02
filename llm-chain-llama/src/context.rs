@@ -3,11 +3,10 @@ use std::{ffi::CStr, ptr::null_mut};
 use anyhow::Result;
 use llm_chain::traits;
 use llm_chain_llama_sys::{
-    llama_context, llama_context_default_params, llama_context_params, llama_eval, llama_free,
-    llama_init_from_file, llama_sample_top_p_top_k, llama_token, llama_token_to_str,
+    llama_context, llama_context_default_params, llama_context_params, llama_eval,llama_free,
+    llama_init_from_file, llama_sample_top_p_top_k, llama_token_to_str,
 };
 use serde::{Deserialize, Serialize};
-
 use crate::options::LlamaInvocation;
 
 // Represents the configuration parameters for a LLamaContext.
@@ -91,7 +90,7 @@ impl LLamaContext {
     // Executes the LLama sampling process with the specified configuration.
     pub fn llama_sample(
         &self,
-        last_n_tokens_data: &[llama_token],
+        last_n_tokens_data: &[i32],
         last_n_tokens_size: i32,
         input: &LlamaInvocation,
     ) -> i32 {
@@ -120,7 +119,7 @@ impl LLamaContext {
     // Evaluates the given tokens with the specified configuration.
     pub fn llama_eval(
         &self,
-        tokens: &[llama_token],
+        tokens: &[i32],
         n_tokens: i32,
         n_past: i32,
         input: &LlamaInvocation,

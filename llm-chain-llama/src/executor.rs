@@ -48,6 +48,7 @@ fn run_model(
     callback: &Option<fn(&Output)>,
 ) -> Output {
     // Tokenize the stop sequence and input prompt.
+
     let tokenized_stop_prompt = tokenize(
         input_ctx,
         input.stop_sequence.as_str(),
@@ -56,18 +57,20 @@ fn run_model(
     )
     .unwrap();
 
-
+    let prompt_text = input.prompt.to_text();
     let tokenized_input = tokenize(
         input_ctx,
-        input.prompt.to_text().as_str(),
+        prompt_text.as_str(),
         context_params_c.n_ctx as usize,
         true,
     )
     .unwrap();
     // Tokenize answer prefix
+    // XXX: Make the format dynamic
+    let prefix = if prompt_text.ends_with('\n') { "" } else { "\n" };
     let tokenized_answer_prefix = tokenize(
         input_ctx,
-        &format!("{}: ", ChatRole::Assistant),
+        format!("{}{}:", prefix, ChatRole::Assistant).as_str(),
         context_params_c.n_ctx as usize,
         false,
     )
