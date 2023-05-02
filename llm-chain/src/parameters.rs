@@ -28,7 +28,7 @@ type Map = BTreeMap<String, Box<dyn ParamFull>>;
 /// assert_eq!(p.get("text").unwrap().as_str(), "Hello world!");
 /// assert_eq!(p.get("name").unwrap().as_str(), "John Doe");
 /// ```
-#[derive(Clone, Default, Debug, PartialEq)]
+#[derive(Default, Debug)]
 pub struct Parameters {
     map: Map,
 }
@@ -40,6 +40,19 @@ impl Clone for Parameters {
             map.insert(key.clone(), value.boxed_clone());
         }
         Self { map }
+    }
+}
+
+impl PartialEq for Parameters {
+    fn eq(&self, other: &Self) -> bool {
+        self.map.keys().len() == other.map.keys().len()
+            && self.map.iter().all(|(k, v)| {
+                if let Some(other_v) = other.map.get(k) {
+                    v.get() == other_v.get()
+                } else {
+                    false
+                }
+            })
     }
 }
 
