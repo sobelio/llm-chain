@@ -405,7 +405,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parses_follow_up_ignores_trailing_whitespace() {
+    fn test_parses_follow_up_trims_trailing_whitespace() {
         let parser = SelfAskWithSearchAgentOutputParser::default();
         let text = "
         Whatever
