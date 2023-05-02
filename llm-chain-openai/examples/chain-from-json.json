@@ -1,0 +1,10 @@
+metadata: {}
+data:
+  steps:
+  - prompt: !Chat
+      messages:
+      - role: System
+        body: !Tera You are a bot for making personalized greetings
+      - role: User
+        body: !Tera Make a personalized greet for Joe
+    options: null
