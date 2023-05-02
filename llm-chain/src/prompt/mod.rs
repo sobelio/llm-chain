@@ -3,6 +3,7 @@
 
 mod chat;
 mod model;
+mod serialization;
 mod string_template;
 
 pub use string_template::{StringTemplate, StringTemplateError};

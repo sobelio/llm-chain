@@ -9,10 +9,12 @@ use crate::step::Step;
 use crate::tokens::{PromptTokensError, TokenizerError};
 use crate::traits::{self, ExecutorError};
 use crate::{parameters, Parameters};
+use serde::{Deserialize, Serialize};
 
 /// `Chain` represents a conversation between an entity and an LLM.
 ///
 /// It holds the conversation state and provides methods for sending messages and receiving responses.
+#[derive(Serialize, Deserialize)]
 pub struct Chain<E: traits::Executor> {
     state: ChatMessageCollection<String>,
     _phantom: std::marker::PhantomData<E>,
