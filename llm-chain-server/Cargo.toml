@@ -1,0 +1,15 @@
+[package]
+name = "llm-chain-server"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+axum = "0.6.18"
+envy = "0.4.2"
+serde = "1.0.160"
+serde_json = "1.0.96"
+tokio = { version = "1.28.0", features = ["full"] }
+tracing-subscriber = "0.3.17"
+walkdir = "2.3.3"
