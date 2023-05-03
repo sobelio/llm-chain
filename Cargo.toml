@@ -5,6 +5,7 @@ members = [
     "llm-chain-llama",
     "llm-chain-llama/sys",
     "llm-chain-qdrant",
+    "llm-chain-server",
 ]
 
 [workspace.metadata.release]
