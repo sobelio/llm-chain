@@ -65,11 +65,11 @@ where
         let metadata = scored_point.payload.get(&self.metadata_payload_key);
         let metadata: Option<M> = match metadata.cloned() {
             Some(val) => {
-                let j = serde_json::to_value(val)?;
-                Some(serde_json::from_value(value))
+                let j = serde_json::to_value(val).map_err(|e| QdrantError::Serde(e))?;
+                Some(serde_json::from_value(j).map_err(|e| QdrantError::Serde(e))?)
             }
-            None => Ok(None),
-        }?;
+            None => None,
+        };
         let page_content = scored_point
             .payload
             .get(&self.content_payload_key)
@@ -126,6 +126,8 @@ where
     Client(anyhow::Error),
     #[error(transparent)]
     ConversionError(#[from] ConversionError),
+    #[error("Serde Error")]
+    Serde(serde_json::Error),
 }
 
 impl<E> VectorStoreError for QdrantError<E> where
@@ -176,7 +178,7 @@ where
             .map(|_| Uuid::new_v4().to_string())
             .collect::<Vec<String>>();
 
-        let points = embedding_vecs
+        let points: Result<Vec<PointStruct>, Self::Error> = embedding_vecs
             .into_iter()
             .zip(documents.into_iter())
             .zip(ids.iter())
@@ -184,7 +186,8 @@ where
                 let mut payload: HashMap<String, Value> = HashMap::new();
 
                 if let Some(metadata) = document.metadata {
-                    payload.insert(self.metadata_payload_key.clone(), metadata.into());
+                    let val = serde_json::to_value(metadata).map_err(|e| Self::Error::Serde(e))?;
+                    payload.insert(self.metadata_payload_key.clone(), val.into());
                 } else {
                     payload.insert(self.metadata_payload_key.clone(), Value { kind: None });
                 }
@@ -192,13 +195,15 @@ where
                     self.content_payload_key.clone(),
                     document.page_content.clone().into(),
                 );
-                PointStruct {
+                Ok(PointStruct {
                     id: Some(uuid.to_string().into()),
                     payload,
                     vectors: Some(Vectors::from(vec)),
-                }
+                })
             })
             .collect();
+
+        let points = points?;
 
         self.client
             .upsert_points(self.collection_name.clone(), points, None)

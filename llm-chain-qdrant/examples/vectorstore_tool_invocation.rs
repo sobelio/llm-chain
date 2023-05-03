@@ -2,6 +2,7 @@ use llm_chain::executor;
 use llm_chain::output::Output;
 use llm_chain::prompt::{ChatMessageCollection, StringTemplate};
 use llm_chain::step::Step;
+use llm_chain::traits::VectorStore;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -12,9 +13,8 @@ use llm_chain::tools::tools::{
 };
 use llm_chain::tools::tools::{BashToolError, BashToolInput, BashToolOutput};
 use llm_chain::tools::{Tool, ToolCollection, ToolDescription, ToolError};
-use llm_chain::traits::VectorStore;
-use llm_chain::vectorstores::qdrant::{Qdrant, QdrantError};
 use llm_chain::{multitool, parameters};
+use llm_chain_qdrant::{Qdrant, QdrantError};
 
 use llm_chain_openai::embeddings::{Embeddings, OpenAIEmbeddingsError};
 use qdrant_client::prelude::{QdrantClient, QdrantClientConfig};
