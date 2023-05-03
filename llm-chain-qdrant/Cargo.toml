@@ -1,8 +1,14 @@
 [package]
 name = "llm-chain-qdrant"
-version = "0.8.0"
+version = "0.8.3"
 edition = "2021"
+description = "For using Qdrant with llm-chain"
+license = "MIT"
+keywords = ["llm", "langchain", "qdrant", "chain"]
+categories = ["science"]
+authors = ["William Rudenmalm <william@sobel.io>"]
 readme = "README.md"
+repository = "https://github.com/sobelio/llm-chain/"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
