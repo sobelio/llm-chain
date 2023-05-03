@@ -1069,7 +1069,7 @@ dependencies = [
 
 [[package]]
 name = "llm-chain-llama"
-version = "0.8.3"
+version = "0.9.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1082,14 +1082,14 @@ dependencies = [
 
 [[package]]
 name = "llm-chain-llama-sys"
-version = "0.8.3"
+version = "0.9.0"
 dependencies = [
  "bindgen",
 ]
 
 [[package]]
 name = "llm-chain-openai"
-version = "0.8.3"
+version = "0.9.0"
 dependencies = [
  "anyhow",
  "async-openai",
@@ -1106,7 +1106,7 @@ dependencies = [
 
 [[package]]
 name = "llm-chain-qdrant"
-version = "0.8.3"
+version = "0.9.0"
 dependencies = [
  "anyhow",
  "async-trait",
