@@ -1,10 +1,10 @@
-use std::sync::Arc;
-
-use llm_chain::{schema::EmptyMetadata, traits::VectorStore, vectorstores::qdrant::Qdrant};
+use llm_chain::{schema::EmptyMetadata, traits::VectorStore};
+use llm_chain_qdrant::Qdrant;
 use qdrant_client::{
     prelude::{QdrantClient, QdrantClientConfig},
     qdrant::{CreateCollection, Distance, VectorParams, VectorsConfig},
 };
+use std::sync::Arc;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
@@ -60,7 +60,7 @@ async fn main() {
     let response = client
         .get_points(
             collection_name,
-            &doc_ids.into_iter().map(|id| id.into()).collect(),
+            &doc_ids.into_iter().map(|id| id.into()).collect::<Vec<_>>(),
             Some(true),
             Some(true),
             None,

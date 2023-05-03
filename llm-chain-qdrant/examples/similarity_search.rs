@@ -3,8 +3,10 @@ use std::sync::Arc;
 use llm_chain::{
     schema::{Document, EmptyMetadata},
     traits::VectorStore,
-    vectorstores::qdrant::Qdrant,
 };
+
+use llm_chain_qdrant::Qdrant;
+
 use llm_chain_openai::embeddings::Embeddings;
 use qdrant_client::{
     prelude::{QdrantClient, QdrantClientConfig},

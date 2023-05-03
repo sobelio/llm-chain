@@ -143,7 +143,7 @@ pub trait EmbeddingsError {}
 
 #[async_trait]
 pub trait Embeddings {
-    type Error: Debug + Error + EmbeddingsError;
+    type Error: Send + Debug + Error + EmbeddingsError;
     async fn embed_texts(&self, texts: Vec<String>) -> Result<Vec<Vec<f32>>, Self::Error>;
     async fn embed_query(&self, query: String) -> Result<Vec<f32>, Self::Error>;
 }
@@ -155,6 +155,7 @@ pub trait VectorStoreError {}
 pub trait VectorStore<E, M = EmptyMetadata>
 where
     E: Embeddings,
+    M: serde::Serialize + serde::de::DeserializeOwned,
 {
     type Error: Debug + Error + VectorStoreError;
     async fn add_texts(&self, texts: Vec<String>) -> Result<Vec<String>, Self::Error>;

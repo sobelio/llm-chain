@@ -4,6 +4,7 @@ members = [
     "llm-chain-openai",
     "llm-chain-llama",
     "llm-chain-llama/sys",
+    "llm-chain-qdrant",
 ]
 
 [workspace.metadata.release]
