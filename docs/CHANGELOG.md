@@ -6,7 +6,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-### [0.8.3] 2023-05-02
+## [0.9.0] 2023-05-03
+
+### Added
+
+- Added agent support for self-ask chains
+
+### Changed
+
+- BREAKING: Qdrant support has moved to llm-chain-qdrant
+
+## [0.8.3] 2023-05-02
 
 ### Added
 
