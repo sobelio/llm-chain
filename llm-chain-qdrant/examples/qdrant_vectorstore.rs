@@ -60,7 +60,7 @@ async fn main() {
     let response = client
         .get_points(
             collection_name,
-            &doc_ids.into_iter().map(|id| id.into()).collect(),
+            &doc_ids.into_iter().map(|id| id.into()).collect::<Vec<_>>(),
             Some(true),
             Some(true),
             None,

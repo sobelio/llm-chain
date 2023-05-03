@@ -16,7 +16,7 @@ use llm_chain::{
     traits::{Embeddings, EmbeddingsError, VectorStore, VectorStoreError},
 };
 
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Serialize};
 
 const DEFAULT_CONTENT_PAYLOAD_KEY: &str = "page_content";
 const DEFAULT_METADATA_PAYLOAD_KEY: &str = "metadata";

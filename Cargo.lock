@@ -488,19 +488,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1435fa1053d8b2fbbe9be7e97eca7f33d37b28409959813daefc1446a14247f1"
 
 [[package]]
-name = "dynfmt"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1c298552016db86f0d49e5de09818dd86c536f66095013cc415f4f85744033f"
-dependencies = [
- "erased-serde",
- "lazy_static",
- "regex",
- "serde",
- "thiserror",
-]
-
-[[package]]
 name = "either"
 version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -513,15 +500,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "071a31f4ee85403370b58aca746f01041ede6f0da2730960ad001edc2b71b394"
 dependencies = [
  "cfg-if",
-]
-
-[[package]]
-name = "erased-serde"
-version = "0.3.25"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f2b0c2380453a92ea8b6c8e5f64ecaafccddde8ceab55ff7a8ac1029f894569"
-dependencies = [
- "serde",
 ]
 
 [[package]]
@@ -1075,7 +1053,6 @@ dependencies = [
  "anyhow",
  "async-trait",
  "derive_builder",
- "dynfmt",
  "futures",
  "lazy_static",
  "markdown",
@@ -1087,7 +1064,6 @@ dependencies = [
  "tera",
  "thiserror",
  "tokio",
- "tonic",
  "uuid",
 ]
 
@@ -1130,7 +1106,7 @@ dependencies = [
 
 [[package]]
 name = "llm-chain-qdrant"
-version = "0.8.0"
+version = "0.8.3"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1139,6 +1115,7 @@ dependencies = [
  "qdrant-client",
  "serde",
  "serde_json",
+ "serde_yaml",
  "thiserror",
  "tokio",
  "uuid",
