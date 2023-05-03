@@ -17,7 +17,7 @@ repository = "https://github.com/sobelio/llm-chain/"
 anyhow = "1.0.71"
 async-trait = "0.1.68"
 llm-chain-llama-sys = { path = "./sys", version = "0.8" }
-llm-chain = { path = "../llm-chain", version = "0.8.3" }
+llm-chain = { path = "../llm-chain", version = "0.9.0" }
 serde = { version = "1.0.160", features = ["derive"] }
 thiserror = "1.0.40"
 

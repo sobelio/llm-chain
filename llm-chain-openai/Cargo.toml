@@ -16,7 +16,7 @@ repository = "https://github.com/sobelio/llm-chain/"
 futures = "0.3.28"
 async-openai = "0.10.3"
 async-trait = "0.1.68"
-llm-chain = { path = "../llm-chain", version = "0.8.3", default-features = false }
+llm-chain = { path = "../llm-chain", version = "0.9.0", default-features = false }
 serde = { version = "1.0.160" }
 tiktoken-rs = { version = "0.4.2", features = ["async-openai"] }
 thiserror = "1.0.40"

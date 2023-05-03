@@ -1048,7 +1048,7 @@ checksum = "b64f40e5e03e0d54f03845c8197d0291253cdbedfb1cb46b13c2c117554a9f4c"
 
 [[package]]
 name = "llm-chain"
-version = "0.8.3"
+version = "0.9.0"
 dependencies = [
  "anyhow",
  "async-trait",
