@@ -22,13 +22,12 @@ LLM-chain is a collection of Rust crates designed to help you work with Large La
 
 ## Getting Started
 
-To start using LLM-chain, add it as a dependency in your `Cargo.toml`:
+To start using LLM-chain, add it as a dependency:
 
-```toml
-[dependencies]
-llm-chain = "0.1.0"
-llm-chain-openai = "0.1.0
+```bash
+cargo add llm-chain llm-chain-openai
 ```
+
 
 ## Connect with Us
 
