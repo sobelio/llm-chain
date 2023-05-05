@@ -56,13 +56,13 @@ impl PartialEq for Parameters {
     }
 }
 
-pub trait Param {
+pub trait Param: Send + Sync {
     fn get(&self) -> String;
 }
 
 /// This trait is used to implement a dynamic parameter this shouldn't be used but exists only for internal purposes.
 #[doc(hidden)]
-pub trait ParamFull: Param + Debug {
+pub trait ParamFull: Param + Debug + Send + Sync {
     #[doc(hidden)]
     fn boxed_clone(&self) -> Box<dyn ParamFull>;
 }
