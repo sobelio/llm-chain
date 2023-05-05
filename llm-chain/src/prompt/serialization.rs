@@ -1,14 +1,18 @@
 //! Serialization of prompts and prompt template
-use serde::{de::DeserializeOwned, Serialize};
 
 use crate::serialization::StorableEntity;
 
-use super::Data;
+use super::{Data, StringTemplate};
 
-impl<T> StorableEntity for Data<T>
-where
-    T: Serialize + DeserializeOwned,
-{
+#[typetag::serde]
+impl StorableEntity for Data<String> {
+    fn get_metadata() -> Vec<(String, String)> {
+        vec![]
+    }
+}
+
+#[typetag::serde]
+impl StorableEntity for Data<StringTemplate> {
     fn get_metadata() -> Vec<(String, String)> {
         vec![]
     }

@@ -4,7 +4,9 @@
 //! It relies on the `traits::Executor` trait to execute prompts and handle LLM interactions.
 
 use crate::output::Output;
-use crate::prompt::{ChatMessage, ChatMessageCollection, Prompt, PromptTemplate};
+use crate::prompt::{
+    ChatMessage, ChatMessageCollection, Prompt, PromptTemplate, StringTemplateError,
+};
 use crate::step::Step;
 use crate::tokens::{PromptTokensError, TokenizerError};
 use crate::traits::{self, ExecutorError};
@@ -15,47 +17,38 @@ use serde::{Deserialize, Serialize};
 ///
 /// It holds the conversation state and provides methods for sending messages and receiving responses.
 #[derive(Serialize, Deserialize)]
-pub struct Chain<E: traits::Executor> {
+pub struct Chain {
     state: ChatMessageCollection<String>,
-    _phantom: std::marker::PhantomData<E>,
 }
 
-impl<E> Default for Chain<E>
-where
-    E: traits::Executor,
-{
+impl Default for Chain {
     /// Constructs a new `Chain` with an empty conversation state.
     fn default() -> Self {
         Self {
             state: ChatMessageCollection::new(),
-            _phantom: std::marker::PhantomData,
         }
     }
 }
 
-impl<E: traits::Executor> Chain<E> {
+impl Chain {
     /// Constructs a new `Chain` with the given conversation state.
     /// Self,
     /// # Arguments
     /// * `state` - The initial prompt state to use.
-    pub fn new(state: PromptTemplate) -> Result<Chain<E>, Error<E::Error>> {
-        Ok(state
+    pub fn new(state: PromptTemplate) -> Result<Chain, StringTemplateError> {
+        state
             .format(&parameters!())
             .map(|state| state.to_chat())
-            .map(|state| Self {
-                state,
-                _phantom: std::marker::PhantomData,
-            })?)
+            .map(|state| Self { state })
     }
 
     /// Constructs a new `Chain` with the given conversation state by passing a ChatMessageCollection<String> (clone).
     /// Self,
     /// # Arguments
     /// * `state` - The initial prompt state to use.
-    pub fn new_with_message_collection(state: &ChatMessageCollection<String>) -> Chain<E> {
+    pub fn new_with_message_collection(state: &ChatMessageCollection<String>) -> Chain {
         Self {
             state: state.clone(),
-            _phantom: std::marker::PhantomData,
         }
     }
 
@@ -70,14 +63,15 @@ impl<E: traits::Executor> Chain<E> {
     ///
     /// # Returns
     /// A `Result` containing the LLM's response as `E::Output` on success or an `Error` variant on failure.
-    pub async fn send_message(
+    pub async fn send_message<E: traits::Executor>(
         &mut self,
-        step: Step<E>,
+        step: Step,
         parameters: &Parameters,
         exec: &E,
     ) -> Result<E::Output, Error<E::Error>> {
         let fmt = step.format(parameters)?;
-        self.send_message_raw(step.options(), &fmt, exec).await
+        self.send_message_raw(step.options_downcast(), &fmt, exec)
+            .await
     }
 
     /// Sends a message to the LLM and returns the response.
@@ -91,7 +85,7 @@ impl<E: traits::Executor> Chain<E> {
     ///
     /// # Returns
     /// A `Result` containing the LLM's response as `E::Output` on success or an `Error` variant on failure.
-    pub async fn send_message_raw(
+    pub async fn send_message_raw<E: traits::Executor>(
         &mut self,
         options: Option<&<E as traits::Executor>::PerInvocationOptions>,
         prompt: &Prompt,

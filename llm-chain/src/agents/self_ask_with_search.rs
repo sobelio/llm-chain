@@ -504,6 +504,7 @@ mod tests {
         #[derive(Debug, Serialize, Deserialize, Clone)]
         struct MockOptions;
 
+        #[typetag::serde]
         impl Options for MockOptions {}
 
         #[derive(Clone)]

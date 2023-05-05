@@ -19,6 +19,7 @@ use crate::{
     TextSplitter,
 };
 use async_trait::async_trait;
+use downcast_rs::{impl_downcast, Downcast};
 use serde::{de::DeserializeOwned, Serialize};
 
 #[derive(thiserror::Error, Debug)]
@@ -34,7 +35,36 @@ pub enum ExecutorCreationError {
 pub trait ExecutorError {}
 
 /// The `Options` trait represents an options type that is used to customize the behavior of a step or executor.
-pub trait Options: Clone + Send + Sync + Serialize + DeserializeOwned + Debug {}
+#[typetag::serde]
+pub trait Options: Downcast + Send + Sync + Debug + OptionsClone {}
+impl_downcast!(Options);
+
+#[doc(hidden)]
+pub trait OptionsClone {
+    fn clone_box(&self) -> Box<dyn Options>;
+}
+
+impl<T> OptionsClone for T
+where
+    T: 'static + Options + Clone,
+{
+    fn clone_box(&self) -> Box<dyn Options> {
+        Box::new(self.clone())
+    }
+}
+
+// We can now implement Clone manually by forwarding to clone_box.
+impl Clone for Box<dyn Options> {
+    fn clone(&self) -> Box<dyn Options> {
+        self.clone_box()
+    }
+}
+
+pub trait OptionsFull:
+    Options + Clone + Send + Sync + Serialize + DeserializeOwned + Debug
+{
+}
+impl<T: Options + Clone + Send + Sync + Serialize + DeserializeOwned + Debug> OptionsFull for T {}
 
 #[async_trait]
 /// The `Executor` trait represents an executor that performs a single step in a chain. It takes a

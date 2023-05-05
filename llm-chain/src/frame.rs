@@ -21,7 +21,7 @@ where
     E: traits::Executor,
 {
     executor: &'l E,
-    step: &'l Step<E>,
+    step: &'l Step,
 }
 
 impl<'l, E> Frame<'l, E>
@@ -32,7 +32,7 @@ where
     ///
     /// The `new` function takes two references to an `Executor` and a `Step`, respectively, and returns
     /// a new `Frame` instance.
-    pub fn new(executor: &'l E, step: &'l Step<E>) -> Self {
+    pub fn new(executor: &'l E, step: &'l Step) -> Self {
         Self { executor, step }
     }
 
@@ -45,7 +45,10 @@ where
         parameters: &Parameters,
     ) -> Result<E::Output, FormatAndExecuteError<E::Error>> {
         let prompt = self.step.format(parameters)?;
-        Ok(self.executor.execute(self.step.options(), &prompt).await?)
+        Ok(self
+            .executor
+            .execute(self.step.options_downcast(), &prompt)
+            .await?)
     }
 }
 

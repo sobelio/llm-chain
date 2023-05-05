@@ -8,7 +8,7 @@ use tokio::sync::RwLock;
 use walkdir::WalkDir;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
-struct MyStruct {
+pub struct MyStruct {
     // Add your struct fields here
 }
 

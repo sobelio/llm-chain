@@ -1,14 +1,14 @@
 use axum::{
-    extract::{Extension, Path, State},
+    extract::{Path, State},
     http::StatusCode,
-    response::{self, IntoResponse},
-    routing::{get, post},
+    response::{IntoResponse},
+    routing::{get},
     Json, Router,
 };
 use serde;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
-use std::net::SocketAddr;
+
+
 use std::sync::Arc;
 
 mod resources;
@@ -38,32 +38,14 @@ async fn main() {
 
     // build our application with a route
     let app = Router::new()
-        // `GET /` goes to `root`
-        .route("/healthz", get(healthz))
-        .route("/readyz", get(readyz))
-        .route("/startupz", get(startupz))
         .route("/resources/:name", get(get_resource))
         .with_state(rsx);
 
-    // run our app with hyper
-    let listener = tokio::net::TcpListener::bind(config.listen).await.unwrap();
-    axum::Server::bind(&(config.listen).parse().unwrap())
+    axum::Server::bind(&(&config.listen).parse().unwrap())
         .serve(app.into_make_service())
         .await
         .unwrap();
 }
-fn healthz() -> String {
-    "OK".to_owned()
-}
-
-fn readyz() -> String {
-    "OK".to_owned()
-}
-
-fn startupz() -> String {
-    "OK".to_owned()
-}
-
 async fn get_resource(
     Path(name): Path<String>,
     State(rsx): State<Arc<resources::JsonFilesData>>,

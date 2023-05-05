@@ -42,18 +42,18 @@ pub trait ExecutorTokenCountExt<Output, Token: Clone, StepTokenizer>:
     /// Returns a `PromptTokensError` if there is an issue computing the tokens.
     fn split_to_fit(
         &self,
-        step: &Step<Self>,
+        step: &Step,
         doc: &Parameters,
         chunk_overlap: Option<usize>,
     ) -> Result<Vec<Parameters>, PromptTokensError> {
         let splitter = self
-            .get_text_splitter(step.options())
+            .get_text_splitter(step.options_downcast())
             .map_err(|_e| PromptTokensError::UnableToCompute)?;
 
         let text = doc.get_text().ok_or(PromptTokensError::UnableToCompute)?;
 
         let max_tokens = self
-            .max_tokens_allowed(step.options())
+            .max_tokens_allowed(step.options_downcast())
             .try_into()
             .map_err(|_| PromptTokensError::UnableToCompute)?;
 

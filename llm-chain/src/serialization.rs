@@ -44,81 +44,21 @@
 //! ## Errors
 //!
 //! The module also provides the EnvelopeError enum, which represents errors that can occur during serialization, deserialization, and file I/O operations.
-use serde::de::{DeserializeOwned, Deserializer, MapAccess, Visitor};
-use serde::ser::{SerializeStruct, Serializer};
+use downcast_rs::{Downcast};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use thiserror::Error;
-#[derive(Debug, Clone)]
-pub struct Envelope<T> {
+#[derive(Clone, Serialize, Deserialize)]
+pub struct Envelope {
     pub metadata: HashMap<String, String>,
-    pub data: T,
+    pub data: Box<dyn StorableEntity>,
 }
 
-impl<T: Serialize> Serialize for Envelope<T> {
-    fn serialize<SER>(&self, serializer: SER) -> Result<SER::Ok, SER::Error>
-    where
-        SER: Serializer,
-    {
-        let mut envelope = serializer.serialize_struct("Envelope", 2)?;
-        envelope.serialize_field("metadata", &self.metadata)?;
-        envelope.serialize_field("data", &self.data)?;
-        envelope.end()
-    }
-}
-
-impl<'de, T: Serialize + Deserialize<'de>> Deserialize<'de> for Envelope<T> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct EnvelopeVisitor<T>(std::marker::PhantomData<T>);
-
-        impl<'de, T> Visitor<'de> for EnvelopeVisitor<T>
-        where
-            T: Serialize + Deserialize<'de>,
-        {
-            type Value = Envelope<T>;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("struct Envelope")
-            }
-
-            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-            where
-                A: MapAccess<'de>,
-            {
-                let mut metadata = None;
-                let mut data: Option<T> = None;
-
-                while let Some(key) = map.next_key::<String>()? {
-                    match key.as_str() {
-                        "metadata" => {
-                            let hm = map.next_value()?;
-                            metadata = Some(hm);
-                        }
-                        "data" => {
-                            data = Some(map.next_value()?);
-                        }
-                        _ => (),
-                    }
-                }
-
-                let metadata = metadata.unwrap_or_default();
-                let data = data.ok_or_else(|| serde::de::Error::missing_field("data"))?;
-
-                Ok(Envelope { metadata, data })
-            }
-        }
-        deserializer.deserialize_map(EnvelopeVisitor(std::marker::PhantomData))
-    }
-}
-
-impl<T> Envelope<T> {
-    pub fn new(data: T) -> Self {
+impl Envelope {
+    pub fn new<T: StorableEntity>(data: T) -> Self {
         Envelope {
             metadata: HashMap::new(),
-            data,
+            data: Box::new(data),
         }
     }
 }
@@ -127,15 +67,12 @@ impl<T> Envelope<T> {
 pub enum EnvelopeError {
     // YAML parsing
     #[error("YAML parsing error: {0}")]
-    YamlParsingError(#[from] serde_json::Error),
+    JsonParsing(#[from] serde_json::Error),
     #[error("IO error: {0}")]
-    IOError(#[from] std::io::Error),
+    IO(#[from] std::io::Error),
 }
 
-impl<T> Envelope<T>
-where
-    T: Serialize + DeserializeOwned,
-{
+impl Envelope {
     pub fn read_file_sync(path: &str) -> Result<Self, EnvelopeError> {
         let file = std::fs::File::open(path)?;
         let reader = std::io::BufReader::new(file);
@@ -168,28 +105,43 @@ where
 }
 
 /// An entity that can be stored in an envelope.
-pub trait StorableEntity: Serialize + DeserializeOwned {
-    fn get_metadata() -> Vec<(String, String)>;
-    fn to_envelope(self) -> Envelope<Self>
+
+#[typetag::serde]
+pub trait StorableEntity: Downcast + StorableEntityClone {
+    fn get_metadata() -> Vec<(String, String)>
+    where
+        Self: Sized;
+    fn to_envelope(self) -> Envelope
     where
         Self: Sized,
     {
         let mut envelope = Envelope {
             metadata: HashMap::new(),
-            data: self,
+            data: Box::new(self),
         };
         for (key, value) in Self::get_metadata() {
             envelope.metadata.insert(key, value);
         }
         envelope
     }
-    fn from_envelope(envelope: Envelope<Self>) -> Self {
-        envelope.data
+}
+
+#[doc(hidden)]
+pub trait StorableEntityClone {
+    fn clone_box(&self) -> Box<dyn StorableEntity>;
+}
+
+impl<T> StorableEntityClone for T
+where
+    T: 'static + StorableEntity + Clone,
+{
+    fn clone_box(&self) -> Box<dyn StorableEntity> {
+        Box::new(self.clone())
     }
-    fn read_file_sync(path: &str) -> Result<Self, EnvelopeError> {
-        Envelope::<Self>::read_file_sync(path).map(|envelope| Self::from_envelope(envelope))
-    }
-    fn write_file_sync(self, path: &str) -> Result<(), EnvelopeError> {
-        Envelope::new(self).write_file_sync(path)
+}
+
+impl Clone for Box<dyn StorableEntity> {
+    fn clone(&self) -> Self {
+        self.clone_box()
     }
 }

@@ -6,17 +6,17 @@ use crate::{
     output::Output,
     parameters, prompt,
     step::Step,
-    traits,
+    traits::{self, Executor},
 };
 
 /// A `TextSummarizer` takes a given text and summarizes it using an `Executor`.
 ///
 /// The summarizer is built on top of a `map_reduce::Chain`, which takes care of the summarization process.
-pub struct TextSummarizer<E: traits::Executor> {
-    chain: map_reduce::Chain<E>,
+pub struct TextSummarizer {
+    chain: map_reduce::Chain,
 }
 
-impl<E: traits::Executor> Default for TextSummarizer<E> {
+impl Default for TextSummarizer {
     fn default() -> Self {
         let map_prompt = Step::for_prompt_template(prompt!(
             "You are a text summarizer. You will be given a text and you will have to summarize it",
@@ -42,11 +42,11 @@ pub enum TextSummarizerError<E: traits::ExecutorError> {
     NoOutput,
 }
 
-impl<E: traits::Executor> TextSummarizer<E> {
+impl TextSummarizer {
     /// Summarizes the given text using the provided `Executor`.
     ///
     /// Returns the summarized text, or an error if the summarization process fails.
-    pub async fn summarize_text(
+    pub async fn summarize_text<E: Executor>(
         &self,
         exec: &E,
         text: &str,
@@ -69,7 +69,5 @@ pub async fn summarize_text<E: traits::Executor>(
     exec: &E,
     text: &str,
 ) -> Result<String, TextSummarizerError<E::Error>> {
-    TextSummarizer::<E>::default()
-        .summarize_text(exec, text)
-        .await
+    TextSummarizer::default().summarize_text(exec, text).await
 }
