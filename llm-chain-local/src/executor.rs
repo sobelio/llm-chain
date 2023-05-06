@@ -1,3 +1,4 @@
+use std::convert::Infallible;
 use std::env::var;
 use std::path::Path;
 
@@ -19,16 +20,10 @@ use thiserror::Error;
 /// Executor is responsible for running the LLM and managing its context.
 pub struct Executor {
     llm: Box<dyn Model>,
-    callback: Option<fn(&Output)>,
 }
 
 impl Executor {
-    pub fn with_callback(mut self, callback: fn(&Output)) -> Self {
-        self.callback = Some(callback);
-        self
-    }
-
-    pub(crate) fn get_llm(&self) -> &dyn llm::Model {
+    pub(crate) fn get_llm(&self) -> &dyn Model {
         self.llm.as_ref()
     }
 }
@@ -86,21 +81,19 @@ impl llm_chain::traits::Executor for Executor {
         }
         .map_err(|e| ExecutorCreationError::InnerError(Box::new(e)))?;
 
-        Ok(Executor {
-            llm,
-            callback: None,
-        })
+        Ok(Executor { llm })
     }
 
     async fn execute(
         &self,
+        // TODO: call infer_with_params if this is present
         _: Option<&Self::PerInvocationOptions>,
         prompt: &Prompt,
     ) -> Result<Self::Output, Self::Error> {
         let session = &mut self.llm.start_session(Default::default());
         let mut output = String::new();
         session
-            .infer::<std::convert::Infallible>(
+            .infer::<Infallible>(
                 self.llm.as_ref(),
                 prompt.to_text().as_str(),
                 // EvaluateOutputRequest
