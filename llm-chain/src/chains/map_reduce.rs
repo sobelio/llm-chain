@@ -79,7 +79,7 @@ impl<E: Executor> Chain<E> {
         let map_frame = Frame::new(executor, &self.map);
         let reduce_frame = Frame::new(executor, &self.reduce);
 
-        let chunked_docs = self.chunk_documents(documents.clone(), executor, &self.map)?;
+        let chunked_docs = self.chunk_documents(documents.clone(), base_parameters.clone(), executor, &self.map)?;
 
         // Execute the `map` step for each document, combining the base parameters with each document's parameters.
         let chunked_docs_with_base_parameters: Vec<_> = chunked_docs
@@ -155,6 +155,7 @@ impl<E: Executor> Chain<E> {
     fn chunk_documents<'a>(
         &self,
         v: Vec<Parameters>,
+        base_parameters: Parameters,
         executor: &E,
         step: &Step<E>,
     ) -> Result<Vec<Parameters>, PromptTokensError>
@@ -168,7 +169,7 @@ impl<E: Executor> Chain<E> {
                     <E as traits::Executor>::Output,
                     <E as traits::Executor>::Token,
                     <E as traits::Executor>::StepTokenizer<'a>,
-                >>::split_to_fit(executor, step, x, None)
+                >>::split_to_fit(executor, step, x, &base_parameters, None)
             })
             .collect();
         let data = data?.iter().flatten().cloned().collect();

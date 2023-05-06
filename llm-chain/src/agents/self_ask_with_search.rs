@@ -54,7 +54,7 @@ So the final answer is: No
 Question: {{input}}
 Are followup questions needed here:{{agent_scratchpad}}";
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct AgentAction {
     pub tool: String,
     pub tool_input: serde_yaml::Value,
@@ -403,6 +403,7 @@ mod tests {
         tools::{Tool, ToolError},
         traits::{Executor, ExecutorError, Options},
         TextSplitter,
+        prompt::Prompt
     };
 
     use super::{
@@ -593,6 +594,14 @@ mod tests {
             ) -> Result<crate::tokens::TokenCount, crate::tokens::PromptTokensError> {
                 todo!()
             }
+
+
+            fn answer_prefix(
+                &self,
+                _prompt: &Prompt) -> Option<String> {
+                todo!()
+            }
+
 
             fn max_tokens_allowed(&self, _: Option<&Self::PerInvocationOptions>) -> i32 {
                 todo!()
