@@ -1,6 +1,7 @@
-use std::env::args;
+use std::{env::args, error::Error};
 
-use llm_chain::traits::Executor;
+use llm_chain::{traits::Executor, prompt::Data};
+use llm_chain_local::{Executor as LocalExecutor, options::PerExecutor};
 
 extern crate llm_chain_local;
 
@@ -13,7 +14,7 @@ extern crate llm_chain_local;
 /// 
 /// An optional third argument can be used to customize the prompt passed to the model.
 #[tokio::main(flavor = "current_thread")]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<(), Box<dyn Error>> {
     let raw_args: Vec<String> = args().collect();
     let args = match &raw_args.len() {
       3 => (raw_args[1].as_str(), raw_args[2].as_str(), "Rust is a cool programming language because"),
@@ -25,13 +26,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let model_path = args.1;
     let prompt = args.2;
 
-    let exec_opts = llm_chain_local::options::PerExecutor {
+    let exec_opts = PerExecutor {
         model_path: Some(String::from(model_path)),
         model_type: Some(String::from(model_type)),
     };
-    let exec = llm_chain_local::Executor::new_with_options(Some(exec_opts), None)?;
 
-    let res = exec.execute(None, &llm_chain::prompt::Data::Text(String::from(prompt))).await?;
+    let exec = LocalExecutor::new_with_options(Some(exec_opts), None)?;
+    let res = exec.execute(None, &Data::Text(String::from(prompt))).await?;
+    
     println!("{}", res);
     Ok(())
 }
