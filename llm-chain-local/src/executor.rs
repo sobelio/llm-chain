@@ -181,7 +181,7 @@ impl Tokenizer<llm::TokenId> for LocalLlmTokenizer<'_> {
     }
 }
 
-pub fn load<M: KnownModel + 'static>(
+fn load<M: KnownModel + 'static>(
     model_path: &str,
     params: ModelParameters,
 ) -> Result<Box<dyn Model>, LoadError> {
