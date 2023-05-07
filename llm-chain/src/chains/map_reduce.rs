@@ -79,7 +79,12 @@ impl<E: Executor> Chain<E> {
         let map_frame = Frame::new(executor, &self.map);
         let reduce_frame = Frame::new(executor, &self.reduce);
 
-        let chunked_docs = self.chunk_documents(documents.clone(), base_parameters.clone(), executor, &self.map)?;
+        let chunked_docs = self.chunk_documents(
+            documents.clone(),
+            base_parameters.clone(),
+            executor,
+            &self.map,
+        )?;
 
         // Execute the `map` step for each document, combining the base parameters with each document's parameters.
         let chunked_docs_with_base_parameters: Vec<_> = chunked_docs

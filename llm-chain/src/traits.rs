@@ -109,7 +109,6 @@ pub trait Executor: Sized {
     /// The max token count for the step
     fn max_tokens_allowed(&self, options: Option<&Self::PerInvocationOptions>) -> i32;
 
-    
     /// Returns a possible answer prefix inserted by the model, during a certain prompt mode
     ///
     /// # Parameters

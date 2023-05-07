@@ -58,7 +58,11 @@ pub trait ExecutorTokenCountExt<Output, Token: Clone, StepTokenizer>:
         let chunk_overlap = chunk_overlap.unwrap_or(0);
 
         let split_params = splitter
-            .split_text(&text, tokens_used.max_tokens as usize - tokens_used.tokens_used as usize, chunk_overlap)
+            .split_text(
+                &text,
+                tokens_used.max_tokens as usize - tokens_used.tokens_used as usize,
+                chunk_overlap,
+            )
             .map_err(|_e| PromptTokensError::UnableToCompute)?
             .into_iter()
             .map(Parameters::new_with_text)
