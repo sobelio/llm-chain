@@ -6,6 +6,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.1] 2023-05-07
+
+### Added
+
+- Add support for OPENAI Organisation IDs
+- Impl Send + Sync for Param & ParamFull
+
+### Changed
+
+- Fix issues with mapreduce with some prompts
+
 ## [0.9.0] 2023-05-03
 
 ### Added
