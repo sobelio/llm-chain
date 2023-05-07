@@ -399,11 +399,11 @@ mod tests {
         agents::self_ask_with_search::{AgentIntermediateStep, EarlyStoppingConfig},
         output::Output,
         parameters,
+        prompt::Prompt,
         tokens::Tokenizer,
         tools::{Tool, ToolError},
         traits::{Executor, ExecutorError, Options},
         TextSplitter,
-        prompt::Prompt
     };
 
     use super::{
@@ -595,13 +595,9 @@ mod tests {
                 todo!()
             }
 
-
-            fn answer_prefix(
-                &self,
-                _prompt: &Prompt) -> Option<String> {
+            fn answer_prefix(&self, _prompt: &Prompt) -> Option<String> {
                 todo!()
             }
-
 
             fn max_tokens_allowed(&self, _: Option<&Self::PerInvocationOptions>) -> i32 {
                 todo!()
