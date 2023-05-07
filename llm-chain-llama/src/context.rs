@@ -1,13 +1,13 @@
 use std::{ffi::CStr, ptr::null_mut};
 
+use crate::options::LlamaInvocation;
 use anyhow::Result;
 use llm_chain::traits;
 use llm_chain_llama_sys::{
-    llama_context, llama_context_default_params, llama_context_params, llama_eval,llama_free,
+    llama_context, llama_context_default_params, llama_context_params, llama_eval, llama_free,
     llama_init_from_file, llama_sample_top_p_top_k, llama_token_to_str,
 };
 use serde::{Deserialize, Serialize};
-use crate::options::LlamaInvocation;
 
 // Represents the configuration parameters for a LLamaContext.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -25,9 +25,7 @@ pub struct ContextParams {
 
 impl ContextParams {
     pub fn new() -> ContextParams {
-        unsafe {
-            llama_context_default_params()
-        }.into()
+        unsafe { llama_context_default_params() }.into()
     }
     // Returns the default parameters or the user-specified parameters.
     pub(crate) fn or_default(params: Option<&ContextParams>) -> llama_context_params {

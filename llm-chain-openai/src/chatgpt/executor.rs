@@ -119,9 +119,7 @@ impl traits::Executor for Executor {
             .unwrap_or(4096)
     }
 
-    fn answer_prefix(
-        &self,
-        _prompt: &Prompt) -> Option<String> {
+    fn answer_prefix(&self, _prompt: &Prompt) -> Option<String> {
         None
     }
 

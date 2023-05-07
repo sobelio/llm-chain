@@ -7,7 +7,7 @@ use crate::LLamaTextSplitter;
 use crate::output::Output;
 use async_trait::async_trait;
 
-use llm_chain::prompt::{Prompt, ChatRole};
+use llm_chain::prompt::{ChatRole, Prompt};
 
 use llm_chain::tokens::{PromptTokensError, TokenCount};
 use llm_chain::tokens::{Tokenizer, TokenizerError};
@@ -55,14 +55,14 @@ impl Executor {
         )
         .unwrap();
 
-
         let prompt_text = input.prompt.to_text();
         let tokenized_input = tokenize(
             &self.context,
             prompt_text.as_str(),
             context_params.n_ctx as usize,
             true,
-        ).unwrap();
+        )
+        .unwrap();
         // Embd contains the prompt and the completion. The longer the prompt, the shorter the completion.
         let mut embd = tokenized_input.clone();
 
@@ -103,14 +103,17 @@ impl Executor {
         let mut stop_sequence_i = 0;
         // Generate remaining tokens.
         while n_remaining > 0 {
-            let tok = self.context.llama_sample(embd.as_slice(), n_used as i32, &input);
+            let tok = self
+                .context
+                .llama_sample(embd.as_slice(), n_used as i32, &input);
             n_used += 1;
             n_remaining -= 1;
             embd[n_used] = tok;
             if tok == token_eos {
                 break;
             }
-            if input.n_tok_predict != 0 && n_used > input.n_tok_predict + tokenized_input.len() - 1 {
+            if input.n_tok_predict != 0 && n_used > input.n_tok_predict + tokenized_input.len() - 1
+            {
                 break;
             }
             if tok == tokenized_stop_prompt[stop_sequence_i] {
@@ -135,7 +138,6 @@ impl Executor {
             &embd[tokenized_input.len()..n_used + 1 - stop_sequence_i],
         )
     }
-
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -207,27 +209,28 @@ impl ExecutorTrait for Executor {
         let answer_prefix = self.answer_prefix(prompt);
         if let Some(prefix) = answer_prefix {
             let answer_used = tokenizer
-            .tokenize_str(&prefix)
-            .map_err(|_e| PromptTokensError::UnableToCompute)?
-            .len() as i32;
+                .tokenize_str(&prefix)
+                .map_err(|_e| PromptTokensError::UnableToCompute)?
+                .len() as i32;
             tokens_used += answer_used
         }
         let max_tokens = self.max_tokens_allowed(options);
         Ok(TokenCount::new(max_tokens, tokens_used))
     }
 
-    fn answer_prefix(
-        &self, prompt: &Prompt) -> Option<String> {
+    fn answer_prefix(&self, prompt: &Prompt) -> Option<String> {
         if let llm_chain::prompt::Data::Chat(_) = prompt {
             // Tokenize answer prefix
             // XXX: Make the format dynamic
-            let prefix = if prompt.to_text().ends_with('\n') { "" } else { "\n" };
+            let prefix = if prompt.to_text().ends_with('\n') {
+                ""
+            } else {
+                "\n"
+            };
             Some(format!("{}{}:", prefix, ChatRole::Assistant))
-        }
-        else {
+        } else {
             None
         }
-
     }
 
     fn max_tokens_allowed(&self, _step: Option<&PerInvocation>) -> i32 {
