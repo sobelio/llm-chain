@@ -65,8 +65,8 @@ where
         let metadata = scored_point.payload.get(&self.metadata_payload_key);
         let metadata: Option<M> = match metadata.cloned() {
             Some(val) => {
-                let j = serde_json::to_value(val).map_err(|e| QdrantError::Serde(e))?;
-                Some(serde_json::from_value(j).map_err(|e| QdrantError::Serde(e))?)
+                let j = serde_json::to_value(val).map_err(QdrantError::Serde)?;
+                Some(serde_json::from_value(j).map_err(QdrantError::Serde)?)
             }
             None => None,
         };
@@ -166,7 +166,7 @@ where
         self.client
             .upsert_points(self.collection_name.clone(), points, None)
             .await
-            .map_err(|e| QdrantError::Client(e.into()))?;
+            .map_err(QdrantError::Client)?;
         Ok(ids)
     }
 
@@ -186,7 +186,7 @@ where
                 let mut payload: HashMap<String, Value> = HashMap::new();
 
                 if let Some(metadata) = document.metadata {
-                    let val = serde_json::to_value(metadata).map_err(|e| Self::Error::Serde(e))?;
+                    let val = serde_json::to_value(metadata).map_err(Self::Error::Serde)?;
                     payload.insert(self.metadata_payload_key.clone(), val.into());
                 } else {
                     payload.insert(self.metadata_payload_key.clone(), Value { kind: None });
@@ -208,7 +208,7 @@ where
         self.client
             .upsert_points(self.collection_name.clone(), points, None)
             .await
-            .map_err(|e| QdrantError::Client(e.into()))?;
+            .map_err(QdrantError::Client)?;
 
         Ok(ids)
     }
@@ -242,7 +242,7 @@ where
                 read_consistency: None,
             })
             .await
-            .map_err(|e| QdrantError::Client(e.into()))?;
+            .map_err(QdrantError::Client)?;
 
         let mut out = vec![];
         for r in res.result.into_iter() {

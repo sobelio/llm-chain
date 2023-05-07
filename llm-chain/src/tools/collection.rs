@@ -4,6 +4,7 @@ use crate::prompt::StringTemplate;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+#[derive(Default)]
 pub struct ToolCollection<T> {
     tools: Vec<T>,
 }
