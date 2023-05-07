@@ -1,5 +1,5 @@
-use llm_chain::traits::Options;
 use llm_chain::prompt::Prompt;
+use llm_chain::traits::Options;
 use serde::{Deserialize, Serialize};
 
 use crate::context::ContextParams;
@@ -57,7 +57,7 @@ impl PerInvocation {
                 .stop_sequence
                 .clone()
                 .unwrap_or_else(|| "\n\n".to_string()),
-            prompt: prompt.clone()
+            prompt: prompt.clone(),
         }
     }
 }

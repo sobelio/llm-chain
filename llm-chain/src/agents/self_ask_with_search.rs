@@ -54,7 +54,7 @@ So the final answer is: No
 Question: {{input}}
 Are followup questions needed here:{{agent_scratchpad}}";
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct AgentAction {
     pub tool: String,
     pub tool_input: serde_yaml::Value,
@@ -214,18 +214,10 @@ impl AgentOutputParser for SelfAskWithSearchAgentOutputParser {
     }
 }
 
+#[derive(Default)]
 pub struct EarlyStoppingConfig {
     pub max_iterations: Option<u32>,
     pub max_time_elapsed_seconds: Option<f64>,
-}
-
-impl Default for EarlyStoppingConfig {
-    fn default() -> Self {
-        Self {
-            max_iterations: Default::default(),
-            max_time_elapsed_seconds: Default::default(),
-        }
-    }
 }
 
 pub struct Agent<E, T>
@@ -399,6 +391,7 @@ mod tests {
         agents::self_ask_with_search::{AgentIntermediateStep, EarlyStoppingConfig},
         output::Output,
         parameters,
+        prompt::Prompt,
         tokens::Tokenizer,
         tools::{Tool, ToolError},
         traits::{Executor, ExecutorError, Options},
@@ -591,6 +584,10 @@ mod tests {
                 _: Option<&Self::PerInvocationOptions>,
                 _: &crate::prompt::Prompt,
             ) -> Result<crate::tokens::TokenCount, crate::tokens::PromptTokensError> {
+                todo!()
+            }
+
+            fn answer_prefix(&self, _prompt: &Prompt) -> Option<String> {
                 todo!()
             }
 

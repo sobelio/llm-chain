@@ -249,6 +249,11 @@ impl<Body> ChatMessageCollection<Body> {
         self.messages.len()
     }
 
+    /// Returns `true` if the collection contains no messages.
+    pub fn is_empty(&self) -> bool {
+        self.messages.is_empty()
+    }
+
     /// Returns a reference to the message at the specified index, or `None` if the index is out of bounds.
     ///
     /// # Arguments

@@ -97,7 +97,7 @@ impl<E: traits::Executor> Chain<E> {
         prompt: &Prompt,
         exec: &E,
     ) -> Result<E::Output, Error<E::Error>> {
-        let tok = exec.tokens_used(options, &prompt)?;
+        let tok = exec.tokens_used(options, prompt)?;
         let tokens_remaining = tok.tokens_remaining();
         let tokenizer = exec.get_tokenizer(options)?;
         self.state.trim_context(&tokenizer, tokens_remaining)?;

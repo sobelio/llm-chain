@@ -18,10 +18,22 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  format_check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: rustup install stable
+      - run: rustup update
+      - run: rustup component add rustfmt
+      - uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
   build_and_test:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-13, windows-latest]
         rust-version: [stable]
     runs-on: ${{ matrix.os }}
     steps:

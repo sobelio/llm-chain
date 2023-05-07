@@ -35,11 +35,10 @@ impl Executor {
         client: async_openai::Client,
         per_invocation_options: Option<PerInvocation>,
     ) -> Self {
-        let client = Arc::new(client);
-        Self {
-            client,
-            per_invocation_options,
-        }
+        use llm_chain::traits::Executor as _;
+        let mut exec = Self::new_with_options(None, per_invocation_options).unwrap();
+        exec.client = Arc::new(client);
+        exec
     }
 
     fn get_model_from_invocation_options(&self, opts: Option<&PerInvocation>) -> Model {
@@ -67,6 +66,9 @@ impl traits::Executor for Executor {
     type TextSplitter<'a> = OpenAITextSplitter;
     type Error = Error;
 
+    /// Creates a new `Executor` with the given options.
+    ///
+    /// if the `OPENAI_ORG_ID` environment variable is present, it will be used as the org_ig for the OpenAI client.
     fn new_with_options(
         executor_options: Option<Self::PerExecutorOptions>,
         invocation_options: Option<Self::PerInvocationOptions>,
@@ -76,6 +78,9 @@ impl traits::Executor for Executor {
             if let Some(api_key) = executor_options.api_key {
                 client = client.with_api_key(api_key)
             }
+        }
+        if let Ok(org_id) = std::env::var("OPENAI_ORG_ID") {
+            client = client.with_org_id(org_id);
         }
         let client = Arc::new(client);
         Ok(Self {
@@ -111,13 +116,16 @@ impl traits::Executor for Executor {
             tokens_used as i32,
         ))
     }
-
     /// Get the context size from the model or return default context size
     fn max_tokens_allowed(&self, opts: Option<&PerInvocation>) -> i32 {
         let model = self.get_model_from_invocation_options(opts);
         tiktoken_rs::model::get_context_size(&model.to_string())
             .try_into()
             .unwrap_or(4096)
+    }
+
+    fn answer_prefix(&self, _prompt: &Prompt) -> Option<String> {
+        None
     }
 
     fn get_tokenizer(
