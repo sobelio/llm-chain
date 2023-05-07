@@ -109,6 +109,18 @@ pub trait Executor: Sized {
     /// The max token count for the step
     fn max_tokens_allowed(&self, options: Option<&Self::PerInvocationOptions>) -> i32;
 
+    
+    /// Returns a possible answer prefix inserted by the model, during a certain prompt mode
+    ///
+    /// # Parameters
+    ///
+    /// * `prompt`: The prompt passed into step
+    ///
+    /// # Returns
+    ///
+    /// A `Option` containing a String if  prefix exists, or none if there is no prefix
+    fn answer_prefix(&self, prompt: &Prompt) -> Option<String>;
+
     /// Creates a tokenizer, depending on the model used by `step`.
     ///
     /// # Parameters
@@ -117,7 +129,6 @@ pub trait Executor: Sized {
     ///
     /// # Returns
     ///
-
     /// A `Result` containing a tokenizer, or an error if there was a problem.
     fn get_tokenizer(
         &self,

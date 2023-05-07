@@ -40,112 +40,102 @@ impl Executor {
     }
 }
 
-// Executes the model with the provided input and context parameters.
-fn run_model(
-    input_ctx: &LLamaContext,
-    input: LlamaInvocation,
-    context_params_c: llama_context_params,
-    callback: &Option<fn(&Output)>,
-) -> Output {
-    // Tokenize the stop sequence and input prompt.
+impl Executor {
+    // Run the LLAMA model with the provided input and generate output.
+    // Executes the model with the provided input and context parameters.
+    fn run_model(&self, input: LlamaInvocation) -> Output {
+        // Tokenize the stop sequence and input prompt.
+        let context_params = self.context_params();
 
-    let tokenized_stop_prompt = tokenize(
-        input_ctx,
-        input.stop_sequence.as_str(),
-        context_params_c.n_ctx as usize,
-        false,
-    )
-    .unwrap();
-
-    let prompt_text = input.prompt.to_text();
-    let tokenized_input = tokenize(
-        input_ctx,
-        prompt_text.as_str(),
-        context_params_c.n_ctx as usize,
-        true,
-    )
-    .unwrap();
-    // Embd contains the prompt and the completion. The longer the prompt, the shorter the completion.
-    let mut embd = tokenized_input.clone();
-
-    // Evaluate the prompt in full.
-    input_ctx
-        .llama_eval(
-            tokenized_input.as_slice(),
-            tokenized_input.len() as i32,
-            0,
-            &input,
-        )
-        .unwrap();
-    let mut n_remaining = context_params_c.n_ctx - tokenized_input.len() as i32;
-    let mut n_used = tokenized_input.len() - 1;
-    if let llm_chain::prompt::Data::Chat(_) = input.prompt {
-        // Tokenize answer prefix
-        // XXX: Make the format dynamic
-        let prefix = if prompt_text.ends_with('\n') { "" } else { "\n" };
-        let tokenized_answer_prefix = tokenize(
-            input_ctx,
-            format!("{}{}:", prefix, ChatRole::Assistant).as_str(),
-            context_params_c.n_ctx as usize,
+        let tokenized_stop_prompt = tokenize(
+            &self.context,
+            input.stop_sequence.as_str(),
+            context_params.n_ctx as usize,
             false,
         )
         .unwrap();
-        // Evaluate the answer prefix (the role -- should be Assistant: )
-        input_ctx
+
+
+        let prompt_text = input.prompt.to_text();
+        let tokenized_input = tokenize(
+            &self.context,
+            prompt_text.as_str(),
+            context_params.n_ctx as usize,
+            true,
+        ).unwrap();
+        // Embd contains the prompt and the completion. The longer the prompt, the shorter the completion.
+        let mut embd = tokenized_input.clone();
+
+        // Evaluate the prompt in full.
+        self.context
             .llama_eval(
-                tokenized_answer_prefix.as_slice(),
-                tokenized_answer_prefix.len() as i32,
-                n_used as i32,
+                tokenized_input.as_slice(),
+                tokenized_input.len() as i32,
+                0,
                 &input,
             )
             .unwrap();
-        n_remaining -= tokenized_answer_prefix.len() as i32;
-        n_used += tokenized_answer_prefix.len();
-        embd.extend(tokenized_answer_prefix);
-    }
-    embd.resize(context_params_c.n_ctx as usize, 0);
-    let token_eos = llama_token_eos();
-    let mut stop_sequence_i = 0;
-    // Generate remaining tokens.
-    while n_remaining > 0 {
-        let tok = input_ctx.llama_sample(embd.as_slice(), n_used as i32, &input);
-        n_used += 1;
-        n_remaining -= 1;
-        embd[n_used] = tok;
-        if tok == token_eos {
-            break;
+        let mut n_remaining = self.context_params().n_ctx - tokenized_input.len() as i32;
+        let mut n_used = tokenized_input.len() - 1;
+        if let Some(prefix) = self.answer_prefix(&input.prompt) {
+            let tokenized_answer_prefix = tokenize(
+                &self.context,
+                prefix.as_str(),
+                context_params.n_ctx as usize,
+                false,
+            )
+            .unwrap();
+            // Evaluate the answer prefix (the role -- should be Assistant: )
+            self.context
+                .llama_eval(
+                    tokenized_answer_prefix.as_slice(),
+                    tokenized_answer_prefix.len() as i32,
+                    n_used as i32,
+                    &input,
+                )
+                .unwrap();
+            n_remaining -= tokenized_answer_prefix.len() as i32;
+            n_used += tokenized_answer_prefix.len();
+            embd.extend(tokenized_answer_prefix);
         }
-        if input.n_tok_predict != 0 && n_used > input.n_tok_predict + tokenized_input.len() - 1 {
-            break;
-        }
-        if tok == tokenized_stop_prompt[stop_sequence_i] {
-            stop_sequence_i += 1;
-            if stop_sequence_i >= tokenized_stop_prompt.len() {
+        embd.resize(context_params.n_ctx as usize, 0);
+        let token_eos = llama_token_eos();
+        let mut stop_sequence_i = 0;
+        // Generate remaining tokens.
+        while n_remaining > 0 {
+            let tok = self.context.llama_sample(embd.as_slice(), n_used as i32, &input);
+            n_used += 1;
+            n_remaining -= 1;
+            embd[n_used] = tok;
+            if tok == token_eos {
                 break;
             }
-        } else {
-            stop_sequence_i = 0;
-        }
-        input_ctx
-            .llama_eval(&embd[n_used..], 1, n_used as i32, &input)
-            .unwrap();
+            if input.n_tok_predict != 0 && n_used > input.n_tok_predict + tokenized_input.len() - 1 {
+                break;
+            }
+            if tok == tokenized_stop_prompt[stop_sequence_i] {
+                stop_sequence_i += 1;
+                if stop_sequence_i >= tokenized_stop_prompt.len() {
+                    break;
+                }
+            } else {
+                stop_sequence_i = 0;
+            }
+            self.context
+                .llama_eval(&embd[n_used..], 1, n_used as i32, &input)
+                .unwrap();
 
-        if let Some(callback) = callback {
-            let output = input_ctx.llama_token_to_str(&embd[n_used]);
-            callback(&output.into());
+            if let Some(callback) = self.callback {
+                let output = self.context.llama_token_to_str(&embd[n_used]);
+                callback(&output.into());
+            }
         }
+        embedding_to_output(
+            &self.context,
+            &embd[tokenized_input.len()..n_used + 1 - stop_sequence_i],
+        )
     }
-    embedding_to_output(
-        input_ctx,
-        &embd[tokenized_input.len()..n_used + 1 - stop_sequence_i],
-    )
-}
 
-impl Executor {
-    // Run the LLAMA model with the provided input and generate output.
-    fn run_model(&self, input: LlamaInvocation) -> Output {
-        run_model(&self.context, input, self.context_params(), &self.callback)
-    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -198,7 +188,7 @@ impl ExecutorTrait for Executor {
             Some(options) => options.clone(),
             None => self.invocation_options.clone().unwrap_or_default(),
         };
-        let invocation = config.to_invocation(&prompt);
+        let invocation = config.to_invocation(prompt);
         Ok(self.run_model(invocation))
     }
 
@@ -209,13 +199,35 @@ impl ExecutorTrait for Executor {
     ) -> Result<TokenCount, PromptTokensError> {
         let tokenizer = self.get_tokenizer(options)?;
         let input = prompt.to_text();
-
-        let tokens_used = tokenizer
+        let mut tokens_used = tokenizer
             .tokenize_str(&input)
             .map_err(|_e| PromptTokensError::UnableToCompute)?
             .len() as i32;
+        // includes answer_prefix
+        let answer_prefix = self.answer_prefix(prompt);
+        if let Some(prefix) = answer_prefix {
+            let answer_used = tokenizer
+            .tokenize_str(&prefix)
+            .map_err(|_e| PromptTokensError::UnableToCompute)?
+            .len() as i32;
+            tokens_used += answer_used
+        }
         let max_tokens = self.max_tokens_allowed(options);
         Ok(TokenCount::new(max_tokens, tokens_used))
+    }
+
+    fn answer_prefix(
+        &self, prompt: &Prompt) -> Option<String> {
+        if let llm_chain::prompt::Data::Chat(_) = prompt {
+            // Tokenize answer prefix
+            // XXX: Make the format dynamic
+            let prefix = if prompt.to_text().ends_with('\n') { "" } else { "\n" };
+            Some(format!("{}{}:", prefix, ChatRole::Assistant))
+        }
+        else {
+            None
+        }
+
     }
 
     fn max_tokens_allowed(&self, _step: Option<&PerInvocation>) -> i32 {

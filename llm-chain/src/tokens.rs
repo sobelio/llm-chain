@@ -44,6 +44,7 @@ pub trait ExecutorTokenCountExt<Output, Token: Clone, StepTokenizer>:
         &self,
         step: &Step<Self>,
         doc: &Parameters,
+        base_parameters: &Parameters,
         chunk_overlap: Option<usize>,
     ) -> Result<Vec<Parameters>, PromptTokensError> {
         let splitter = self
@@ -52,20 +53,16 @@ pub trait ExecutorTokenCountExt<Output, Token: Clone, StepTokenizer>:
 
         let text = doc.get_text().ok_or(PromptTokensError::UnableToCompute)?;
 
-        let max_tokens = self
-            .max_tokens_allowed(step.options())
-            .try_into()
-            .map_err(|_| PromptTokensError::UnableToCompute)?;
-
+        let prompt = step.format(&base_parameters.combine(&Parameters::new_with_text("")))?;
+        let tokens_used = self.tokens_used(step.options.as_ref(), &prompt)?;
         let chunk_overlap = chunk_overlap.unwrap_or(0);
 
         let split_params = splitter
-            .split_text(&text, max_tokens, chunk_overlap)
+            .split_text(&text, tokens_used.max_tokens as usize - tokens_used.tokens_used as usize, chunk_overlap)
             .map_err(|_e| PromptTokensError::UnableToCompute)?
             .into_iter()
             .map(Parameters::new_with_text)
             .collect();
-
         Ok(split_params)
     }
 }

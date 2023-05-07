@@ -111,13 +111,18 @@ impl traits::Executor for Executor {
             tokens_used as i32,
         ))
     }
-
     /// Get the context size from the model or return default context size
     fn max_tokens_allowed(&self, opts: Option<&PerInvocation>) -> i32 {
         let model = self.get_model_from_invocation_options(opts);
         tiktoken_rs::model::get_context_size(&model.to_string())
             .try_into()
             .unwrap_or(4096)
+    }
+
+    fn answer_prefix(
+        &self,
+        _prompt: &Prompt) -> Option<String> {
+        None
     }
 
     fn get_tokenizer(
