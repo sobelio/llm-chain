@@ -65,11 +65,8 @@ impl PerInvocation {
         Self::default()
     }
     /// Sets the `Model` for the `PerInvocation` struct.
-    pub fn for_model(self: Self, model: Model) -> Self {
-        Self {
-            model: Some(model),
-            ..self
-        }
+    pub fn for_model(self, model: Model) -> Self {
+        Self { model: Some(model) }
     }
 }
 

@@ -213,10 +213,11 @@ pub fn extract_labeled_text(text: &str) -> Vec<(String, String)> {
 
     while let Some(node) = nodes.pop_front() {
         let found = match &node {
-            Node::Text(Text { value, .. }) => extract_label_and_text(value.to_owned())
-                .map(|(label, text)| (label.to_owned(), text.to_owned())),
+            Node::Text(Text { value, .. }) => {
+                extract_label_and_text(value.to_owned()).map(|(label, text)| (label, text))
+            }
             Node::Paragraph(_) | Node::ListItem(_) => {
-                find_labeled_text(&node).map(|(label, text)| (label.to_owned(), text.to_owned()))
+                find_labeled_text(&node).map(|(label, text)| (label, text))
             }
             _ => None,
         };
@@ -225,10 +226,8 @@ pub fn extract_labeled_text(text: &str) -> Vec<(String, String)> {
             extracted_labels.push(kv)
         } else if let Some(children) = node.children() {
             // If not found recur into it.
-            let mut index = 0;
-            for child in children.iter().cloned() {
+            for (index, child) in children.iter().cloned().enumerate() {
                 nodes.insert(index, child);
-                index += 1;
             }
         }
     }
@@ -297,13 +296,13 @@ fn inner_text(n: &Node) -> String {
 // Formats the key trimming it and remvove a potential ":" suffix
 fn format_key(s: String) -> String {
     let key = s.trim();
-    key.strip_suffix(":").unwrap_or(key).to_owned()
+    key.strip_suffix(':').unwrap_or(key).to_owned()
 }
 
 // Formats the value trimming, stripping potential ":" and then retrimming the start
 fn format_value(s: String) -> String {
     s.trim()
-        .strip_prefix(":")
+        .strip_prefix(':')
         .unwrap_or(&s)
         .trim_start()
         .to_owned()

@@ -214,18 +214,10 @@ impl AgentOutputParser for SelfAskWithSearchAgentOutputParser {
     }
 }
 
+#[derive(Default)]
 pub struct EarlyStoppingConfig {
     pub max_iterations: Option<u32>,
     pub max_time_elapsed_seconds: Option<f64>,
-}
-
-impl Default for EarlyStoppingConfig {
-    fn default() -> Self {
-        Self {
-            max_iterations: Default::default(),
-            max_time_elapsed_seconds: Default::default(),
-        }
-    }
 }
 
 pub struct Agent<E, T>
