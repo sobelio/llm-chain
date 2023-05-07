@@ -13,7 +13,7 @@ repository = "https://github.com/sobelio/llm-chain/"
 
 [dependencies]
 async-trait = "0.1.68"
-llm = { git = "https://github.com/danforbes/llama-rs", branch = "dfo/chore/llm-chain" }
+llm = "0.1.0-rc3"
 llm-chain = { path = "../llm-chain", version = "0.9.0", default-features = false }
 rand = "0.8.5"
 serde = { version = "1.0.160", features = ["derive"] }

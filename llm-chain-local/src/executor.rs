@@ -7,11 +7,7 @@ use crate::output::Output;
 use crate::LocalLlmTextSplitter;
 
 use async_trait::async_trait;
-use llm::models::{Bloom, Gpt2, GptJ, Llama, NeoX};
-use llm::{
-    load_progress_callback_stdout, KnownModel, LoadError, Model, ModelParameters, TokenId,
-    TokenUtf8Buffer,
-};
+use llm::{load_progress_callback_stdout, Model, ModelArchitecture, TokenId, TokenUtf8Buffer};
 use llm_chain::prompt::Prompt;
 use llm_chain::tokens::{PromptTokensError, TokenCount, Tokenizer, TokenizerError};
 use llm_chain::traits::{ExecutorCreationError, ExecutorError};
@@ -67,18 +63,16 @@ impl llm_chain::traits::Executor for Executor {
                     "model_path, ensure to provide the parameter or set `LLM_MODEL_PATH` environment variable ".to_string(),
                 ))?;
 
+        let model_arch = model_type
+            .parse::<ModelArchitecture>()
+            .map_err(|e| ExecutorCreationError::InnerError(Box::new(e)))?;
         let params = invocation_options.unwrap_or_default().into();
-        let llm: Box<dyn Model> = match model_type.as_str() {
-            "bloom" => load::<Bloom>(&model_path, params),
-            "gpt2" => load::<Gpt2>(&model_path, params),
-            "gptj" => load::<GptJ>(&model_path, params),
-            "llama" => load::<Llama>(&model_path, params),
-            "neox" => load::<NeoX>(&model_path, params),
-            m => Err(LoadError::InvariantBroken {
-                path: None,
-                invariant: format!("Unsupported model type {m}"),
-            }),
-        }
+        let llm: Box<dyn Model> = llm::load_dynamic(
+            model_arch,
+            Path::new(&model_path),
+            params,
+            load_progress_callback_stdout,
+        )
         .map_err(|e| ExecutorCreationError::InnerError(Box::new(e)))?;
 
         Ok(Executor { llm })
@@ -179,13 +173,4 @@ impl Tokenizer<llm::TokenId> for LocalLlmTokenizer<'_> {
 
         Ok(res)
     }
-}
-
-fn load<M: KnownModel + 'static>(
-    model_path: &str,
-    params: ModelParameters,
-) -> Result<Box<dyn Model>, LoadError> {
-    let model = llm::load::<M>(Path::new(model_path), params, load_progress_callback_stdout)?;
-
-    Ok(Box::new(model))
 }
