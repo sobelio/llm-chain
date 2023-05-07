@@ -1,3 +1,4 @@
+use llm_chain::serialization::{Envelope, StorableEntity};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -7,20 +8,14 @@ use tokio::io::{AsyncReadExt, BufReader};
 use tokio::sync::RwLock;
 use walkdir::WalkDir;
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct MyStruct {
-    // Add your struct fields here
-}
-
-#[derive(Debug)]
 pub struct JsonFilesData {
-    data: Arc<RwLock<HashMap<PathBuf, MyStruct>>>,
+    data: Arc<RwLock<HashMap<PathBuf, Arc<Envelope>>>>,
     folder_path: PathBuf,
 }
 
 async fn process_json_file<P: AsRef<Path>>(
     path: P,
-) -> Result<MyStruct, Box<dyn std::error::Error>> {
+) -> Result<Envelope, Box<dyn std::error::Error>> {
     let file = File::open(path).await?;
     let mut reader = BufReader::new(file);
     let mut contents = String::new();
@@ -38,7 +33,7 @@ impl JsonFilesData {
         Ok(json_files_data)
     }
 
-    pub async fn get_by_name(&self, name: &str) -> Option<MyStruct> {
+    pub async fn get_by_name(&self, name: &str) -> Option<Arc<Envelope>> {
         let data = self.data.read().await;
         let json_name = format!("{}.json", name);
         let s = data
@@ -52,8 +47,8 @@ impl JsonFilesData {
         let json_files_data = read_all_json_files_in_folder(&self.folder_path).await?;
         let mut data = self.data.write().await;
         data.clear();
-        for (path, my_struct) in json_files_data {
-            data.insert(path, my_struct);
+        for (path, s) in json_files_data {
+            data.insert(path, Arc::new(s));
         }
         Ok(())
     }
@@ -62,7 +57,7 @@ impl JsonFilesData {
 // The previous read_all_json_files_in_folder function should now return a HashMap with file paths as keys.
 async fn read_all_json_files_in_folder<P: AsRef<Path>>(
     folder_path: P,
-) -> Result<HashMap<PathBuf, MyStruct>, Box<dyn std::error::Error>> {
+) -> Result<HashMap<PathBuf, Envelope>, Box<dyn std::error::Error>> {
     let mut results = HashMap::new();
 
     for entry in WalkDir::new(folder_path) {

@@ -73,6 +73,7 @@ impl PerInvocation {
     }
 }
 
+#[typetag::serde]
 impl traits::Options for PerInvocation {}
 
 /// The `PerExecutor` struct contains options that can be specified for the ChatGPT `Executor`.
@@ -82,4 +83,5 @@ pub struct PerExecutor {
     pub api_key: Option<String>,
 }
 
+#[typetag::serde]
 impl traits::Options for PerExecutor {}

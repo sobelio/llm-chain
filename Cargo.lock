@@ -1172,6 +1172,7 @@ dependencies = [
  "thiserror",
  "tiktoken-rs",
  "tokio",
+ "typetag",
 ]
 
 [[package]]
@@ -1193,10 +1194,13 @@ dependencies = [
 
 [[package]]
 name = "llm-chain-server"
-version = "0.1.0"
+version = "0.9.0"
 dependencies = [
+ "anyhow",
  "axum",
  "envy",
+ "llm-chain",
+ "llm-chain-openai",
  "serde",
  "serde_json",
  "tokio",
