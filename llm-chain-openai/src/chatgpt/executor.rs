@@ -35,11 +35,10 @@ impl Executor {
         client: async_openai::Client,
         per_invocation_options: Option<PerInvocation>,
     ) -> Self {
-        let client = Arc::new(client);
-        Self {
-            client,
-            per_invocation_options,
-        }
+        use llm_chain::traits::Executor as _;
+        let mut exec = Self::new_with_options(None, per_invocation_options).unwrap();
+        exec.client = Arc::new(client);
+        exec
     }
 
     fn get_model_from_invocation_options(&self, opts: Option<&PerInvocation>) -> Model {
@@ -67,6 +66,9 @@ impl traits::Executor for Executor {
     type TextSplitter<'a> = OpenAITextSplitter;
     type Error = Error;
 
+    /// Creates a new `Executor` with the given options.
+    ///
+    /// if the `OPENAI_ORG_ID` environment variable is present, it will be used as the org_ig for the OpenAI client.
     fn new_with_options(
         executor_options: Option<Self::PerExecutorOptions>,
         invocation_options: Option<Self::PerInvocationOptions>,
@@ -76,6 +78,9 @@ impl traits::Executor for Executor {
             if let Some(api_key) = executor_options.api_key {
                 client = client.with_api_key(api_key)
             }
+        }
+        if let Ok(org_id) = std::env::var("OPENAI_ORG_ID") {
+            client = client.with_org_id(org_id);
         }
         let client = Arc::new(client);
         Ok(Self {
@@ -119,9 +124,7 @@ impl traits::Executor for Executor {
             .unwrap_or(4096)
     }
 
-    fn answer_prefix(
-        &self,
-        _prompt: &Prompt) -> Option<String> {
+    fn answer_prefix(&self, _prompt: &Prompt) -> Option<String> {
         None
     }
 
