@@ -124,6 +124,10 @@ impl llm_chain::traits::Executor for Executor {
         self.llm.n_context_tokens().try_into().unwrap_or(2048)
     }
 
+    fn answer_prefix(&self, _prompt: &Prompt) -> Option<String> {
+        None
+    }
+
     fn get_tokenizer(
         &self,
         _: Option<&Self::PerInvocationOptions>,
