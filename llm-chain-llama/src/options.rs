@@ -1,18 +1,14 @@
-use std::collections::HashMap;
-use llm_chain::traits::Options;
 use llm_chain::prompt::Prompt;
+use llm_chain::traits::Options;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 use crate::context::ContextParams;
 
 /// Represents a concrete call to the LLM model, with all the parameters specified, and no implicit behavior.
 pub struct LlamaInvocation {
     pub(crate) n_threads: i32,
-    pub(crate) n_predict: i32,
-    pub(crate) n_parts: i32,
-    pub(crate) n_ctx: i32,
-    pub(crate) n_batch: i32,
-    pub(crate) n_keep: i32,
+    pub(crate) n_tok_predict: usize,
     pub(crate) logit_bias: HashMap<i32, f32>,
     pub(crate) top_k: i32,
     pub(crate) top_p: f32,
@@ -29,17 +25,13 @@ pub struct LlamaInvocation {
     pub(crate) penalize_nl: bool,
     pub(crate) stop_sequence: String,
     pub(crate) prompt: Prompt,
-}    
-     
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 /// pub(crate) LlamaConfig is an overridable collection of configuration parameters for the LLAMA model. It is combined with a prompt to create an invocation.
 pub struct PerInvocation {
     pub n_threads: Option<i32>,
-    pub n_predict: Option<i32>,
-    pub n_parts: Option<i32>,
-    pub n_ctx: Option<i32>,
-    pub n_batch: Option<i32>,
-    pub n_keep: Option<i32>,
+    pub n_tok_predict: Option<usize>,
     pub top_k: Option<i32>,
     pub top_p: Option<f32>,
     pub tfs_z: Option<f32>,
@@ -76,11 +68,7 @@ impl PerInvocation {
     pub(crate) fn to_invocation(&self, prompt: &Prompt) -> LlamaInvocation {
         LlamaInvocation {
             n_threads: self.n_threads.unwrap_or(1),
-            n_predict: self.n_predict.unwrap_or(-1),
-            n_parts: self.n_parts.unwrap_or(-1),
-            n_ctx: self.n_ctx.unwrap_or(512),
-            n_batch: self.n_batch.unwrap_or(512),
-            n_keep: self.n_keep.unwrap_or(0),
+            n_tok_predict: self.n_tok_predict.unwrap_or(0),
             logit_bias: HashMap::new(),
             top_k: self.top_k.unwrap_or(40),
             top_p: self.top_p.unwrap_or(0.95),
@@ -99,7 +87,7 @@ impl PerInvocation {
                 .stop_sequence
                 .clone()
                 .unwrap_or_else(|| "\n\n".to_string()),
-            prompt: prompt.clone()
+            prompt: prompt.clone(),
         }
     }
 }
