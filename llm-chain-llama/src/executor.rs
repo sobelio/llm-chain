@@ -55,7 +55,6 @@ impl Executor {
         )
         .unwrap();
 
-
         let prompt_text = input.prompt.to_text();
         let tokenized_input = tokenize(
             &self.context,
@@ -105,9 +104,12 @@ impl Executor {
         let mut stop_sequence_i = 0;
         // Generate remaining tokens.
         while n_remaining > 0 {
-            let tok = self
-                .context
-                .llama_sample(context_params.n_ctx, embd.as_slice(), n_used as i32, &input);
+            let tok = self.context.llama_sample(
+                context_params.n_ctx,
+                embd.as_slice(),
+                n_used as i32,
+                &input,
+            );
             n_used += 1;
             n_remaining -= 1;
             embd[n_used] = tok;
