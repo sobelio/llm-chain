@@ -84,6 +84,7 @@ fn main() {
         panic!("Failed to generate build script");
     }
 
+    #[allow(clippy::suspicious_command_arg_space)]
     let code = std::process::Command::new("cmake")
         .arg("--build")
         .arg(".")

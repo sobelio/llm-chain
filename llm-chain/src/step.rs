@@ -87,9 +87,9 @@ where
     where
         Self: Sized,
     {
-        Ok(Frame::new(executor, &self)
+        Frame::new(executor, self)
             .format_and_execute(parameters)
-            .await?)
+            .await
     }
 }
 

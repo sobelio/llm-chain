@@ -51,9 +51,9 @@ impl From<String> for BingSearchOutput {
     }
 }
 
-impl Into<String> for BingSearchOutput {
-    fn into(self) -> String {
-        self.result
+impl From<BingSearchOutput> for String {
+    fn from(val: BingSearchOutput) -> Self {
+        val.result
     }
 }
 
