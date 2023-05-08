@@ -108,14 +108,14 @@ fn run_model(
     let mut stop_sequence_i = 0;
     // Generate remaining tokens.
     while n_remaining > 0 {
-        let tok = input_ctx.llama_sample(embd.as_slice(), n_used as i32, &input);
+        let tok = input_ctx.llama_sample(context_params_c.n_ctx, embd.as_slice(), n_used as i32, &input);
         n_used += 1;
         n_remaining -= 1;
         embd[n_used] = tok;
         if tok == token_eos {
             break;
         }
-        if input.n_tok_predict != 0 && n_used > input.n_tok_predict + tokenized_input.len() - 1 {
+        if input.n_predict != -1 && n_used > input.n_predict as usize + tokenized_input.len() - 1 {
             break;
         }
         if tok == tokenized_stop_prompt[stop_sequence_i] {
