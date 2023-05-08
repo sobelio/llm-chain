@@ -93,12 +93,18 @@ impl traits::Executor for Executor {
         &self,
         opts: Option<&PerInvocation>,
         prompt: &Prompt,
+        is_streaming: Option<bool>,
     ) -> Result<Self::Output, Self::Error> {
         let client = self.client.clone();
         let model = self.get_model_from_invocation_options(opts);
-        let input = create_chat_completion_request(&model, prompt, None).unwrap();
-        let res = async move { client.chat().create(input).await }.await?;
-        Ok(res.into())
+        let input = create_chat_completion_request(&model, prompt, is_streaming).unwrap();
+        if let Some(true) = is_streaming {
+            let res = async move { client.chat().create_stream(input).await }.await?;
+            Ok(res.into())
+        } else {
+            let res = async move { client.chat().create(input).await }.await?;
+            Ok(res.into())
+        }
     }
 
     fn tokens_used(

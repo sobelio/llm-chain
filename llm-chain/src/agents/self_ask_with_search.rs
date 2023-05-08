@@ -342,7 +342,7 @@ where
         let prompt = PromptTemplate::Text(PROMPT.into()).format(&template_parameters)?;
         let plan = self
             .executor
-            .execute(None, &prompt)
+            .execute(None, &prompt, None)
             .await
             .map_err(SelfAskWithSearchAgentError::ExecutorError)?;
         plan.primary_textual_output()
@@ -575,6 +575,7 @@ mod tests {
                 &self,
                 _: Option<&Self::PerInvocationOptions>,
                 _: &crate::prompt::Prompt,
+                _: Option<bool>,
             ) -> Result<Self::Output, Self::Error> {
                 todo!()
             }
