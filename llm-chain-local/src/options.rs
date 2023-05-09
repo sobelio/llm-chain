@@ -53,7 +53,7 @@ impl Into<ModelParameters> for PerInvocation {
 /// # Examples
 ///
 /// ```
-/// use llm_chain_local::PerExecutor;
+/// use llm_chain_local::options::PerExecutor;
 /// let executor = PerExecutor::new().with_model_path("path/to/model");
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
