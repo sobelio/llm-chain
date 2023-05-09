@@ -75,6 +75,7 @@ impl Executor {
                 &input,
             )
             .unwrap();
+
         let mut n_remaining = self.context_params().n_ctx - tokenized_input.len() as i32;
         let mut n_used = tokenized_input.len() - 1;
         if let Some(prefix) = self.answer_prefix(&input.prompt) {
@@ -103,9 +104,12 @@ impl Executor {
         let mut stop_sequence_i = 0;
         // Generate remaining tokens.
         while n_remaining > 0 {
-            let tok = self
-                .context
-                .llama_sample(embd.as_slice(), n_used as i32, &input);
+            let tok = self.context.llama_sample(
+                context_params.n_ctx,
+                embd.as_slice(),
+                n_used as i32,
+                &input,
+            );
             n_used += 1;
             n_remaining -= 1;
             embd[n_used] = tok;
