@@ -33,7 +33,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let exec = LocalExecutor::new_with_options(Some(exec_opts), None)?;
     let res = exec
-        .execute(None, &Data::Text(String::from(prompt)))
+        .execute(None, &Data::Text(String::from(prompt)), None)
         .await?;
 
     println!("{}", res);
