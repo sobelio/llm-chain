@@ -31,6 +31,7 @@ fn main() {
     } else {
         let bindings = bindgen::Builder::default()
             .header("wrapper.h")
+            .clang_args(&["-x", "c++"])
             .clang_arg("-I./llama.cpp")
             .parse_callbacks(Box::new(bindgen::CargoCallbacks))
             .generate();
