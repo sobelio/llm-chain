@@ -77,7 +77,8 @@ impl<E: traits::Executor> Chain<E> {
         exec: &E,
     ) -> Result<E::Output, Error<E::Error>> {
         let fmt = step.format(parameters)?;
-        self.send_message_raw(step.options(), &fmt, exec).await
+        self.send_message_raw(step.options(), &fmt, step.is_streaming(), exec)
+            .await
     }
 
     /// Sends a message to the LLM and returns the response.
@@ -95,6 +96,7 @@ impl<E: traits::Executor> Chain<E> {
         &mut self,
         options: Option<&<E as traits::Executor>::PerInvocationOptions>,
         prompt: &Prompt,
+        is_streaming: Option<bool>,
         exec: &E,
     ) -> Result<E::Output, Error<E::Error>> {
         let tok = exec.tokens_used(options, prompt)?;
@@ -106,7 +108,9 @@ impl<E: traits::Executor> Chain<E> {
         let prompt_with_history = Prompt::Chat(self.state.clone()).combine(prompt);
 
         // Execute the prompt and retrieve the LLM's response.
-        let res = exec.execute(options, &prompt_with_history).await?;
+        let res = exec
+            .execute(options, &prompt_with_history, is_streaming)
+            .await?;
 
         // Create a ChatMessage from the response and add it to the conversation state.
         let response_message = ChatMessage::new(

@@ -78,6 +78,7 @@ pub trait Executor: Sized {
         &self,
         options: Option<&Self::PerInvocationOptions>,
         prompt: &Prompt,
+        is_streaming: Option<bool>,
     ) -> Result<Self::Output, Self::Error>;
 
     /// Calculates the number of tokens used by the step given a set of parameters.
