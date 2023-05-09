@@ -1,4 +1,4 @@
-use std::{env::args, error::Error};
+use std::{env::args, error::Error, path::PathBuf};
 
 use llm_chain::{traits::Executor, prompt::Data};
 use llm_chain_local::{Executor as LocalExecutor, options::PerExecutor};
@@ -27,7 +27,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let prompt = args.2;
 
     let exec_opts = PerExecutor {
-        model_path: Some(String::from(model_path)),
+        model_path: Some(PathBuf::from(model_path)),
         model_type: Some(String::from(model_type)),
     };
 
