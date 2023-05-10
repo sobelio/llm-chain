@@ -1,0 +1,35 @@
+all-features = false
+no-default-features = false
+feature-depth = 1
+
+
+[advisories]
+db-path = "~/.cargo/advisory-db"
+db-urls = ["https://github.com/rustsec/advisory-db"]
+vulnerability = "deny"
+unmaintained = "warn"
+yanked = "warn"
+notice = "warn"
+
+[licenses]
+
+unlicensed = "deny"
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "ISC",
+    "Unicode-DFS-2016",
+    "BSD-3-Clause",
+    "OpenSSL",
+]
+copyleft = "deny"
+allow-osi-fsf-free = "neither"
+default = "deny"
+confidence-threshold = 0.8
+
+
+[[licenses.clarify]]
+name = "ring"
+version = "*"
+expression = "MIT AND ISC AND OpenSSL"
+license-files = [{ path = "LICENSE", hash = 0xbd0eed23 }]
