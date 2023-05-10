@@ -29,6 +29,10 @@ jobs:
         with:
           command: fmt
           args: --all -- --check
+      - uses: EmbarkStudios/cargo-deny-action@v1
+        with:
+          log-level: warn
+          command: check
 
   build_and_test:
     strategy:

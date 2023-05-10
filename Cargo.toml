@@ -1,12 +1,5 @@
 [workspace]
-members = [
-    "llm-chain",
-    "llm-chain-openai",
-    "llm-chain-llama",
-    "llm-chain-llama/sys",
-    "llm-chain-local",
-    "llm-chain-qdrant",
-]
+members = ["crates/*"]
 
 [workspace.metadata.release]
 shared-version = true

@@ -189,7 +189,7 @@ impl ExecutorTrait for Executor {
         &self,
         options: Option<&Self::PerInvocationOptions>,
         prompt: &Prompt,
-        is_streaming: Option<bool>,
+        _is_streaming: Option<bool>,
     ) -> Result<Self::Output, Self::Error> {
         let config = match options {
             Some(options) => options.clone(),
