@@ -48,7 +48,7 @@ jobs:
           api-key: ${{ secrets.ENHANCEDOCS_API_KEY }}
       - name: Build EnhanceDocs
         working-directory: website
-        run: enhancedocs build docs blog ../docs ../llm-chain/src ../llm-chain ../llm-chain-llama ../llm-chain-openai
+        run: enhancedocs build docs blog ../docs ../crates
       - name: Push Docs
         working-directory: website
         run: enhancedocs push 64456d414958ccf11d241c33
