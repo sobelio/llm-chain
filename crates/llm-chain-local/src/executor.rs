@@ -86,7 +86,7 @@ impl llm_chain::traits::Executor for Executor {
         &self,
         options: Option<&Self::PerInvocationOptions>,
         prompt: &Prompt,
-        is_streaming: Option<bool>,
+        _is_streaming: Option<bool>,
     ) -> Result<Self::Output, Self::Error> {
         let parameters = match options {
             None => Default::default(),
