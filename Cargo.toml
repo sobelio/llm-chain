@@ -1,11 +1,11 @@
 [workspace]
 members = [
-    "llm-chain",
-    "llm-chain-openai",
-    "llm-chain-llama",
-    "llm-chain-llama/sys",
-    "llm-chain-local",
-    "llm-chain-qdrant",
+    "crates/llm-chain",
+    "crates/llm-chain-openai",
+    "crates/llm-chain-llama",
+    "crates/llm-chain-llama/sys",
+    "crates/llm-chain-local",
+    "crates/llm-chain-qdrant",
 ]
 
 [workspace.metadata.release]
