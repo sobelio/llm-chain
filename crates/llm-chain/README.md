@@ -2,6 +2,8 @@
 
 `llm-chain` is a collection of Rust crates designed to help you create advanced LLM applications such as chatbots, agents, and more. As a comprehensive LLM-Ops platform we have strong support for both cloud and locally-hosted LLMs. We also provide robust support for prompt templates and chaining together prompts in multi-step chains, enabling complex tasks that LLMs can't handle in a single step. We also provide vector store integrations making it easy to give your model long-term memory and subject matter knowledge. This empowers you to build sophisticated applications.
 
+This crate is the main crate for `llm-chain`. You will need driver crate such as `llm-chain-openai`, or `llm-chain-local`
+
 [![Discord](https://dcbadge.vercel.app/api/server/kewN9Gtjt2?style=for-the-badge)](https://discord.gg/kewN9Gtjt2)
 [![Crates.io](https://img.shields.io/crates/v/llm-chain?style=for-the-badge)](https://crates.io/crates/llm-chain)
 ![License](https://img.shields.io/github/license/sobelio/llm-chain?style=for-the-badge)
@@ -32,7 +34,6 @@ println!("{}", res);
 - **ChatGPT support**: Supports ChatGPT models, with plans to add OpenAI's other models in the future.
 - **LLaMa support**: Provides seamless integration with LLaMa models, enabling natural language understanding and generation tasks with Facebook's research models.
 - **Alpaca support**: Incorporates support for Stanford's Alpaca models, expanding the range of available language models for advanced AI applications.
-- **`llm.rs` support**: Use llms in rust without dependencies on C++ code with our support for `llm.rs`
 - **Tools**: Enhance your AI agents' capabilities by giving them access to various tools, such as running Bash commands, executing Python scripts, or performing web searches, enabling more complex and powerful interactions.
 - **Extensibility**: Designed with extensibility in mind, making it easy to integrate additional LLMs as the ecosystem grows.
 - **Community-driven**: We welcome and encourage contributions from the community to help improve and expand the capabilities of `llm-chain`.
@@ -41,10 +42,8 @@ println!("{}", res);
 
 To start using `llm-chain`, add it as a dependency in your `Cargo.toml`:
 
-```toml
-[dependencies]
-llm-chain = "0.8.0"
-llm-chain-openai = "0.8.0
+```bash
+cargo add llm-chain llm-chain-openai
 ```
 
 The examples for `llm-chain-openai` require you to set the `OPENAI_API_KEY` environment variable which you can do like this:
