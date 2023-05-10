@@ -64,12 +64,12 @@ pub trait Param: Send + Sync {
 #[doc(hidden)]
 pub trait ParamFull: Param + Debug + Send + Sync {
     #[doc(hidden)]
-    fn boxed_clone(&self) -> Box<dyn ParamFull>;
+    fn boxed_clone(&self) -> Box<dyn ParamFull + Send>;
 }
 
 impl<T: Param + Debug + Clone + 'static> ParamFull for T {
     #[doc(hidden)]
-    fn boxed_clone(&self) -> Box<dyn ParamFull> {
+    fn boxed_clone(&self) -> Box<dyn ParamFull + Send> {
         Box::new(self.clone())
     }
 }
