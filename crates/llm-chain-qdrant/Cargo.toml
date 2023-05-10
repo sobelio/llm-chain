@@ -1,6 +1,6 @@
 [package]
 name = "llm-chain-qdrant"
-version = "0.9.1"
+version = "0.9.2"
 edition = "2021"
 description = "For using Qdrant with llm-chain"
 license = "MIT"
@@ -15,7 +15,7 @@ repository = "https://github.com/sobelio/llm-chain/"
 [dependencies]
 anyhow = "1.0.70"
 async-trait = "0.1.68"
-llm-chain = { path = "../llm-chain", version = "0.9.1", default-features = false }
+llm-chain = { path = "../llm-chain", version = "0.10.0", default-features = false }
 qdrant-client = "1.1.2"
 serde = "1.0.160"
 serde_json = "1.0.96"
