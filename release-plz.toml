@@ -1,2 +1,3 @@
 [workspace]
 allow_dirty=true
+publish_no_verify = true
