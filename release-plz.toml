@@ -1,3 +1,2 @@
-[[package]]
-name = "llm-chain-llama-sys"
+[workspace]
 allow_dirty=true
