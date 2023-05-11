@@ -15,7 +15,7 @@ repository = "https://github.com/sobelio/llm-chain/"
 [dependencies]
 anyhow = "1.0.70"
 async-trait = "0.1.68"
-llm-chain = { path = "../llm-chain", version = "0.10.0", default-features = false }
+llm-chain = { path = "../llm-chain", version = "0.10.1", default-features = false }
 qdrant-client = "1.1.2"
 serde = "1.0.163"
 serde_json = "1.0.96"

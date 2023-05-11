@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.1](https://github.com/sobelio/llm-chain/compare/llm-chain-v0.10.0...llm-chain-v0.10.1) - 2023-05-11
+
+### Other
+- add no-verify to release-plz
+
 ## [0.10.0](https://github.com/sobelio/llm-chain/compare/llm-chain-v0.9.1...llm-chain-v0.10.0) - 2023-05-10
 
 ### Other
