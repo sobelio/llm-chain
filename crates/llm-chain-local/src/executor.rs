@@ -4,7 +4,6 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use crate::options::{PerExecutor, PerInvocation};
-use crate::output::Output;
 use crate::LocalLlmTextSplitter;
 
 use async_trait::async_trait;
@@ -12,6 +11,7 @@ use llm::{
     load_progress_callback_stdout, InferenceParameters, InferenceRequest, Model, ModelArchitecture,
     TokenBias, TokenId, TokenUtf8Buffer,
 };
+use llm_chain::output::Output;
 use llm_chain::prompt::Prompt;
 use llm_chain::tokens::{PromptTokensError, TokenCount, Tokenizer, TokenizerError};
 use llm_chain::traits::{ExecutorCreationError, ExecutorError};
@@ -42,7 +42,6 @@ impl ExecutorError for Error {}
 impl llm_chain::traits::Executor for Executor {
     type PerInvocationOptions = PerInvocation;
     type PerExecutorOptions = PerExecutor;
-    type Output = Output;
     type Error = Error;
     type Token = i32;
     type StepTokenizer<'a> = LocalLlmTokenizer<'a>;
@@ -87,7 +86,7 @@ impl llm_chain::traits::Executor for Executor {
         options: Option<&Self::PerInvocationOptions>,
         prompt: &Prompt,
         _is_streaming: Option<bool>,
-    ) -> Result<Self::Output, Self::Error> {
+    ) -> Result<Output, Self::Error> {
         let parameters = match options {
             None => Default::default(),
             Some(opts) => InferenceParameters {
@@ -130,7 +129,7 @@ impl llm_chain::traits::Executor for Executor {
             )
             .map_err(|e| Error::InnerError(Box::new(e)))?;
 
-        Ok(output.into())
+        Ok(Output::new_immediate(Prompt::text(output)))
     }
 
     fn tokens_used(

@@ -1,4 +1,5 @@
-use crate::output::Output;
+use llm_chain::output::Output;
+use llm_chain::prompt::Prompt;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use thiserror::Error;
@@ -103,8 +104,9 @@ pub(crate) fn llama_tokenize_helper(
 
 /// Converts an embedding represented as a slice into the Output string.
 pub(crate) fn embedding_to_output(context: &LLamaContext, embd: &[i32]) -> Output {
-    embd.iter()
-        .map(|token| to_output(context, *token))
-        .fold("".to_string(), |cur, nxt| cur + &nxt)
-        .into()
+    Output::new_immediate(Prompt::text(
+        embd.iter()
+            .map(|token| to_output(context, *token))
+            .fold("".to_string(), |cur, nxt| cur + &nxt),
+    ))
 }

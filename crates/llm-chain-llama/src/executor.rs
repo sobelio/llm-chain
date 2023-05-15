@@ -4,9 +4,9 @@ use crate::options::{LlamaInvocation, PerExecutor};
 use crate::tokenizer::{embedding_to_output, llama_token_eos, llama_tokenize_helper, tokenize};
 use crate::LLamaTextSplitter;
 
-use crate::output::Output;
 use async_trait::async_trait;
 
+use llm_chain::output::Output;
 use llm_chain::prompt::{ChatRole, Prompt};
 
 use llm_chain::tokens::{PromptTokensError, TokenCount};
@@ -133,8 +133,8 @@ impl Executor {
                 .unwrap();
 
             if let Some(callback) = self.callback {
-                let output = self.context.llama_token_to_str(&embd[n_used]);
-                callback(&output.into());
+                let str_output = self.context.llama_token_to_str(&embd[n_used]);
+                callback(&Output::new_immediate(Prompt::text(str_output)));
             }
         }
         embedding_to_output(
@@ -155,7 +155,6 @@ impl ExecutorError for Error {}
 // Implement the ExecutorTrait for the Executor, defining methods for handling input and output.
 #[async_trait]
 impl ExecutorTrait for Executor {
-    type Output = Output;
     type Token = i32;
     type StepTokenizer<'a> = LLamaTokenizer<'a>;
     type TextSplitter<'a> = LLamaTextSplitter<'a>;
@@ -190,7 +189,7 @@ impl ExecutorTrait for Executor {
         options: Option<&Self::PerInvocationOptions>,
         prompt: &Prompt,
         _is_streaming: Option<bool>,
-    ) -> Result<Self::Output, Self::Error> {
+    ) -> Result<Output, Self::Error> {
         let config = match options {
             Some(options) => options.clone(),
             None => self.invocation_options.clone().unwrap_or_default(),
