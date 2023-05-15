@@ -19,7 +19,7 @@ impl<'a> LocalLlmTextSplitter<'a> {
 impl<'a> Tokenizer<TokenId> for LocalLlmTextSplitter<'a> {
     fn tokenize_str(&self, doc: &str) -> Result<Vec<TokenId>, TokenizerError> {
         match &self.llm.vocabulary().tokenize(doc, false) {
-            Ok(tokens) => Ok(tokens.into_iter().map(|t| t.1).collect()),
+            Ok(tokens) => Ok(tokens.iter().map(|t| t.1).collect()),
             Err(_) => Err(TokenizerError::TokenizationError),
         }
     }

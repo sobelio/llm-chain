@@ -112,6 +112,7 @@ impl<E: traits::Executor> Chain<E> {
             .execute(options, &prompt_with_history, is_streaming)
             .await?;
         let content = res.to_immediate().await.as_content().to_chat();
+
         self.state = prompt_with_history.to_chat();
         self.state.append(content.clone());
 

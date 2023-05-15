@@ -26,16 +26,16 @@ pub struct PerInvocation {
 
 impl Options for PerInvocation {}
 
-impl Into<ModelParameters> for PerInvocation {
-    fn into(self) -> ModelParameters {
+impl From<PerInvocation> for ModelParameters {
+    fn from(val: PerInvocation) -> Self {
         let inference_parameters = InferenceParameters {
-            n_threads: self.n_threads.unwrap_or(4),
-            n_batch: self.n_batch.unwrap_or(8),
-            top_k: self.top_k.unwrap_or(40),
-            top_p: self.top_p.unwrap_or(0.95),
-            repeat_penalty: self.temp.unwrap_or(1.3),
-            repetition_penalty_last_n: self.repeat_penalty_last_n.unwrap_or(512),
-            temperature: self.temp.unwrap_or(0.8),
+            n_threads: val.n_threads.unwrap_or(4),
+            n_batch: val.n_batch.unwrap_or(8),
+            top_k: val.top_k.unwrap_or(40),
+            top_p: val.top_p.unwrap_or(0.95),
+            repeat_penalty: val.temp.unwrap_or(1.3),
+            repetition_penalty_last_n: val.repeat_penalty_last_n.unwrap_or(512),
+            temperature: val.temp.unwrap_or(0.8),
             bias_tokens: Default::default(),
         };
 

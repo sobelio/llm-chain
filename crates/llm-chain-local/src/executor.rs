@@ -12,7 +12,7 @@ use llm::{
     TokenBias, TokenId, TokenUtf8Buffer,
 };
 use llm_chain::output::Output;
-use llm_chain::prompt::Prompt;
+use llm_chain::prompt::{Data, Prompt};
 use llm_chain::tokens::{PromptTokensError, TokenCount, Tokenizer, TokenizerError};
 use llm_chain::traits::{ExecutorCreationError, ExecutorError};
 use thiserror::Error;
@@ -61,7 +61,7 @@ impl llm_chain::traits::Executor for Executor {
         let model_path = options
                 .as_ref()
                 .and_then(|x| x.model_path.clone())
-                .or_else(|| var("LLM_MODEL_PATH").ok().map(|s| PathBuf::from(s)))
+                .or_else(|| var("LLM_MODEL_PATH").ok().map(PathBuf::from))
                 .ok_or(ExecutorCreationError::FieldRequiredError(
                     "model_path, ensure to provide the parameter or set `LLM_MODEL_PATH` environment variable ".to_string(),
                 ))?;
@@ -128,7 +128,6 @@ impl llm_chain::traits::Executor for Executor {
                 },
             )
             .map_err(|e| Error::InnerError(Box::new(e)))?;
-
         Ok(Output::new_immediate(Prompt::text(output)))
     }
 
@@ -186,7 +185,7 @@ impl<'a> LocalLlmTokenizer<'a> {
 impl Tokenizer<llm::TokenId> for LocalLlmTokenizer<'_> {
     fn tokenize_str(&self, doc: &str) -> Result<Vec<llm::TokenId>, TokenizerError> {
         match &self.llm.vocabulary().tokenize(doc, false) {
-            Ok(tokens) => Ok(tokens.into_iter().map(|t| t.1).collect()),
+            Ok(tokens) => Ok(tokens.iter().map(|t| t.1).collect()),
             Err(_) => Err(TokenizerError::TokenizationError),
         }
     }
