@@ -20,7 +20,7 @@ futures = "0.3.28"
 serde = { version = "1.0.163", features = ["derive"] }
 serde_yaml = { version = "0.9.21" }
 thiserror = "1.0.40"
-tokio = { version = "1.28.0", optional = true, features = ["fs", "io-util"] }
+tokio = { version = "1.28.1", optional = true, features = ["fs", "io-util"] }
 markdown = { version = "1.0.0-alpha.8" }
 tera = { version = "1.18.1" }
 lazy_static = "1.4.0"
@@ -30,5 +30,5 @@ serde_json = "1.0.96"
 reqwest = { version = "0.11.17", features = ["json"] }
 
 [dev-dependencies]
-tokio = "1.28.0"
+tokio = "1.28.1"
 mockall = "0.11.4"
