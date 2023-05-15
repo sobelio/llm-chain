@@ -45,8 +45,6 @@ pub trait Executor: Sized {
     /// The per-executor options type used by this executor. These are the options you can send to the executor and can't be set per step.
     type PerExecutorOptions: Options;
 
-    /// The output type produced by this executor.
-    type Output: Output;
     /// The error type produced by this executor.
     type Error: ExecutorError + Debug + Error;
 
@@ -79,7 +77,7 @@ pub trait Executor: Sized {
         options: Option<&Self::PerInvocationOptions>,
         prompt: &Prompt,
         is_streaming: Option<bool>,
-    ) -> Result<Self::Output, Self::Error>;
+    ) -> Result<Output, Self::Error>;
 
     /// Calculates the number of tokens used by the step given a set of parameters.
     ///

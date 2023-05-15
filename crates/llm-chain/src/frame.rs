@@ -7,6 +7,7 @@
 //! The `Frame` struct is generic over the `Step` and `Executor` types, ensuring that it can work with any
 //! combination of types that implement the required traits.
 
+use crate::output::Output;
 use crate::step::Step;
 use crate::traits;
 use crate::traits::ExecutorError;
@@ -43,7 +44,7 @@ where
     pub async fn format_and_execute(
         &self,
         parameters: &Parameters,
-    ) -> Result<E::Output, FormatAndExecuteError<E::Error>> {
+    ) -> Result<Output, FormatAndExecuteError<E::Error>> {
         let prompt = self.step.format(parameters)?;
         Ok(self
             .executor

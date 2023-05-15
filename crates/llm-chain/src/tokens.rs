@@ -26,8 +26,8 @@ pub enum PromptTokensError {
 
 /// An extension trait for the `Executor` trait that provides additional methods for working
 /// with token counts.
-pub trait ExecutorTokenCountExt<Output, Token: Clone, StepTokenizer>:
-    traits::Executor<Output = Output, Token = Token>
+pub trait ExecutorTokenCountExt<Token: Clone, StepTokenizer>:
+    traits::Executor<Token = Token>
 {
     /// Splits a `Parameters` object into multiple smaller `Parameters` objects that fit within
     /// the context window size supported by the given model.
@@ -122,9 +122,9 @@ impl TokenCount {
 }
 
 /// An extension trait for the `Executor` trait that provides additional methods for working with tokens
-impl<E, O, T, N> ExecutorTokenCountExt<O, T, N> for E
+impl<E, T, N> ExecutorTokenCountExt<T, N> for E
 where
-    E: traits::Executor<Output = O, Token = T>,
+    E: traits::Executor<Token = T>,
     T: Clone,
 {
 }

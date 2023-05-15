@@ -4,7 +4,7 @@
 //! It relies on the `traits::Executor` trait to execute prompts and handle LLM interactions.
 
 use crate::output::Output;
-use crate::prompt::{ChatMessage, ChatMessageCollection, Prompt, PromptTemplate};
+use crate::prompt::{ChatMessageCollection, Prompt, PromptTemplate};
 use crate::step::Step;
 use crate::tokens::{PromptTokensError, TokenizerError};
 use crate::traits::{self, ExecutorError};
@@ -75,7 +75,7 @@ impl<E: traits::Executor> Chain<E> {
         step: Step<E>,
         parameters: &Parameters,
         exec: &E,
-    ) -> Result<E::Output, Error<E::Error>> {
+    ) -> Result<Output, Error<E::Error>> {
         let fmt = step.format(parameters)?;
         self.send_message_raw(step.options(), &fmt, step.is_streaming(), exec)
             .await
@@ -98,7 +98,7 @@ impl<E: traits::Executor> Chain<E> {
         prompt: &Prompt,
         is_streaming: Option<bool>,
         exec: &E,
-    ) -> Result<E::Output, Error<E::Error>> {
+    ) -> Result<Output, Error<E::Error>> {
         let tok = exec.tokens_used(options, prompt)?;
         let tokens_remaining = tok.tokens_remaining();
         let tokenizer = exec.get_tokenizer(options)?;
@@ -111,20 +111,11 @@ impl<E: traits::Executor> Chain<E> {
         let res = exec
             .execute(options, &prompt_with_history, is_streaming)
             .await?;
-
-        // Create a ChatMessage from the response and add it to the conversation state.
-        let response_message = ChatMessage::new(
-            res.get_chat_role()
-                .await
-                .unwrap_or(crate::prompt::ChatRole::Assistant),
-            res.primary_textual_output()
-                .await
-                .ok_or(Error::NoModelOutput)?,
-        );
+        let content = res.to_immediate().await.as_content().to_chat();
         self.state = prompt_with_history.to_chat();
-        self.state.add_message(response_message);
+        self.state.append(content.clone());
 
-        Ok(res)
+        Ok(Output::new_immediate(content.clone().into()))
     }
 }
 

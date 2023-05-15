@@ -125,10 +125,11 @@ impl Parameters {
     pub fn with_text<K: Into<String>>(&self, text: K) -> Parameters {
         self.with(TEXT_KEY, text)
     }
-    pub async fn with_text_from_output<O: Output>(&self, output: &O) -> Parameters {
+    pub async fn with_text_from_output(&self, output: Output) -> Parameters {
         output
-            .primary_textual_output()
+            .to_immediate()
             .await
+            .primary_textual_output()
             .map_or(self.clone(), |text| self.with_text(text))
     }
     /// Combines two sets of parameters, returning a new set of parameters with all the keys from both sets.

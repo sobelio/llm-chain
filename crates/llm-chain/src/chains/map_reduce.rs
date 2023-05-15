@@ -10,6 +10,7 @@
 use crate::{
     frame::Frame,
     output::Output,
+    prompt::Data,
     serialization::StorableEntity,
     step::Step,
     tokens,
@@ -19,12 +20,10 @@ use crate::{
     Parameters,
 };
 use futures::future::join_all;
+use futures::future::FutureExt;
 use serde::de::{Deserializer, MapAccess};
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use serde::Deserialize;
-
-#[cfg(feature = "serialization")]
-use crate::serialization::StorableEntity;
 
 use thiserror::Error;
 
@@ -72,7 +71,7 @@ impl<E: Executor> Chain<E> {
         documents: Vec<Parameters>,
         base_parameters: Parameters,
         executor: &E,
-    ) -> Result<E::Output, MapReduceChainError<E::Error>> {
+    ) -> Result<Output, MapReduceChainError<E::Error>> {
         if documents.is_empty() {
             return Err(MapReduceChainError::InputEmpty);
         }
@@ -91,12 +90,23 @@ impl<E: Executor> Chain<E> {
             .iter()
             .map(|doc| base_parameters.combine(doc))
             .collect();
-        let futures: Vec<_> = chunked_docs_with_base_parameters
-            .iter()
-            .map(|doc| map_frame.format_and_execute(doc))
-            .collect();
-        let mapped_documents = join_all(futures).await;
-        let mapped_documents = mapped_documents.into_iter().collect::<Result<_, _>>()?;
+        let mapped_documents: Vec<_> = join_all(
+            chunked_docs_with_base_parameters
+                .iter()
+                .map(|doc| map_frame.format_and_execute(doc))
+                .collect::<Vec<_>>(),
+        )
+        .await;
+        let mapped_documents = mapped_documents
+            .into_iter()
+            .collect::<Result<Vec<Output>, _>>()?;
+        let mapped_documents: Vec<Data<String>> = join_all(
+            mapped_documents
+                .into_iter()
+                .map(|x| x.to_immediate().map(|x| x.as_content()))
+                .collect::<Vec<_>>(),
+        )
+        .await;
 
         let mut documents = self
             .combine_documents_up_to(executor, mapped_documents, &base_parameters)
@@ -114,9 +124,15 @@ impl<E: Executor> Chain<E> {
             let futures = tasks.iter().map(|p| reduce_frame.format_and_execute(p));
             let new_docs = join_all(futures).await;
             let new_docs = new_docs.into_iter().collect::<Result<Vec<_>, _>>()?;
+            let new_docs = join_all(
+                new_docs
+                    .into_iter()
+                    .map(|x| x.to_immediate().map(|x| x.as_content())),
+            )
+            .await;
             let n_new_docs = new_docs.len();
             if n_new_docs == 1 {
-                return Ok(new_docs[0].clone());
+                return Ok(Output::new_immediate(new_docs[0].clone()));
             }
             documents = self
                 .combine_documents_up_to(executor, new_docs, &base_parameters)
@@ -127,20 +143,22 @@ impl<E: Executor> Chain<E> {
     async fn combine_documents_up_to(
         &self,
         executor: &E,
-        mut v: Vec<<E as Executor>::Output>,
+        mut v: Vec<Data<String>>,
         parameters: &Parameters,
     ) -> Result<Vec<String>, MapReduceChainError<E::Error>> {
         let mut new_outputs = Vec::new();
         while let Some(current) = v.pop() {
-            let mut current_doc = current.primary_textual_output().await.unwrap_or_default();
+            let mut current_doc = current
+                .extract_last_body()
+                .map(|x| x.clone())
+                .unwrap_or_default();
             while let Some(next) = v.last() {
-                let next_doc = next.primary_textual_output().await;
-                if next_doc.is_none() {
-                    continue;
-                }
+                let Some(next_doc_content) = next.extract_last_body() else {
+                    continue
+                };
                 let mut new_doc = current_doc.clone();
                 new_doc.push('\n');
-                new_doc.push_str(&next.primary_textual_output().await.unwrap_or_default());
+                new_doc.push_str(&next_doc_content);
 
                 let params = parameters.with_text(new_doc.clone());
                 let prompt = self.reduce.format(&params)?;
@@ -171,7 +189,6 @@ impl<E: Executor> Chain<E> {
             .iter()
             .map(|x| {
                 <E as tokens::ExecutorTokenCountExt<
-                    <E as traits::Executor>::Output,
                     <E as traits::Executor>::Token,
                     <E as traits::Executor>::StepTokenizer<'a>,
                 >>::split_to_fit(executor, step, x, &base_parameters, None)

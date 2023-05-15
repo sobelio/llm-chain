@@ -30,6 +30,7 @@ use serde::ser::{SerializeMap, Serializer};
 use serde::{Deserialize, Serialize};
 
 use crate::frame::FormatAndExecuteError;
+use crate::output::Output;
 use crate::{
     frame::Frame,
     serialization::StorableEntity,
@@ -94,23 +95,28 @@ impl<E: Executor> Chain<E> {
         &self,
         parameters: Parameters,
         executor: &E,
-    ) -> Result<E::Output, SequentialChainError<E::Error>> {
+    ) -> Result<Output, SequentialChainError<E::Error>> {
         if self.steps.is_empty() {
             return Err(SequentialChainError::NoSteps);
         }
         let mut current_params = parameters;
-        let mut output: Option<E::Output> = None;
-        for (i, step) in self.steps.iter().enumerate() {
-            let frame = Frame::new(executor, step);
-            let res = frame.format_and_execute(&current_params).await?;
-            let is_streaming_and_last_step =
-                step.is_streaming() == Some(true) && i == self.steps.len() - 1;
-            if !is_streaming_and_last_step {
-                current_params = current_params.with_text_from_output(&res).await;
-            }
-            output = Some(res);
+
+        for step in &self.steps[..self.steps.len() - 1] {
+            let body = Frame::new(executor, step)
+                .format_and_execute(&current_params)
+                .await?
+                .to_immediate()
+                .await
+                .as_content()
+                .extract_last_body()
+                .map(|x| x.clone())
+                .unwrap_or_default();
+            current_params = current_params.with_text(body);
         }
-        Ok(output.expect("No output from chain"))
+        let last_step = self.steps.last().unwrap();
+        Ok(Frame::new(executor, last_step)
+            .format_and_execute(&current_params)
+            .await?)
     }
 }
 

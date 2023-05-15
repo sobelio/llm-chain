@@ -33,6 +33,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap();
 
     // Print the result to the console
-    println!("{:?}", res);
+    println!("{:}", res);
     Ok(())
 }

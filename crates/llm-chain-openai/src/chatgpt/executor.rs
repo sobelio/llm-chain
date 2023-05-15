@@ -1,5 +1,8 @@
 use super::options::PerInvocation;
-use super::output::Output;
+use super::prompt::completion_to_output;
+use super::prompt::stream_to_output;
+use llm_chain::output::Output;
+
 use super::prompt::create_chat_completion_request;
 use super::prompt::format_chat_messages;
 use super::Model;
@@ -60,7 +63,6 @@ impl traits::Executor for Executor {
     type PerInvocationOptions = PerInvocation;
     type PerExecutorOptions = PerExecutor;
 
-    type Output = Output;
     type Token = usize;
     type StepTokenizer<'a> = OpenAITokenizer;
     type TextSplitter<'a> = OpenAITextSplitter;
@@ -94,16 +96,16 @@ impl traits::Executor for Executor {
         opts: Option<&PerInvocation>,
         prompt: &Prompt,
         is_streaming: Option<bool>,
-    ) -> Result<Self::Output, Self::Error> {
+    ) -> Result<Output, Self::Error> {
         let client = self.client.clone();
         let model = self.get_model_from_invocation_options(opts);
         let input = create_chat_completion_request(&model, prompt, is_streaming).unwrap();
         if let Some(true) = is_streaming {
             let res = async move { client.chat().create_stream(input).await }.await?;
-            Ok(res.into())
+            Ok(stream_to_output(res))
         } else {
             let res = async move { client.chat().create(input).await }.await?;
-            Ok(res.into())
+            Ok(completion_to_output(res))
         }
     }
 

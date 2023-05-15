@@ -3,7 +3,6 @@
 //! This module contains the `TextSummarizer` struct, that provides an easy way to summarize text.
 use crate::{
     chains::map_reduce::{self, MapReduceChainError},
-    output::Output,
     parameters, prompt,
     step::Step,
     traits,
@@ -56,8 +55,9 @@ impl<E: traits::Executor> TextSummarizer<E> {
         };
         let chain_output = self.chain.run(vec![params], parameters!(), exec).await?;
         chain_output
-            .primary_textual_output()
+            .to_immediate()
             .await
+            .primary_textual_output()
             .ok_or(TextSummarizerError::NoOutput)
     }
 }

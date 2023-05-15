@@ -249,6 +249,11 @@ impl<Body> ChatMessageCollection<Body> {
         self.messages.len()
     }
 
+    /// Gets the body of the last message in the collection
+    pub(crate) fn extract_last_body(&self) -> Option<&Body> {
+        self.messages.back().map(|x| &x.body)
+    }
+
     /// Returns `true` if the collection contains no messages.
     pub fn is_empty(&self) -> bool {
         self.messages.is_empty()

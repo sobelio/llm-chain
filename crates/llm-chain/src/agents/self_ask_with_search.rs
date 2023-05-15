@@ -1,5 +1,4 @@
 use crate::{
-    output::Output,
     parameters,
     prompt::{PromptTemplate, StringTemplateError},
     tools::{Tool, ToolError},
@@ -345,8 +344,11 @@ where
             .execute(None, &prompt, None)
             .await
             .map_err(SelfAskWithSearchAgentError::ExecutorError)?;
-        plan.primary_textual_output()
+        plan.to_immediate()
             .await
+            .as_content()
+            .extract_last_body()
+            .map(|x| x.clone())
             .ok_or(SelfAskWithSearchAgentError::NoChoicesReturned)
     }
 
@@ -502,13 +504,6 @@ mod tests {
         #[derive(Clone)]
         struct MockOutput;
 
-        #[async_trait]
-        impl Output for MockOutput {
-            async fn primary_textual_output_choices(&self) -> Vec<String> {
-                todo!()
-            }
-        }
-
         #[derive(Debug, Error)]
         #[error("Mocked executor error")]
         struct MockError;
@@ -554,8 +549,6 @@ mod tests {
 
             type PerExecutorOptions = MockOptions;
 
-            type Output = MockOutput;
-
             type Error = MockError;
 
             type Token = ();
@@ -576,7 +569,7 @@ mod tests {
                 _: Option<&Self::PerInvocationOptions>,
                 _: &crate::prompt::Prompt,
                 _: Option<bool>,
-            ) -> Result<Self::Output, Self::Error> {
+            ) -> Result<Output, Self::Error> {
                 todo!()
             }
 

@@ -2,6 +2,7 @@
 //!
 //! Steps are used to set the per-invocation settings for a prompt. Useful when you want to change the settings for a specific prompt in a chain.
 use crate::frame::{FormatAndExecuteError, Frame};
+use crate::output::Output;
 use crate::prompt::{Prompt, StringTemplateError};
 use crate::{chains::sequential, prompt, traits, Parameters};
 use derive_builder;
@@ -83,7 +84,7 @@ where
         &self,
         parameters: &Parameters,
         executor: &Executor,
-    ) -> Result<Executor::Output, FormatAndExecuteError<Executor::Error>>
+    ) -> Result<Output, FormatAndExecuteError<Executor::Error>>
     where
         Self: Sized,
     {
