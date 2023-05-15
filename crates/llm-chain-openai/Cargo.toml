@@ -7,7 +7,7 @@ license = "MIT"
 keywords = ["llm", "langchain", "chatgpt", "chain"]
 categories = ["science"]
 authors = ["William Rudenmalm <william@sobel.io>"]
-readme = "../docs/README.md"
+readme = "../../docs/README.md"
 repository = "https://github.com/sobelio/llm-chain/"
 
 [features]
