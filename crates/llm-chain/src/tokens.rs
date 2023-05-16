@@ -5,7 +5,8 @@
 //! prompts stay within the context window size supported by a given model.
 
 use crate::step::Step;
-use crate::{traits, Parameters, TextSplitter};
+use crate::{traits, Parameters};
+use std::cmp::max;
 use thiserror::Error;
 
 /// Custom error type for handling prompt token-related errors.
@@ -26,9 +27,7 @@ pub enum PromptTokensError {
 
 /// An extension trait for the `Executor` trait that provides additional methods for working
 /// with token counts.
-pub trait ExecutorTokenCountExt<Token: Clone, StepTokenizer>:
-    traits::Executor<Token = Token>
-{
+pub trait ExecutorTokenCountExt: traits::Executor {
     /// Splits a `Parameters` object into multiple smaller `Parameters` objects that fit within
     /// the context window size supported by the given model.
     ///
@@ -48,7 +47,7 @@ pub trait ExecutorTokenCountExt<Token: Clone, StepTokenizer>:
         chunk_overlap: Option<usize>,
     ) -> Result<Vec<Parameters>, PromptTokensError> {
         let splitter = self
-            .get_text_splitter(step.options())
+            .get_tokenizer(step.options())
             .map_err(|_e| PromptTokensError::UnableToCompute)?;
 
         let text = doc.get_text().ok_or(PromptTokensError::UnableToCompute)?;
@@ -70,6 +69,9 @@ pub trait ExecutorTokenCountExt<Token: Clone, StepTokenizer>:
         Ok(split_params)
     }
 }
+
+/// Blanket implementation of ExecutorTokenCountExt for all Executors
+impl<E: traits::Executor> ExecutorTokenCountExt for E {}
 
 /// Struct representing token count information, including the maximum tokens allowed and the
 /// total number of tokens used.
@@ -121,14 +123,6 @@ impl TokenCount {
     }
 }
 
-/// An extension trait for the `Executor` trait that provides additional methods for working with tokens
-impl<E, T, N> ExecutorTokenCountExt<T, N> for E
-where
-    E: traits::Executor<Token = T>,
-    T: Clone,
-{
-}
-
 #[derive(Error, Debug, Clone)]
 pub enum TokenizerError {
     #[error("Error tokenizing input text")]
@@ -137,9 +131,11 @@ pub enum TokenizerError {
     ToStringError,
     #[error("Error creating tokenizer")]
     TokenizerCreationError,
+    #[error("Token Collection type mismatch")]
+    TokenCollectionTypeMismatch,
 }
 
-pub trait Tokenizer<TokenType: Clone> {
+pub trait Tokenizer {
     /// Tokenizes a string.
     ///
     /// # Parameters
@@ -149,7 +145,7 @@ pub trait Tokenizer<TokenType: Clone> {
     /// # Returns
     ///
     /// A `Result` containing a vector of tokens, or an error if there was a problem.
-    fn tokenize_str(&self, doc: &str) -> Result<Vec<TokenType>, TokenizerError>;
+    fn tokenize_str(&self, doc: &str) -> Result<TokenCollection, TokenizerError>;
 
     /// Converts a vector of tokens into a string.
     ///
@@ -160,5 +156,94 @@ pub trait Tokenizer<TokenType: Clone> {
     /// # Returns
     ///
     /// A `Result` containing a string, or an error if there was a problem.
-    fn to_string(&self, tokens: Vec<TokenType>) -> Result<String, TokenizerError>;
+    fn to_string(&self, tokens: TokenCollection) -> Result<String, TokenizerError>;
+
+    fn split_text(
+        &self,
+        doc: &str,
+        max_tokens_per_chunk: usize,
+        chunk_overlap: usize,
+    ) -> Result<Vec<String>, TokenizerError> {
+        let tokens = self.tokenize_str(doc)?;
+        let step_size = max(
+            max_tokens_per_chunk.checked_sub(chunk_overlap).unwrap_or(1),
+            1,
+        );
+
+        debug_assert_ne!(step_size, 0);
+
+        (0..tokens.len())
+            .step_by(step_size)
+            .map(|start_idx| {
+                let end_idx = usize::min(start_idx + max_tokens_per_chunk, tokens.len());
+                self.to_string(tokens.slice(start_idx, end_idx))
+            })
+            .collect()
+    }
+}
+
+/// A type-safe, enum-backed collection of tokens.
+///
+/// `TokenCollection` can hold a collection of `i32` or `usize` tokens,
+/// ensuring type safety and efficient storage.
+pub struct TokenCollection(TokenCollectionImpl);
+
+/// The internal enum representation of `TokenCollection`.
+///
+/// This enum holds the actual data for a `TokenCollection` instance,
+/// allowing us to differentiate between the two types of collections
+/// (`i32` and `usize`) in a type-safe manner.
+enum TokenCollectionImpl {
+    /// A token collection of `i32`
+    I32(Vec<i32>),
+    /// A token collection of usize, this should be avoided as the size is non-determinate, but is present in some libraries.
+    Usize(Vec<usize>),
+}
+
+impl TokenCollection {
+    /// Converts the `TokenCollection` into a vector of `i32`,
+    /// if it contains `i32` values. Returns `None` otherwise.
+    pub fn as_i32(self) -> Result<Vec<i32>, TokenizerError> {
+        match self.0 {
+            TokenCollectionImpl::I32(v) => Ok(v),
+            _ => Err(TokenizerError::TokenCollectionTypeMismatch),
+        }
+    }
+
+    /// Converts the `TokenCollection` into a vector of `usize`,
+    /// if it contains `usize` values. Returns `None` otherwise.
+    pub fn as_usize(self) -> Result<Vec<usize>, TokenizerError> {
+        match self.0 {
+            TokenCollectionImpl::Usize(v) => Ok(v),
+            _ => Err(TokenizerError::TokenCollectionTypeMismatch),
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        match &self.0 {
+            TokenCollectionImpl::I32(x) => x.len(),
+            TokenCollectionImpl::Usize(x) => x.len(),
+        }
+    }
+
+    pub fn slice(&self, start: usize, end: usize) -> Self {
+        match &self.0 {
+            TokenCollectionImpl::I32(v) => Vec::from(&v[start..end]).into(),
+            TokenCollectionImpl::Usize(v) => Vec::from(&v[start..end]).into(),
+        }
+    }
+}
+
+/// Enables the conversion from a vector of `i32` into a `TokenCollection`.
+impl From<Vec<i32>> for TokenCollection {
+    fn from(v: Vec<i32>) -> Self {
+        TokenCollection(TokenCollectionImpl::I32(v))
+    }
+}
+
+/// Enables the conversion from a vector of `usize` into a `TokenCollection`.
+impl From<Vec<usize>> for TokenCollection {
+    fn from(v: Vec<usize>) -> Self {
+        TokenCollection(TokenCollectionImpl::Usize(v))
+    }
 }

@@ -4,28 +4,23 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use crate::options::{PerExecutor, PerInvocation};
-use crate::LocalLlmTextSplitter;
 
 use async_trait::async_trait;
 use llm::{
     load_progress_callback_stdout, InferenceParameters, InferenceRequest, Model, ModelArchitecture,
-    TokenBias, TokenId, TokenUtf8Buffer,
+    TokenBias, TokenUtf8Buffer,
 };
 use llm_chain::output::Output;
-use llm_chain::prompt::{Data, Prompt};
-use llm_chain::tokens::{PromptTokensError, TokenCount, Tokenizer, TokenizerError};
+use llm_chain::prompt::Prompt;
+use llm_chain::tokens::{
+    PromptTokensError, TokenCollection, TokenCount, Tokenizer, TokenizerError,
+};
 use llm_chain::traits::{ExecutorCreationError, ExecutorError};
 use thiserror::Error;
 
 /// Executor is responsible for running the LLM and managing its context.
 pub struct Executor {
     llm: Box<dyn Model>,
-}
-
-impl Executor {
-    pub(crate) fn get_llm(&self) -> &dyn Model {
-        self.llm.as_ref()
-    }
 }
 
 #[derive(Debug, Error)]
@@ -43,9 +38,7 @@ impl llm_chain::traits::Executor for Executor {
     type PerInvocationOptions = PerInvocation;
     type PerExecutorOptions = PerExecutor;
     type Error = Error;
-    type Token = i32;
     type StepTokenizer<'a> = LocalLlmTokenizer<'a>;
-    type TextSplitter<'a> = LocalLlmTextSplitter<'a>;
 
     fn new_with_options(
         options: Option<Self::PerExecutorOptions>,
@@ -161,13 +154,6 @@ impl llm_chain::traits::Executor for Executor {
     ) -> Result<Self::StepTokenizer<'_>, TokenizerError> {
         Ok(LocalLlmTokenizer::new(self))
     }
-
-    fn get_text_splitter(
-        &self,
-        _: Option<&Self::PerInvocationOptions>,
-    ) -> Result<Self::TextSplitter<'_>, Self::Error> {
-        Ok(LocalLlmTextSplitter::new(self))
-    }
 }
 
 pub struct LocalLlmTokenizer<'a> {
@@ -182,18 +168,18 @@ impl<'a> LocalLlmTokenizer<'a> {
     }
 }
 
-impl Tokenizer<llm::TokenId> for LocalLlmTokenizer<'_> {
-    fn tokenize_str(&self, doc: &str) -> Result<Vec<llm::TokenId>, TokenizerError> {
+impl Tokenizer for LocalLlmTokenizer<'_> {
+    fn tokenize_str(&self, doc: &str) -> Result<TokenCollection, TokenizerError> {
         match &self.llm.vocabulary().tokenize(doc, false) {
-            Ok(tokens) => Ok(tokens.iter().map(|t| t.1).collect()),
+            Ok(tokens) => Ok(tokens.iter().map(|t| t.1).collect::<Vec<_>>().into()),
             Err(_) => Err(TokenizerError::TokenizationError),
         }
     }
 
-    fn to_string(&self, tokens: Vec<TokenId>) -> Result<String, TokenizerError> {
+    fn to_string(&self, tokens: TokenCollection) -> Result<String, TokenizerError> {
         let mut res = String::new();
         let mut token_utf8_buf = TokenUtf8Buffer::new();
-        for token_id in tokens {
+        for token_id in tokens.as_i32()? {
             // Buffer the token until it's valid UTF-8, then call the callback.
             if let Some(tokens) =
                 token_utf8_buf.push(self.llm.vocabulary().token(token_id as usize))

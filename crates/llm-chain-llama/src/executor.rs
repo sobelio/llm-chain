@@ -2,14 +2,13 @@ use crate::context::{ContextParams, LLamaContext};
 use crate::options::PerInvocation;
 use crate::options::{LlamaInvocation, PerExecutor};
 use crate::tokenizer::{embedding_to_output, llama_token_eos, llama_tokenize_helper, tokenize};
-use crate::LLamaTextSplitter;
 
 use async_trait::async_trait;
 
 use llm_chain::output::Output;
 use llm_chain::prompt::{ChatRole, Prompt};
 
-use llm_chain::tokens::{PromptTokensError, TokenCount};
+use llm_chain::tokens::{PromptTokensError, TokenCollection, TokenCount};
 use llm_chain::tokens::{Tokenizer, TokenizerError};
 use llm_chain::traits::{Executor as ExecutorTrait, ExecutorCreationError, ExecutorError};
 
@@ -33,10 +32,6 @@ impl Executor {
             .as_ref()
             .and_then(|p| p.context_params.as_ref());
         ContextParams::or_default(cp)
-    }
-
-    pub(crate) fn get_context(&self) -> &LLamaContext {
-        &self.context
     }
 }
 
@@ -155,9 +150,7 @@ impl ExecutorError for Error {}
 // Implement the ExecutorTrait for the Executor, defining methods for handling input and output.
 #[async_trait]
 impl ExecutorTrait for Executor {
-    type Token = i32;
     type StepTokenizer<'a> = LLamaTokenizer<'a>;
-    type TextSplitter<'a> = LLamaTextSplitter<'a>;
     type Error = Error;
     type PerInvocationOptions = PerInvocation;
     type PerExecutorOptions = PerExecutor;
@@ -247,13 +240,6 @@ impl ExecutorTrait for Executor {
     ) -> Result<LLamaTokenizer, TokenizerError> {
         Ok(LLamaTokenizer::new(self))
     }
-
-    fn get_text_splitter(
-        &self,
-        _step: Option<&Self::PerInvocationOptions>,
-    ) -> Result<Self::TextSplitter<'_>, Self::Error> {
-        Ok(LLamaTextSplitter::new(self))
-    }
 }
 
 pub struct LLamaTokenizer<'a> {
@@ -268,14 +254,14 @@ impl<'a> LLamaTokenizer<'a> {
     }
 }
 
-impl Tokenizer<i32> for LLamaTokenizer<'_> {
-    fn tokenize_str(&self, doc: &str) -> Result<Vec<i32>, TokenizerError> {
+impl Tokenizer for LLamaTokenizer<'_> {
+    fn tokenize_str(&self, doc: &str) -> Result<TokenCollection, TokenizerError> {
         let tokenized = llama_tokenize_helper(self.context, doc, true);
-        Ok(tokenized)
+        Ok(tokenized.into())
     }
 
-    fn to_string(&self, tokens: Vec<i32>) -> Result<String, TokenizerError> {
-        let output = embedding_to_output(self.context, &tokens);
+    fn to_string(&self, tokens: TokenCollection) -> Result<String, TokenizerError> {
+        let output = embedding_to_output(self.context, &tokens.as_i32()?);
         Ok(output.to_string())
     }
 }

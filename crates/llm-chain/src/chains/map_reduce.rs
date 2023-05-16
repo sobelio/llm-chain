@@ -15,7 +15,6 @@ use crate::{
     step::Step,
     tokens,
     tokens::PromptTokensError,
-    traits,
     traits::{Executor, ExecutorError},
     Parameters,
 };
@@ -188,10 +187,13 @@ impl<E: Executor> Chain<E> {
         let data: Result<Vec<_>, _> = v
             .iter()
             .map(|x| {
-                <E as tokens::ExecutorTokenCountExt<
-                    <E as traits::Executor>::Token,
-                    <E as traits::Executor>::StepTokenizer<'a>,
-                >>::split_to_fit(executor, step, x, &base_parameters, None)
+                <E as tokens::ExecutorTokenCountExt>::split_to_fit(
+                    executor,
+                    step,
+                    x,
+                    &base_parameters,
+                    None,
+                )
             })
             .collect();
         let data = data?.iter().flatten().cloned().collect();

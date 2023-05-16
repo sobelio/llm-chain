@@ -352,13 +352,13 @@ impl ChatMessageCollection<String> {
     /// # Returns
     ///
     /// A `Result<(), TokenizerError>` indicating success or failure.
-    pub fn trim_context<Tok, TT: Clone>(
+    pub fn trim_context<Tok>(
         &mut self,
         tokenizer: &Tok,
         max_tokens: i32,
     ) -> Result<(), TokenizerError>
     where
-        Tok: Tokenizer<TT>,
+        Tok: Tokenizer,
     {
         let mut total_tokens: i32 = 0;
 

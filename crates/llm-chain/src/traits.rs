@@ -16,7 +16,6 @@ use crate::{
     prompt::Prompt,
     schema::{Document, EmptyMetadata},
     tokens::{PromptTokensError, TokenCount, Tokenizer, TokenizerError},
-    TextSplitter,
 };
 use async_trait::async_trait;
 use serde::{de::DeserializeOwned, Serialize};
@@ -48,14 +47,7 @@ pub trait Executor: Sized {
     /// The error type produced by this executor.
     type Error: ExecutorError + Debug + Error;
 
-    /// The token type used by this executor.
-    type Token: Clone;
-
-    type StepTokenizer<'a>: Tokenizer<Self::Token>
-    where
-        Self: 'a;
-
-    type TextSplitter<'a>: TextSplitter<Self::Token>
+    type StepTokenizer<'a>: Tokenizer
     where
         Self: 'a;
 
@@ -132,19 +124,6 @@ pub trait Executor: Sized {
         &self,
         options: Option<&Self::PerInvocationOptions>,
     ) -> Result<Self::StepTokenizer<'_>, TokenizerError>;
-
-    /// Creates a text splitter, depending on the model used by 'step'
-    ///
-    /// # Parameters
-    ///
-    /// * `step` The step to get an associated text splitter for.
-    ///
-    /// # Returns
-    /// A `Result` containing a text splitter, or an error if there was a problem.
-    fn get_text_splitter(
-        &self,
-        options: Option<&Self::PerInvocationOptions>,
-    ) -> Result<Self::TextSplitter<'_>, Self::Error>;
 }
 
 /// This marker trait is needed so the concrete VectorStore::Error can have a derived From<Embeddings::Error>

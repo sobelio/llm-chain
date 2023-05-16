@@ -1,6 +1,6 @@
 use llm_chain::prompt::Conversation;
 use llm_chain::{
-    chains::conversation::Chain, executor, output::Output, parameters, prompt, step::Step,
+    chains::conversation::Chain, executor, parameters, prompt, step::Step,
 };
 use llm_chain_llama::{ContextParams, PerExecutor, PerInvocation};
 /// This example demonstrates how to use the llm-chain for few-shot prompting

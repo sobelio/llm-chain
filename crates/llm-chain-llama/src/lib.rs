@@ -24,7 +24,6 @@
 mod context;
 mod executor;
 mod options;
-mod text_splitter;
 mod tokenizer;
 
 pub use context::ContextParams;
@@ -34,4 +33,3 @@ pub use options::PerInvocation;
 
 #[deprecated(note = "Use llm_chain::step::Step instead", since = "0.7.0")]
 pub use llm_chain::step::Step;
-pub use text_splitter::LLamaTextSplitter;

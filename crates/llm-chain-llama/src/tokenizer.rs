@@ -1,7 +1,5 @@
-use crate::output::Output;
 use llm_chain::output::Output;
 use llm_chain::prompt::Data;
-use llm_chain::prompt::Prompt;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use thiserror::Error;
@@ -105,7 +103,7 @@ pub(crate) fn llama_tokenize_helper(
 }
 
 fn tokens_to_string(context: &LLamaContext, embd: &[i32]) -> String {
-    let mut bfr = String::with_capacity(len(embd) * 2);
+    let bfr = String::with_capacity(embd.len() * 2);
     embd.iter()
         .map(|token| to_output(context, *token))
         .fold(bfr, |cur, nxt| cur + &nxt)

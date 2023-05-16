@@ -394,10 +394,9 @@ mod tests {
         output::Output,
         parameters,
         prompt::Prompt,
-        tokens::Tokenizer,
+        tokens::{TokenCollection, Tokenizer},
         tools::{Tool, ToolError},
         traits::{Executor, ExecutorError, Options},
-        TextSplitter,
     };
 
     use super::{
@@ -518,25 +517,20 @@ mod tests {
             }
         }
 
-        struct MockTextSplitter;
+        struct MockTokenizer;
 
-        impl<T: Clone> Tokenizer<T> for MockTextSplitter {
-            fn tokenize_str(&self, _: &str) -> Result<Vec<T>, crate::tokens::TokenizerError> {
-                todo!()
-            }
-
-            fn to_string(&self, _: Vec<T>) -> Result<String, crate::tokens::TokenizerError> {
-                todo!()
-            }
-        }
-
-        impl<T: Clone> TextSplitter<T> for MockTextSplitter {
-            fn split_text(
+        impl Tokenizer for MockTokenizer {
+            fn tokenize_str(
                 &self,
                 _: &str,
-                _: usize,
-                _: usize,
-            ) -> Result<Vec<String>, crate::tokens::TokenizerError> {
+            ) -> Result<TokenCollection, crate::tokens::TokenizerError> {
+                todo!()
+            }
+
+            fn to_string(
+                &self,
+                _: TokenCollection,
+            ) -> Result<String, crate::tokens::TokenizerError> {
                 todo!()
             }
         }
@@ -548,14 +542,8 @@ mod tests {
             type PerInvocationOptions = MockOptions;
 
             type PerExecutorOptions = MockOptions;
-
+            type StepTokenizer<'a> = MockTokenizer;
             type Error = MockError;
-
-            type Token = ();
-
-            type StepTokenizer<'a> = MockTextSplitter;
-
-            type TextSplitter<'a> = MockTextSplitter;
 
             fn new_with_options(
                 _: Option<Self::PerExecutorOptions>,
@@ -592,14 +580,7 @@ mod tests {
             fn get_tokenizer(
                 &self,
                 _: Option<&Self::PerInvocationOptions>,
-            ) -> Result<Self::StepTokenizer<'_>, crate::tokens::TokenizerError> {
-                todo!()
-            }
-
-            fn get_text_splitter(
-                &self,
-                _: Option<&Self::PerInvocationOptions>,
-            ) -> Result<Self::TextSplitter<'_>, Self::Error> {
+            ) -> Result<MockTokenizer, crate::tokens::TokenizerError> {
                 todo!()
             }
 

@@ -2,11 +2,11 @@ use super::options::PerInvocation;
 use super::prompt::completion_to_output;
 use super::prompt::stream_to_output;
 use llm_chain::output::Output;
+use llm_chain::tokens::TokenCollection;
 
 use super::prompt::create_chat_completion_request;
 use super::prompt::format_chat_messages;
 use super::Model;
-use super::OpenAITextSplitter;
 use async_openai::error::OpenAIError;
 use llm_chain::prompt::Prompt;
 
@@ -63,9 +63,7 @@ impl traits::Executor for Executor {
     type PerInvocationOptions = PerInvocation;
     type PerExecutorOptions = PerExecutor;
 
-    type Token = usize;
     type StepTokenizer<'a> = OpenAITokenizer;
-    type TextSplitter<'a> = OpenAITextSplitter;
     type Error = Error;
 
     /// Creates a new `Executor` with the given options.
@@ -146,15 +144,6 @@ impl traits::Executor for Executor {
             .unwrap_or_default();
         Ok(OpenAITokenizer::new(&opts))
     }
-
-    fn get_text_splitter(
-        &self,
-        options: Option<&PerInvocation>,
-    ) -> Result<Self::TextSplitter<'_>, Self::Error> {
-        Ok(OpenAITextSplitter::new(
-            self.get_model_from_invocation_options(options),
-        ))
-    }
 }
 
 pub struct OpenAITokenizer {
@@ -174,19 +163,20 @@ impl OpenAITokenizer {
     }
 }
 
-impl Tokenizer<usize> for OpenAITokenizer {
-    fn tokenize_str(&self, doc: &str) -> Result<Vec<usize>, TokenizerError> {
+impl Tokenizer for OpenAITokenizer {
+    fn tokenize_str(&self, doc: &str) -> Result<TokenCollection, TokenizerError> {
         Ok(self
             .get_bpe_from_model()
             .map_err(|_| TokenizerError::TokenizationError)?
-            .encode_ordinary(doc))
+            .encode_ordinary(doc)
+            .into())
     }
 
-    fn to_string(&self, tokens: Vec<usize>) -> Result<String, TokenizerError> {
+    fn to_string(&self, tokens: TokenCollection) -> Result<String, TokenizerError> {
         let res = self
             .get_bpe_from_model()
             .map_err(|_e| TokenizerError::ToStringError)?
-            .decode(tokens.to_vec())
+            .decode(tokens.as_usize()?)
             .map_err(|_e| TokenizerError::ToStringError)?;
         Ok(res)
     }
