@@ -65,3 +65,15 @@ impl Default for Embeddings {
         }
     }
 }
+
+impl Embeddings {
+    pub fn for_client(
+        client: async_openai::Client,
+        model: &str,
+    ) -> Self {
+        Self {
+            client: client.into(),
+            model: model.to_string(),
+        }
+    }
+}
