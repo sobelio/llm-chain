@@ -6,7 +6,7 @@ use std::{
 use async_trait::async_trait;
 use hnsw_rs::{hnsw::Hnsw, hnswio::*, prelude::*};
 use llm_chain::{
-    document_store::document_store::*,
+    document_stores::document_store::*,
     schema::Document,
     traits::{Embeddings, EmbeddingsError, VectorStore, VectorStoreError},
 };

@@ -24,7 +24,7 @@
 // Core components
 pub mod agents;
 pub mod chains;
-pub mod document_store;
+pub mod document_stores;
 pub mod executor;
 pub mod frame;
 pub mod output;

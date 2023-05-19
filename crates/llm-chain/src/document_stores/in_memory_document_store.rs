@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::document_store::document_store::*;
+use crate::document_stores::document_store::*;
 use crate::schema::Document;
 
 use async_trait::async_trait;
