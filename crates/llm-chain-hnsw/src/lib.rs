@@ -226,7 +226,7 @@ where
         limit: u32,
     ) -> Result<Vec<Document<M>>, Self::Error> {
         let document_store_arc = self.document_store.clone();
-        let mut document_store = document_store_arc.lock().await;
+        let document_store = document_store_arc.lock().await;
 
         let embedded_query = self.embeddings.embed_query(query).await?;
 
