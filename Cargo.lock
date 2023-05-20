@@ -965,8 +965,7 @@ checksum = "fed44880c466736ef9a5c5b5facefb5ed0785676d0c02d612db14e54f0d84286"
 [[package]]
 name = "hnsw_rs"
 version = "0.1.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0308727459701f2fa18286e50662c37044e130e955bfd42b6ff30260116b2a5"
+source = "git+https://github.com/ruqqq/hnswlib-rs#df14ce752bcbf549f23fd58674814ad245cb8c4e"
 dependencies = [
  "bincode",
  "cpu-time",

@@ -3,3 +3,7 @@ members = ["crates/*"]
 
 [workspace.metadata.release]
 shared-version = true
+
+[patch.crates-io]
+hnsw_rs = { git = "https://github.com/ruqqq/hnswlib-rs" }
+
