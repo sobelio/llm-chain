@@ -49,7 +49,7 @@ mod tests {
         let chunk_overlap = 0;
 
         let splitter = OpenAITextSplitter {
-            model: crate::chatgpt::Model::ChatGPT3_5Turbo,
+            model: crate::chatgpt::Model::Gpt35Turbo,
         };
 
         let chunks = splitter.split_text(doc, max_tokens_per_chunk, chunk_overlap)?;
@@ -74,7 +74,7 @@ mod tests {
         let chunk_overlap = 1;
 
         let splitter = OpenAITextSplitter {
-            model: crate::chatgpt::Model::ChatGPT3_5Turbo,
+            model: crate::chatgpt::Model::Gpt35Turbo,
         };
 
         let chunks = splitter.split_text(doc, max_tokens_per_chunk, chunk_overlap)?;
@@ -100,7 +100,7 @@ mod tests {
         let chunk_overlap = max_tokens_per_chunk;
 
         let splitter = OpenAITextSplitter {
-            model: crate::chatgpt::Model::ChatGPT3_5Turbo,
+            model: crate::chatgpt::Model::Gpt35Turbo,
         };
 
         let chunks = splitter.split_text(doc, max_tokens_per_chunk, chunk_overlap)?;
