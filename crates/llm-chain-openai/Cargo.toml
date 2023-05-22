@@ -20,10 +20,10 @@ llm-chain = { path = "../llm-chain", version = "0.11.1", default-features = fals
 serde = { version = "1.0.163" }
 tiktoken-rs = { version = "0.4.2", features = ["async-openai"] }
 thiserror = "1.0.40"
-tokio = "1.28.0"
+tokio = "1.28.1"
 
 [dev-dependencies]
-tokio = "1.28.0"
+tokio = "1.28.1"
 qdrant-client = "1.1.1"
 llm-chain = { path = "../llm-chain" }
 anyhow = "1.0.70"
