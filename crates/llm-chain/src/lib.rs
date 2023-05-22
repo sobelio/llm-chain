@@ -27,6 +27,7 @@ pub mod chains;
 pub mod document_stores;
 pub mod executor;
 pub mod frame;
+pub mod options;
 pub mod output;
 pub mod parameters;
 pub mod parsing;

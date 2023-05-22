@@ -1,4 +1,5 @@
 use crate::{
+    options::Options,
     parameters,
     prompt::{PromptTemplate, StringTemplateError},
     tools::{Tool, ToolError},
@@ -341,7 +342,7 @@ where
         let prompt = PromptTemplate::Text(PROMPT.into()).format(&template_parameters)?;
         let plan = self
             .executor
-            .execute(None, &prompt, None)
+            .execute(&Options::new(), &prompt, None)
             .await
             .map_err(SelfAskWithSearchAgentError::ExecutorError)?;
         plan.to_immediate()

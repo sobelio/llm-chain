@@ -1342,6 +1342,8 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
+ "strum",
+ "strum_macros",
  "tera",
  "thiserror",
  "tokio",
@@ -1388,6 +1390,7 @@ name = "llm-chain-local"
 version = "0.11.1"
 dependencies = [
  "async-trait",
+ "lazy_static",
  "llm",
  "llm-chain",
  "rand 0.8.5",

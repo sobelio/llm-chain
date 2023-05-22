@@ -12,13 +12,13 @@
 use std::{error::Error, fmt::Debug};
 
 use crate::{
+    options::Options,
     output::Output,
     prompt::Prompt,
     schema::{Document, EmptyMetadata},
     tokens::{PromptTokensError, TokenCount, Tokenizer, TokenizerError},
 };
 use async_trait::async_trait;
-use serde::{de::DeserializeOwned, Serialize};
 
 #[derive(thiserror::Error, Debug)]
 #[error("unable to create executor")]
@@ -31,19 +31,10 @@ pub enum ExecutorCreationError {
 
 /// Marker trait for errors in `Executor` method. It is needed so the concrete Errors can have a derived `From<ExecutorError>`
 pub trait ExecutorError {}
-
-/// The `Options` trait represents an options type that is used to customize the behavior of a step or executor.
-pub trait Options: Clone + Send + Sync + Serialize + DeserializeOwned + Debug {}
-
 #[async_trait]
 /// The `Executor` trait represents an executor that performs a single step in a chain. It takes a
 /// step, executes it, and returns the output.
 pub trait Executor: Sized {
-    /// The per-invocation options type used by this executor. These are the options you can send to each step.
-    type PerInvocationOptions: Options;
-    /// The per-executor options type used by this executor. These are the options you can send to the executor and can't be set per step.
-    type PerExecutorOptions: Options;
-
     /// The error type produced by this executor.
     type Error: ExecutorError + Debug + Error;
 
@@ -51,22 +42,18 @@ pub trait Executor: Sized {
     where
         Self: 'a;
 
-    /// Create a new executor with the given executor options and invocation options. If you don't need to set any options, you can use the `new` method instead.
+    /// Create a new executor with the given options. If you don't need to set any options, you can use the `new` method instead.
     /// # Parameters
-    /// * `executor_options`: The options to set for the executor.
-    /// * `invocation_options`: The default options to set for each invocation.
-    fn new_with_options(
-        executor_options: Option<Self::PerExecutorOptions>,
-        invocation_options: Option<Self::PerInvocationOptions>,
-    ) -> Result<Self, ExecutorCreationError>;
+    /// * `executor_options`: The options to set.
+    fn new_with_options(options: Options) -> Result<Self, ExecutorCreationError>;
 
     fn new() -> Result<Self, ExecutorCreationError> {
-        Self::new_with_options(None, None)
+        Self::new_with_options(Options::new())
     }
 
     async fn execute(
         &self,
-        options: Option<&Self::PerInvocationOptions>,
+        options: &Options,
         prompt: &Prompt,
         is_streaming: Option<bool>,
     ) -> Result<Output, Self::Error>;
@@ -86,7 +73,7 @@ pub trait Executor: Sized {
     /// A `Result` containing the token count, or an error if there was a problem.
     fn tokens_used(
         &self,
-        options: Option<&Self::PerInvocationOptions>,
+        options: &Options,
         prompt: &Prompt,
     ) -> Result<TokenCount, PromptTokensError>;
 
@@ -98,7 +85,7 @@ pub trait Executor: Sized {
     ///
     /// # Returns
     /// The max token count for the step
-    fn max_tokens_allowed(&self, options: Option<&Self::PerInvocationOptions>) -> i32;
+    fn max_tokens_allowed(&self, options: &Options) -> i32;
 
     /// Returns a possible answer prefix inserted by the model, during a certain prompt mode
     ///
@@ -120,10 +107,7 @@ pub trait Executor: Sized {
     /// # Returns
     ///
     /// A `Result` containing a tokenizer, or an error if there was a problem.
-    fn get_tokenizer(
-        &self,
-        options: Option<&Self::PerInvocationOptions>,
-    ) -> Result<Self::StepTokenizer<'_>, TokenizerError>;
+    fn get_tokenizer(&self, options: &Options) -> Result<Self::StepTokenizer<'_>, TokenizerError>;
 }
 
 /// This marker trait is needed so the concrete VectorStore::Error can have a derived From<Embeddings::Error>

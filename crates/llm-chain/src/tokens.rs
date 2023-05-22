@@ -6,6 +6,7 @@
 
 use crate::step::Step;
 use crate::{traits, Parameters};
+use serde::{Deserialize, Serialize};
 use std::cmp::max;
 use thiserror::Error;
 
@@ -41,7 +42,7 @@ pub trait ExecutorTokenCountExt: traits::Executor {
     /// Returns a `PromptTokensError` if there is an issue computing the tokens.
     fn split_to_fit(
         &self,
-        step: &Step<Self>,
+        step: &Step,
         doc: &Parameters,
         base_parameters: &Parameters,
         chunk_overlap: Option<usize>,
@@ -53,7 +54,7 @@ pub trait ExecutorTokenCountExt: traits::Executor {
         let text = doc.get_text().ok_or(PromptTokensError::UnableToCompute)?;
 
         let prompt = step.format(&base_parameters.combine(&Parameters::new_with_text("")))?;
-        let tokens_used = self.tokens_used(step.options.as_ref(), &prompt)?;
+        let tokens_used = self.tokens_used(step.options(), &prompt)?;
         let chunk_overlap = chunk_overlap.unwrap_or(0);
 
         let split_params = splitter
@@ -179,6 +180,45 @@ pub trait Tokenizer {
                 self.to_string(tokens.slice(start_idx, end_idx))
             })
             .collect()
+    }
+}
+
+/// Represents a single token.
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(transparent)]
+pub struct Token(TokenImpl);
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+enum TokenImpl {
+    I32(i32),
+    USize(usize),
+}
+
+impl From<i32> for Token {
+    fn from(value: i32) -> Self {
+        Token(TokenImpl::I32(value))
+    }
+}
+
+impl From<usize> for Token {
+    fn from(value: usize) -> Self {
+        Token(TokenImpl::USize(value))
+    }
+}
+
+impl Token {
+    pub fn to_i32(&self) -> Option<i32> {
+        match &self.0 {
+            TokenImpl::I32(x) => Some(*x),
+            _ => None,
+        }
+    }
+
+    pub fn to_usize(&self) -> Option<usize> {
+        match &self.0 {
+            TokenImpl::USize(x) => Some(*x),
+            _ => None,
+        }
     }
 }
 

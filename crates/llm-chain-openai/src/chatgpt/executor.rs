@@ -1,6 +1,8 @@
 use super::options::PerInvocation;
 use super::prompt::completion_to_output;
 use super::prompt::stream_to_output;
+use llm_chain::options::Options;
+use llm_chain::options::OptionsCascade;
 use llm_chain::output::Output;
 use llm_chain::tokens::TokenCollection;
 
@@ -15,7 +17,6 @@ use llm_chain::tokens::{Tokenizer, TokenizerError};
 use llm_chain::traits;
 use llm_chain::traits::{ExecutorCreationError, ExecutorError};
 
-use super::options::PerExecutor;
 use async_trait::async_trait;
 use llm_chain::tokens::TokenCount;
 
@@ -29,17 +30,14 @@ pub struct Executor {
     /// The client used to communicate with the OpenAI API.
     client: Arc<async_openai::Client>,
     /// The per-invocation options for this executor.
-    per_invocation_options: Option<PerInvocation>,
+    options: Options,
 }
 
 impl Executor {
     /// Creates a new `Executor` with the given client.
-    pub fn for_client(
-        client: async_openai::Client,
-        per_invocation_options: Option<PerInvocation>,
-    ) -> Self {
+    pub fn for_client(client: async_openai::Client, options: Options) -> Self {
         use llm_chain::traits::Executor as _;
-        let mut exec = Self::new_with_options(None, per_invocation_options).unwrap();
+        let mut exec = Self::new_with_options(options).unwrap();
         exec.client = Arc::new(client);
         exec
     }
@@ -58,22 +56,22 @@ pub enum Error {
 }
 impl ExecutorError for Error {}
 
+fn get_default_options() -> Options {
+    Options::new()
+}
+
 #[async_trait]
 impl traits::Executor for Executor {
-    type PerInvocationOptions = PerInvocation;
-    type PerExecutorOptions = PerExecutor;
-
     type StepTokenizer<'a> = OpenAITokenizer;
     type Error = Error;
 
     /// Creates a new `Executor` with the given options.
     ///
     /// if the `OPENAI_ORG_ID` environment variable is present, it will be used as the org_ig for the OpenAI client.
-    fn new_with_options(
-        executor_options: Option<Self::PerExecutorOptions>,
-        invocation_options: Option<Self::PerInvocationOptions>,
-    ) -> Result<Self, ExecutorCreationError> {
+    fn new_with_options(options: Options) -> Result<Self, ExecutorCreationError> {
         let mut client = async_openai::Client::new();
+        let opts = OptionsCascade::new(options);
+
         if let Some(executor_options) = executor_options {
             if let Some(api_key) = executor_options.api_key {
                 client = client.with_api_key(api_key)
