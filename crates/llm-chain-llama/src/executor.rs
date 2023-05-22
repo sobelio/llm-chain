@@ -1,10 +1,10 @@
 use crate::context::{ContextParams, LLamaContext};
-use crate::options::PerInvocation;
 use crate::options::{LlamaInvocation, PerExecutor};
 use crate::tokenizer::{embedding_to_output, llama_token_eos, llama_tokenize_helper, tokenize};
 
 use async_trait::async_trait;
 
+use llm_chain::options::Options;
 use llm_chain::output::Output;
 use llm_chain::prompt::{ChatRole, Prompt};
 
@@ -16,9 +16,7 @@ use llm_chain_llama_sys::llama_context_params;
 /// Executor is responsible for running the LLAMA model and managing its context.
 pub struct Executor {
     context: LLamaContext,
-    options: Option<PerExecutor>,
-    callback: Option<fn(&Output)>,
-    invocation_options: Option<PerInvocation>,
+    options: Options,
 }
 
 impl Executor {
@@ -126,11 +124,6 @@ impl Executor {
             self.context
                 .llama_eval(&embd[n_used..], 1, n_used as i32, &input)
                 .unwrap();
-
-            if let Some(callback) = self.callback {
-                let str_output = self.context.llama_token_to_str(&embd[n_used]);
-                callback(&Output::new_immediate(Prompt::text(str_output)));
-            }
         }
         embedding_to_output(
             &self.context,
@@ -152,12 +145,7 @@ impl ExecutorError for Error {}
 impl ExecutorTrait for Executor {
     type StepTokenizer<'a> = LLamaTokenizer<'a>;
     type Error = Error;
-    type PerInvocationOptions = PerInvocation;
-    type PerExecutorOptions = PerExecutor;
-    fn new_with_options(
-        executor_options: Option<Self::PerExecutorOptions>,
-        invocation_options: Option<Self::PerInvocationOptions>,
-    ) -> Result<Executor, ExecutorCreationError> {
+    fn new_with_options(options: Options) -> Result<Executor, ExecutorCreationError> {
         let context_params = match executor_options.as_ref() {
             Some(options) => options.context_params.clone(),
             None => None,
@@ -171,7 +159,7 @@ impl ExecutorTrait for Executor {
             ))?;
         Ok(Self {
             context: LLamaContext::from_file_and_params(&model_path, context_params.as_ref()),
-            options: executor_options,
+            options,
             callback: None,
             invocation_options,
         })
@@ -179,7 +167,7 @@ impl ExecutorTrait for Executor {
     // Executes the model asynchronously and returns the output.
     async fn execute(
         &self,
-        options: Option<&Self::PerInvocationOptions>,
+        options: &Options,
         prompt: &Prompt,
         _is_streaming: Option<bool>,
     ) -> Result<Output, Self::Error> {
@@ -193,7 +181,7 @@ impl ExecutorTrait for Executor {
 
     fn tokens_used(
         &self,
-        options: Option<&Self::PerInvocationOptions>,
+        options: &Options,
         prompt: &Prompt,
     ) -> Result<TokenCount, PromptTokensError> {
         let tokenizer = self.get_tokenizer(options)?;
@@ -230,14 +218,11 @@ impl ExecutorTrait for Executor {
         }
     }
 
-    fn max_tokens_allowed(&self, _step: Option<&PerInvocation>) -> i32 {
+    fn max_tokens_allowed(&self, _step: &Options) -> i32 {
         self.context_params().n_ctx
     }
 
-    fn get_tokenizer(
-        &self,
-        _step: Option<&Self::PerInvocationOptions>,
-    ) -> Result<LLamaTokenizer, TokenizerError> {
+    fn get_tokenizer(&self, _step: &Options) -> Result<LLamaTokenizer, TokenizerError> {
         Ok(LLamaTokenizer::new(self))
     }
 }

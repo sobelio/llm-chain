@@ -1,7 +1,7 @@
 //! This module implements chains for the ChatGPT model from OpenAI.
 mod executor;
-mod options;
+mod model;
 mod prompt;
 
 pub use executor::{Error, Executor};
-pub use options::{Model, PerExecutor, PerInvocation};
+pub use model::Model;

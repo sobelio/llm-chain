@@ -1,5 +1,4 @@
 use llm_chain::prompt::Prompt;
-use llm_chain::traits::Options;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

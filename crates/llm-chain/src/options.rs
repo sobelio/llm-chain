@@ -2,7 +2,7 @@ use lazy_static::lazy_static;
 use std::{env::VarError, ffi::OsStr};
 
 use serde::{Deserialize, Serialize};
-use strum_macros::{EnumDiscriminants, EnumIter, EnumString};
+use strum_macros::EnumDiscriminants;
 
 use crate::tokens::Token;
 
@@ -17,10 +17,15 @@ pub struct Options {
 struct OptionNotSetError;
 
 lazy_static! {
-    pub static ref EMPTY_OPTIONS: Options = Options::new();
+    static ref EMPTY_OPTIONS: Options = Options::new();
 }
 
 impl Options {
+    /// Returns a reference to an empty options set.
+    pub fn empty() -> &'static Self {
+        &EMPTY_OPTIONS
+    }
+
     pub fn new() -> Self {
         Options { opts: Vec::new() }
     }
@@ -74,11 +79,18 @@ impl<'a> OptionsCascade<'a> {
 pub struct ModelRef(String);
 
 impl ModelRef {
-    fn from_path<S: Into<String>>(p: S) -> Self {
+    pub fn from_path<S: Into<String>>(p: S) -> Self {
         Self(p.into())
+    }
+    pub fn from_model_name<S: Into<String>>(model_name: S) -> Self {
+        Self(model_name.into())
     }
     /// Returns the path for this model reference
     pub fn to_path(&self) -> String {
+        self.0.clone()
+    }
+    /// Returns the name of the model
+    pub fn to_name(&self) -> String {
         self.0.clone()
     }
 }

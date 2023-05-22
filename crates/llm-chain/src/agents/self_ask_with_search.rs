@@ -387,17 +387,18 @@ where
 mod tests {
 
     use async_trait::async_trait;
-    use serde::{Deserialize, Serialize};
+    
     use thiserror::Error;
 
     use crate::{
         agents::self_ask_with_search::{AgentIntermediateStep, EarlyStoppingConfig},
+        options::Options,
         output::Output,
         parameters,
         prompt::Prompt,
         tokens::{TokenCollection, Tokenizer},
         tools::{Tool, ToolError},
-        traits::{Executor, ExecutorError, Options},
+        traits::{Executor, ExecutorError},
     };
 
     use super::{
@@ -496,11 +497,6 @@ mod tests {
 
     #[test]
     fn test_builds_agent_sratchpad() {
-        #[derive(Debug, Serialize, Deserialize, Clone)]
-        struct MockOptions;
-
-        impl Options for MockOptions {}
-
         #[derive(Clone)]
         struct MockOutput;
 
@@ -540,22 +536,16 @@ mod tests {
 
         #[async_trait]
         impl Executor for MockExecutor {
-            type PerInvocationOptions = MockOptions;
-
-            type PerExecutorOptions = MockOptions;
             type StepTokenizer<'a> = MockTokenizer;
             type Error = MockError;
 
-            fn new_with_options(
-                _: Option<Self::PerExecutorOptions>,
-                _: Option<Self::PerInvocationOptions>,
-            ) -> Result<Self, crate::traits::ExecutorCreationError> {
+            fn new_with_options(_: Options) -> Result<Self, crate::traits::ExecutorCreationError> {
                 todo!()
             }
 
             async fn execute(
                 &self,
-                _: Option<&Self::PerInvocationOptions>,
+                _: &Options,
                 _: &crate::prompt::Prompt,
                 _: Option<bool>,
             ) -> Result<Output, Self::Error> {
@@ -564,7 +554,7 @@ mod tests {
 
             fn tokens_used(
                 &self,
-                _: Option<&Self::PerInvocationOptions>,
+                _: &Options,
                 _: &crate::prompt::Prompt,
             ) -> Result<crate::tokens::TokenCount, crate::tokens::PromptTokensError> {
                 todo!()
@@ -574,19 +564,15 @@ mod tests {
                 todo!()
             }
 
-            fn max_tokens_allowed(&self, _: Option<&Self::PerInvocationOptions>) -> i32 {
+            fn max_tokens_allowed(&self, _: &Options) -> i32 {
                 todo!()
             }
 
             fn get_tokenizer(
                 &self,
-                _: Option<&Self::PerInvocationOptions>,
+                _: &Options,
             ) -> Result<MockTokenizer, crate::tokens::TokenizerError> {
                 todo!()
-            }
-
-            fn new() -> Result<Self, crate::traits::ExecutorCreationError> {
-                Self::new_with_options(None, None)
             }
         }
         struct MockSearch;

@@ -48,7 +48,7 @@ pub trait Executor: Sized {
     fn new_with_options(options: Options) -> Result<Self, ExecutorCreationError>;
 
     fn new() -> Result<Self, ExecutorCreationError> {
-        Self::new_with_options(Options::new())
+        Self::new_with_options(Options::empty().clone())
     }
 
     async fn execute(

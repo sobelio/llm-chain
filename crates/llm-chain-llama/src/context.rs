@@ -2,7 +2,6 @@ use std::{ffi::CStr, ptr::null_mut};
 
 use crate::options::LlamaInvocation;
 use anyhow::Result;
-use llm_chain::traits;
 use llm_chain_llama_sys::{
     llama_context, llama_context_default_params, llama_context_params, llama_eval, llama_free,
     llama_get_logits, llama_init_from_file, llama_n_vocab,
@@ -72,8 +71,6 @@ impl From<llama_context_params> for ContextParams {
         }
     }
 }
-
-impl traits::Options for ContextParams {}
 
 // Represents the LLamaContext which wraps FFI calls to the llama.cpp library.
 pub(crate) struct LLamaContext {

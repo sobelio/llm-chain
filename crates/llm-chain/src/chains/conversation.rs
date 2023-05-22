@@ -8,7 +8,7 @@ use crate::output::Output;
 use crate::prompt::{ChatMessageCollection, Prompt, PromptTemplate, StringTemplateError};
 use crate::step::Step;
 use crate::tokens::{PromptTokensError, TokenizerError};
-use crate::traits::{self, Executor, ExecutorError};
+use crate::traits::{Executor, ExecutorError};
 use crate::{parameters, Parameters};
 use serde::{Deserialize, Serialize};
 

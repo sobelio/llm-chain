@@ -9,7 +9,6 @@ use llm_chain::{
     prompt::{self, Prompt},
 };
 
-use super::Model;
 use async_openai::types::{ChatCompletionResponseStream, CreateChatCompletionResponse};
 
 fn convert_role(role: &prompt::ChatRole) -> Role {
@@ -48,13 +47,13 @@ pub fn format_chat_messages(
 }
 
 pub fn create_chat_completion_request(
-    model: &Model,
+    model: String,
     prompt: &Prompt,
     is_streaming: Option<bool>,
 ) -> Result<CreateChatCompletionRequest, StringTemplateError> {
     let messages = format_chat_messages(prompt.to_chat())?;
     Ok(CreateChatCompletionRequest {
-        model: model.to_string(),
+        model: model,
         messages,
         temperature: None,
         top_p: None,
