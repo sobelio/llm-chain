@@ -108,8 +108,7 @@ impl Chain {
                 .to_immediate()
                 .await
                 .as_content()
-                .extract_last_body()
-                .map(|x| x.clone())
+                .extract_last_body().cloned()
                 .unwrap_or_default();
             current_params = current_params.with_text(body);
         }

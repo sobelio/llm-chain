@@ -348,8 +348,7 @@ where
         plan.to_immediate()
             .await
             .as_content()
-            .extract_last_body()
-            .map(|x| x.clone())
+            .extract_last_body().cloned()
             .ok_or(SelfAskWithSearchAgentError::NoChoicesReturned)
     }
 

@@ -72,7 +72,7 @@ impl Immediate {
     }
 
     pub fn primary_textual_output(&self) -> Option<String> {
-        self.get_content().extract_last_body().map(|x| x.clone())
+        self.get_content().extract_last_body().cloned()
     }
 }
 

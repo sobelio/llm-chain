@@ -148,8 +148,7 @@ impl Chain {
         let mut new_outputs = Vec::new();
         while let Some(current) = v.pop() {
             let mut current_doc = current
-                .extract_last_body()
-                .map(|x| x.clone())
+                .extract_last_body().cloned()
                 .unwrap_or_default();
             while let Some(next) = v.last() {
                 let Some(next_doc_content) = next.extract_last_body() else {
@@ -157,7 +156,7 @@ impl Chain {
                 };
                 let mut new_doc = current_doc.clone();
                 new_doc.push('\n');
-                new_doc.push_str(&next_doc_content);
+                new_doc.push_str(next_doc_content);
 
                 let params = parameters.with_text(new_doc.clone());
                 let prompt = self.reduce.format(&params)?;

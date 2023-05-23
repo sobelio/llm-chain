@@ -1,8 +1,6 @@
+use llm_chain::options::{Opt, Options};
 use llm_chain::prompt::Conversation;
-use llm_chain::{
-    chains::conversation::Chain, executor, parameters, prompt, step::Step,
-};
-use llm_chain_llama::{ContextParams, PerExecutor, PerInvocation};
+use llm_chain::{chains::conversation::Chain, executor, parameters, prompt, step::Step};
 /// This example demonstrates how to use the llm-chain for few-shot prompting
 ///
 /// This example can be seen as a "chain of thought"
@@ -12,13 +10,11 @@ use llm_chain_llama::{ContextParams, PerExecutor, PerInvocation};
 /// Make sure to have the env var 'LLAMA_MODEL_PATH' set
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut inv_options = PerInvocation::new();
-    inv_options.n_threads = Some(4); // default is one
-    inv_options.stop_sequence = Some("\n".to_string()); // User: is another option
-    let mut context_params = ContextParams::new();
-    context_params.n_ctx = 2048; // default is 512
-    let exc_options = PerExecutor::new().with_context_params(context_params);
-    let exec_1 = executor!(llama, exc_options.clone(), inv_options.clone())?;
+    let opts = Options::new()
+        .with_option(Opt::NThreads(4))
+        .with_option(Opt::StopSequence(vec!["\n".to_string()]));
+
+    let exec_1 = executor!(llama, opts.clone())?;
 
     let user_prompt =
         "Take the last letters of the words in '{{ full_name }}' and concatenate them";
@@ -50,7 +46,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Define the step
     let step = Step::for_prompt_template(prompt!(user: user_prompt));
     // Execute the chain.
-    let exec_2 = executor!(llama, exc_options, inv_options)?;
+    let exec_2 = executor!(llama, opts)?;
     let res = chain
         .send_message(step, &parameters!().with("full_name", "Elon Musk"), &exec_2)
         .await?;

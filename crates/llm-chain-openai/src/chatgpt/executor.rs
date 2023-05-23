@@ -107,10 +107,10 @@ impl traits::Executor for Executor {
     ) -> Result<TokenCount, PromptTokensError> {
         let opts_cas = OptionsCascade::new()
             .with_options(&self.options)
-            .with_options(&opts);
+            .with_options(opts);
         let model = self.get_model_from_invocation_options(&opts_cas);
         let messages = format_chat_messages(prompt.to_chat())?;
-        let tokens_used = num_tokens_from_messages(&model.to_string(), &messages)
+        let tokens_used = num_tokens_from_messages(&model, &messages)
             .map_err(|_| PromptTokensError::NotAvailable)?;
 
         Ok(TokenCount::new(
@@ -122,9 +122,9 @@ impl traits::Executor for Executor {
     fn max_tokens_allowed(&self, opts: &Options) -> i32 {
         let opts_cas = OptionsCascade::new()
             .with_options(&self.options)
-            .with_options(&opts);
+            .with_options(opts);
         let model = self.get_model_from_invocation_options(&opts_cas);
-        tiktoken_rs::model::get_context_size(&model.to_string())
+        tiktoken_rs::model::get_context_size(&model)
             .try_into()
             .unwrap_or(4096)
     }

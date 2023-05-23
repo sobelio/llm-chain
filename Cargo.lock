@@ -1371,6 +1371,7 @@ version = "0.11.1"
 dependencies = [
  "anyhow",
  "async-trait",
+ "lazy_static",
  "llm-chain",
  "llm-chain-llama-sys",
  "serde",

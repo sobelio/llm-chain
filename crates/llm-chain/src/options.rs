@@ -1,5 +1,5 @@
 use lazy_static::lazy_static;
-use std::{env::VarError, ffi::OsStr};
+use std::{collections::HashMap, env::VarError, ffi::OsStr};
 
 use serde::{Deserialize, Serialize};
 use strum_macros::EnumDiscriminants;
@@ -45,16 +45,17 @@ impl Options {
             .find(|opt| OptDiscriminants::from(*opt) == opt_discriminant)
     }
 }
-
 pub struct OptionsCascade<'a> {
     cascades: Vec<&'a Options>,
 }
 
 impl<'a> OptionsCascade<'a> {
     pub fn new() -> Self {
-        OptionsCascade {
-            cascades: Vec::new(),
-        }
+        OptionsCascade::from_vec(Vec::new())
+    }
+
+    pub fn from_vec(cascades: Vec<&'a Options>) -> Self {
+        OptionsCascade { cascades }
     }
 
     pub fn with_options(mut self, options: &'a Options) -> Self {
@@ -72,6 +73,12 @@ impl<'a> OptionsCascade<'a> {
             }
         }
         None
+    }
+}
+
+impl<'a> Default for OptionsCascade<'a> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -99,6 +106,17 @@ impl ModelRef {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TokenBias(Vec<(Token, f32)>); // TODO: Serialize to a JSON object of str(F32) =>
 
+impl TokenBias {
+    /// Returns the token bias as a hashmap where the keys are i32 and the value f32. If the type doesn't match returns None
+    pub fn as_i32_f32_hashmap(&self) -> Option<HashMap<i32, f32>> {
+        let mut map = HashMap::new();
+        for (token, value) in &self.0 {
+            map.insert(token.to_i32()?, *value);
+        }
+        Some(map)
+    }
+}
+
 #[derive(EnumDiscriminants, Clone, Debug, Serialize, Deserialize)]
 pub enum Opt {
     Model(ModelRef),
@@ -107,6 +125,8 @@ pub enum Opt {
     NThreads(usize),
     /// Common for all models
     MaxTokens(usize),
+    /// The maximum context size of the model
+    MaxContextSize(usize),
     /// COmmon for all models openai allows up to four stopseqs.
     StopSequence(Vec<String>),
     /// Common for all
@@ -151,7 +171,7 @@ pub enum Opt {
     /// For llm-chain-local
 
     /// For llm-chain-openai
-    N(u8),
+
     /// For llm-chain-openai
     User(String),
     ModelType(String),

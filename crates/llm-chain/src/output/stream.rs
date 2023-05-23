@@ -26,7 +26,7 @@ impl OutputStream {
         S: Stream<Item = StreamSegment> + Send + 'static,
     {
         let (sender, receiver) = mpsc::channel(100);
-        let sender_clone = sender.clone();
+        let sender_clone = sender;
         let mut stream = Box::pin(stream);
 
         tokio::spawn(async move {

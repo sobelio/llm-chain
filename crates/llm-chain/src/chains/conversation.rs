@@ -99,7 +99,7 @@ impl Chain {
         self.state = prompt_with_history.to_chat();
         self.state.append(content.clone());
 
-        Ok(Output::new_immediate(content.clone().into()))
+        Ok(Output::new_immediate(content.into()))
     }
 }
 

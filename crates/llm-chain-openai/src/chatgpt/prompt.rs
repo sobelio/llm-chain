@@ -53,7 +53,7 @@ pub fn create_chat_completion_request(
 ) -> Result<CreateChatCompletionRequest, StringTemplateError> {
     let messages = format_chat_messages(prompt.to_chat())?;
     Ok(CreateChatCompletionRequest {
-        model: model,
+        model,
         messages,
         temperature: None,
         top_p: None,

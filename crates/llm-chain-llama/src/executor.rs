@@ -1,10 +1,10 @@
 use crate::context::{ContextParams, LLamaContext};
-use crate::options::{LlamaInvocation, PerExecutor};
+use crate::options::{get_executor_initial_opts, LlamaInvocation, DEFAULT_OPTIONS};
 use crate::tokenizer::{embedding_to_output, llama_token_eos, llama_tokenize_helper, tokenize};
 
 use async_trait::async_trait;
 
-use llm_chain::options::Options;
+use llm_chain::options::{Options, OptionsCascade};
 use llm_chain::output::Output;
 use llm_chain::prompt::{ChatRole, Prompt};
 
@@ -12,37 +12,31 @@ use llm_chain::tokens::{PromptTokensError, TokenCollection, TokenCount};
 use llm_chain::tokens::{Tokenizer, TokenizerError};
 use llm_chain::traits::{Executor as ExecutorTrait, ExecutorCreationError, ExecutorError};
 
-use llm_chain_llama_sys::llama_context_params;
 /// Executor is responsible for running the LLAMA model and managing its context.
 pub struct Executor {
     context: LLamaContext,
     options: Options,
+    context_params: ContextParams,
 }
 
 impl Executor {
-    pub fn with_callback(mut self, callback: fn(&Output)) -> Self {
-        self.callback = Some(callback);
-        self
+    fn get_cascade<'a>(&'a self, options: &'a Options) -> OptionsCascade<'a> {
+        let v: Vec<&'a Options> = vec![&DEFAULT_OPTIONS, &self.options, options];
+        OptionsCascade::from_vec(v)
     }
-    fn context_params(&self) -> llama_context_params {
-        let cp = self
-            .options
-            .as_ref()
-            .and_then(|p| p.context_params.as_ref());
-        ContextParams::or_default(cp)
-    }
-}
-
-impl Executor {
     // Run the LLAMA model with the provided input and generate output.
     // Executes the model with the provided input and context parameters.
     fn run_model(&self, input: LlamaInvocation) -> Output {
         // Tokenize the stop sequence and input prompt.
-        let context_params = self.context_params();
+        let context_params = &self.context_params;
 
         let tokenized_stop_prompt = tokenize(
             &self.context,
-            input.stop_sequence.as_str(),
+            input
+                .stop_sequence
+                .first()
+                .map(|x| x.as_str())
+                .unwrap_or("\n\n"),
             context_params.n_ctx as usize,
             false,
         )
@@ -69,7 +63,7 @@ impl Executor {
             )
             .unwrap();
 
-        let mut n_remaining = self.context_params().n_ctx - tokenized_input.len() as i32;
+        let mut n_remaining = self.context_params.n_ctx - tokenized_input.len() as i32;
         let mut n_used = tokenized_input.len() - 1;
         if let Some(prefix) = self.answer_prefix(&input.prompt) {
             let tokenized_answer_prefix = tokenize(
@@ -136,6 +130,8 @@ impl Executor {
 pub enum Error {
     #[error("unable to tokenize prompt")]
     PromptTokensError(PromptTokensError),
+    #[error("Invalid options")]
+    OptionsError,
 }
 
 impl ExecutorError for Error {}
@@ -146,22 +142,16 @@ impl ExecutorTrait for Executor {
     type StepTokenizer<'a> = LLamaTokenizer<'a>;
     type Error = Error;
     fn new_with_options(options: Options) -> Result<Executor, ExecutorCreationError> {
-        let context_params = match executor_options.as_ref() {
-            Some(options) => options.context_params.clone(),
-            None => None,
-        };
-        let model_path = executor_options
-            .as_ref()
-            .and_then(|x| x.model_path.clone())
-            .or_else(|| std::env::var("LLAMA_MODEL_PATH").ok())
-            .ok_or(ExecutorCreationError::FieldRequiredError(
-                "model_path, ensure to provide the parameter or set `LLAMA_MODEL_PATH` environment variable ".to_string(),
-            ))?;
+        let cas = OptionsCascade::new()
+            .with_options(&DEFAULT_OPTIONS)
+            .with_options(&options);
+        let (model_path, context_params) = get_executor_initial_opts(&cas).ok_or(
+            ExecutorCreationError::FieldRequiredError("generic".to_string()),
+        )?;
         Ok(Self {
-            context: LLamaContext::from_file_and_params(&model_path, context_params.as_ref()),
+            context: LLamaContext::from_file_and_params(&model_path, Some(&context_params)),
             options,
-            callback: None,
-            invocation_options,
+            context_params,
         })
     }
     // Executes the model asynchronously and returns the output.
@@ -171,11 +161,8 @@ impl ExecutorTrait for Executor {
         prompt: &Prompt,
         _is_streaming: Option<bool>,
     ) -> Result<Output, Self::Error> {
-        let config = match options {
-            Some(options) => options.clone(),
-            None => self.invocation_options.clone().unwrap_or_default(),
-        };
-        let invocation = config.to_invocation(prompt);
+        let invocation =
+            LlamaInvocation::new(self.get_cascade(options), prompt).ok_or(Error::OptionsError)?;
         Ok(self.run_model(invocation))
     }
 
@@ -219,7 +206,7 @@ impl ExecutorTrait for Executor {
     }
 
     fn max_tokens_allowed(&self, _step: &Options) -> i32 {
-        self.context_params().n_ctx
+        self.context_params.n_ctx
     }
 
     fn get_tokenizer(&self, _step: &Options) -> Result<LLamaTokenizer, TokenizerError> {

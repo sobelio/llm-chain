@@ -107,29 +107,29 @@ impl LLamaContext {
         input: &LlamaInvocation,
     ) -> i32 {
         let top_k = if input.top_k <= 0 {
-            self.llama_n_vocab().clone()
+            self.llama_n_vocab()
         } else {
-            input.top_k.clone()
+            input.top_k
         };
         let repeat_last_n = if input.repeat_last_n < 0 {
-            n_ctx as i32
+            n_ctx
         } else {
             input.repeat_last_n
         };
         let n_vocab = self.llama_n_vocab() as usize;
         // only get the last row, as the sample only requires this.
-        let mut logits = self.llama_get_logits_as_slice(1, n_vocab as usize);
+        let mut logits = self.llama_get_logits_as_slice(1, n_vocab);
 
         // let id : llama_token = 0;
         input
             .logit_bias
             .iter()
             .for_each(|(k, v)| logits[*k as usize] += v);
-        let mut candidates: Vec<llama_token_data> = Vec::with_capacity(n_vocab as usize);
+        let mut candidates: Vec<llama_token_data> = Vec::with_capacity(n_vocab);
         (0..n_vocab).for_each(|i| {
             candidates.push(llama_token_data {
                 id: i as i32,
-                logit: logits[i].into(),
+                logit: logits[i],
                 p: input.top_p,
             })
         });
@@ -171,42 +171,40 @@ impl LLamaContext {
         if input.temp <= 0.0 {
             // Greedy sampling
             unsafe { llama_sample_token_greedy(self.ctx, &mut candidates_p) }
-        } else {
-            if input.mirostat == 1 {
-                let mut mirostat_mu = 2.0 * input.mirostat_tau;
-                let mirostat_m = 100 as i32;
-                unsafe { llama_sample_temperature(self.ctx, &mut candidates_p, input.temp) };
-                unsafe {
-                    llama_sample_token_mirostat(
-                        self.ctx,
-                        &mut candidates_p,
-                        input.mirostat_tau,
-                        input.mirostat_eta,
-                        mirostat_m,
-                        &mut mirostat_mu,
-                    )
-                }
-            } else if input.mirostat == 2 {
-                let mut mirostat_mu = 2.0 * input.mirostat_tau;
-                unsafe { llama_sample_temperature(self.ctx, &mut candidates_p, input.temp) };
-                unsafe {
-                    llama_sample_token_mirostat_v2(
-                        self.ctx,
-                        &mut candidates_p,
-                        input.mirostat_tau,
-                        input.mirostat_eta,
-                        &mut mirostat_mu,
-                    )
-                }
-            } else {
-                // Temperature sampling
-                unsafe { llama_sample_top_k(self.ctx, &mut candidates_p, top_k, 1) };
-                unsafe { llama_sample_tail_free(self.ctx, &mut candidates_p, input.tfs_z, 1) };
-                unsafe { llama_sample_typical(self.ctx, &mut candidates_p, input.typical_p, 1) };
-                unsafe { llama_sample_top_p(self.ctx, &mut candidates_p, input.top_p, 1) };
-                unsafe { llama_sample_temperature(self.ctx, &mut candidates_p, input.temp) };
-                unsafe { llama_sample_token(self.ctx, &mut candidates_p) }
+        } else if input.mirostat == 1 {
+            let mut mirostat_mu = 2.0 * input.mirostat_tau;
+            let mirostat_m = 100_i32;
+            unsafe { llama_sample_temperature(self.ctx, &mut candidates_p, input.temp) };
+            unsafe {
+                llama_sample_token_mirostat(
+                    self.ctx,
+                    &mut candidates_p,
+                    input.mirostat_tau,
+                    input.mirostat_eta,
+                    mirostat_m,
+                    &mut mirostat_mu,
+                )
             }
+        } else if input.mirostat == 2 {
+            let mut mirostat_mu = 2.0 * input.mirostat_tau;
+            unsafe { llama_sample_temperature(self.ctx, &mut candidates_p, input.temp) };
+            unsafe {
+                llama_sample_token_mirostat_v2(
+                    self.ctx,
+                    &mut candidates_p,
+                    input.mirostat_tau,
+                    input.mirostat_eta,
+                    &mut mirostat_mu,
+                )
+            }
+        } else {
+            // Temperature sampling
+            unsafe { llama_sample_top_k(self.ctx, &mut candidates_p, top_k, 1) };
+            unsafe { llama_sample_tail_free(self.ctx, &mut candidates_p, input.tfs_z, 1) };
+            unsafe { llama_sample_typical(self.ctx, &mut candidates_p, input.typical_p, 1) };
+            unsafe { llama_sample_top_p(self.ctx, &mut candidates_p, input.top_p, 1) };
+            unsafe { llama_sample_temperature(self.ctx, &mut candidates_p, input.temp) };
+            unsafe { llama_sample_token(self.ctx, &mut candidates_p) }
         }
     }
 
