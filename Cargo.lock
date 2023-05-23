@@ -1349,6 +1349,7 @@ dependencies = [
  "async-trait",
  "hnsw_rs",
  "llm-chain",
+ "llm-chain-openai",
  "serde",
  "serde_json",
  "thiserror",
