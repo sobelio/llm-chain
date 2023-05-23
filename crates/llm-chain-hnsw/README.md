@@ -1,11 +1,12 @@
 # llm-chain-hnsw
 
-`llm-chain-hnsw` is a package that provides integration with hnsw for the `llm-chain` project.
+`llm-chain-hnsw` is a package that provides integration with hnsw for the `llm-chain` project using hnsw_rs lib.
 
 ## Features
 
-- High-performance search capabilities
-- Easy-to-use API
+- Perform insertions and searches using hsnw_rs (cosine)
+- Integration with DocumentStore in order to store the documents separately from the hnsw index
+- Dump / Load hnsw index from fs
 
 ## Getting Started
 
