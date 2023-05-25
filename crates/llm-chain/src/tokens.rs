@@ -293,4 +293,3 @@ impl From<Vec<usize>> for TokenCollection {
         TokenCollection(TokenCollectionImpl::Usize(v))
     }
 }
-

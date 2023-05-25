@@ -47,7 +47,7 @@ impl Executor {
         };
         model.to_name()
     }
-    
+
     fn cascade<'a>(&'a self, opts: Option<&'a Options>) -> OptionsCascade<'a> {
         let mut v: Vec<&'a Options> = vec![&self.options];
         if let Some(o) = opts {
@@ -62,13 +62,10 @@ impl Executor {
 pub enum Error {
     OpenAIError(#[from] OpenAIError),
 }
-impl ExecutorError for Error {}
 
 #[async_trait]
 impl traits::Executor for Executor {
     type StepTokenizer<'a> = OpenAITokenizer;
-    type Error = Error;
-
     /// Creates a new `Executor` with the given options.
     ///
     /// if the `OPENAI_ORG_ID` environment variable is present, it will be used as the org_ig for the OpenAI client.
@@ -87,16 +84,20 @@ impl traits::Executor for Executor {
         Ok(Self { client, options })
     }
 
-    async fn execute(&self, options: &Options, prompt: &Prompt) -> Result<Output, Self::Error> {
+    async fn execute(&self, options: &Options, prompt: &Prompt) -> Result<Output, ExecutorError> {
         let opts = self.cascade(Some(options));
         let client = self.client.clone();
         let model = self.get_model_from_invocation_options(&opts);
         let input = create_chat_completion_request(model, prompt, opts.is_streaming()).unwrap();
         if opts.is_streaming() {
-            let res = async move { client.chat().create_stream(input).await }.await?;
+            let res = async move { client.chat().create_stream(input).await }
+                .await
+                .map_err(|e| ExecutorError::InnerError(e.into()))?;
             Ok(stream_to_output(res))
         } else {
-            let res = async move { client.chat().create(input).await }.await?;
+            let res = async move { client.chat().create(input).await }
+                .await
+                .map_err(|e| ExecutorError::InnerError(e.into()))?;
             Ok(completion_to_output(res))
         }
     }

@@ -44,7 +44,7 @@ where
     pub async fn format_and_execute(
         &self,
         parameters: &Parameters,
-    ) -> Result<Output, FormatAndExecuteError<E::Error>> {
+    ) -> Result<Output, FormatAndExecuteError> {
         let prompt = self.step.format(parameters)?;
         Ok(self.executor.execute(self.step.options(), &prompt).await?)
     }
@@ -52,9 +52,9 @@ where
 
 #[derive(Debug, thiserror::Error)]
 /// An error that occurs when formatting and prompt template for an LLM
-pub enum FormatAndExecuteError<E: ExecutorError> {
+pub enum FormatAndExecuteError {
     #[error("Error formatting: {0}")]
     Format(#[from] crate::prompt::StringTemplateError),
     #[error("Error executing: {0}")]
-    Execute(#[from] E),
+    Execute(#[from] ExecutorError),
 }

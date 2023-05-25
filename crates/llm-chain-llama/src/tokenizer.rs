@@ -2,7 +2,6 @@ use llm_chain::output::Output;
 use llm_chain::prompt::Data;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
-use thiserror::Error;
 
 use llm_chain_llama_sys::{
     llama_token, llama_token_eos as inner_eos, llama_token_to_str, llama_tokenize,
@@ -37,38 +36,6 @@ pub fn llama_token_eos() -> i32 {
     unsafe { inner_eos() }
 }
 
-#[derive(Error, Debug)]
-pub(crate) enum TokenizeError {
-    #[error("Input too long")]
-    InputTooLong,
-}
-
-/// Tokenizes the given text using the provided LLamaContext, respecting the context_window_size and add_bos options.
-///
-/// # Arguments
-///
-/// * `context` - A reference to the LLamaContext used for tokenization.
-/// * `text` - The text to tokenize.
-/// * `context_window_size` - The maximum allowed size of the tokenized input.
-/// * `add_bos` - Whether to add the beginning-of-sentence token.
-///
-/// # Returns
-///
-/// A Result containing a Vec of llama_tokens on success, or an error if the tokenized input is too long.
-pub(crate) fn tokenize(
-    context: &LLamaContext,
-    text: &str,
-    context_window_size: usize,
-    add_bos: bool,
-) -> Result<Vec<llama_token>, TokenizeError> {
-    let tokenized_input = llama_tokenize_helper(context, text, add_bos);
-    if tokenized_input.len() > context_window_size {
-        Err(TokenizeError::InputTooLong)
-    } else {
-        Ok(tokenized_input)
-    }
-}
-
 /// Helper function to tokenize text using the provided LLamaContext and add_bos option.
 ///
 /// # Arguments
@@ -80,11 +47,7 @@ pub(crate) fn tokenize(
 /// # Returns
 ///
 /// A Vec of llama_tokens representing the tokenized input.
-pub(crate) fn llama_tokenize_helper(
-    context: &LLamaContext,
-    text: &str,
-    add_bos: bool,
-) -> Vec<llama_token> {
+pub(crate) fn tokenize(context: &LLamaContext, text: &str, add_bos: bool) -> Vec<llama_token> {
     let mut res = Vec::with_capacity(text.len() + add_bos as usize);
     let c_text = to_cstring(text);
 

@@ -1,6 +1,6 @@
 use crate::context::{ContextParams, LLamaContext};
 use crate::options::{get_executor_initial_opts, LlamaInvocation, DEFAULT_OPTIONS};
-use crate::tokenizer::{embedding_to_output, llama_token_eos, llama_tokenize_helper, tokenize};
+use crate::tokenizer::{embedding_to_output, llama_token_eos, tokenize};
 
 use async_trait::async_trait;
 
@@ -26,30 +26,32 @@ impl Executor {
     }
     // Run the LLAMA model with the provided input and generate output.
     // Executes the model with the provided input and context parameters.
-    fn run_model(&self, input: LlamaInvocation) -> Output {
+    fn run_model(&self, input: LlamaInvocation) -> Result<Output, ExecutorError> {
         // Tokenize the stop sequence and input prompt.
         let context_params = &self.context_params;
+
+        let context_size = context_params.n_ctx as usize;
 
         let tokenized_stop_prompt = tokenize(
             &self.context,
             input
                 .stop_sequence
-                .first()
+                .first() // XXX: Handle multiple stop seqs
                 .map(|x| x.as_str())
                 .unwrap_or("\n\n"),
-            context_params.n_ctx as usize,
             false,
-        )
-        .unwrap();
+        );
+
+        if tokenized_stop_prompt.len() > context_size {
+            return Err(ExecutorError::ContextTooSmall);
+        }
 
         let prompt_text = input.prompt.to_text();
-        let tokenized_input = tokenize(
-            &self.context,
-            prompt_text.as_str(),
-            context_params.n_ctx as usize,
-            true,
-        )
-        .unwrap();
+        let tokenized_input = tokenize(&self.context, prompt_text.as_str(), true);
+        if tokenized_input.len() > context_size {
+            return Err(ExecutorError::ContextTooSmall);
+        }
+
         // Embd contains the prompt and the completion. The longer the prompt, the shorter the completion.
         let mut embd = tokenized_input.clone();
 
@@ -61,18 +63,16 @@ impl Executor {
                 0,
                 &input,
             )
-            .unwrap();
+            .map_err(|e| ExecutorError::InnerError(e.into()))?;
 
         let mut n_remaining = self.context_params.n_ctx - tokenized_input.len() as i32;
         let mut n_used = tokenized_input.len() - 1;
         if let Some(prefix) = self.answer_prefix(&input.prompt) {
-            let tokenized_answer_prefix = tokenize(
-                &self.context,
-                prefix.as_str(),
-                context_params.n_ctx as usize,
-                false,
-            )
-            .unwrap();
+            let tokenized_answer_prefix = tokenize(&self.context, prefix.as_str(), false);
+            if tokenized_answer_prefix.len() > context_size {
+                return Err(ExecutorError::ContextTooSmall);
+            }
+
             // Evaluate the answer prefix (the role -- should be Assistant: )
             self.context
                 .llama_eval(
@@ -81,7 +81,7 @@ impl Executor {
                     n_used as i32,
                     &input,
                 )
-                .unwrap();
+                .map_err(|e| ExecutorError::InnerError(e.into()))?;
             n_remaining -= tokenized_answer_prefix.len() as i32;
             n_used += tokenized_answer_prefix.len();
             embd.extend(tokenized_answer_prefix);
@@ -117,30 +117,19 @@ impl Executor {
             }
             self.context
                 .llama_eval(&embd[n_used..], 1, n_used as i32, &input)
-                .unwrap();
+                .map_err(|e| ExecutorError::InnerError(e.into()))?;
         }
-        embedding_to_output(
+        Ok(embedding_to_output(
             &self.context,
             &embd[tokenized_input.len()..n_used + 1 - stop_sequence_i],
-        )
+        ))
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("unable to tokenize prompt")]
-    PromptTokensError(PromptTokensError),
-    #[error("Invalid options")]
-    OptionsError,
-}
-
-impl ExecutorError for Error {}
-
-// Implement the ExecutorTrait for the Executor, defining methods for handling input and output.
+/// Implement the ExecutorTrait for the Executor, defining methods for handling input and output.
 #[async_trait]
 impl ExecutorTrait for Executor {
     type StepTokenizer<'a> = LLamaTokenizer<'a>;
-    type Error = Error;
     fn new_with_options(options: Options) -> Result<Executor, ExecutorCreationError> {
         let cas = OptionsCascade::new()
             .with_options(&DEFAULT_OPTIONS)
@@ -155,10 +144,10 @@ impl ExecutorTrait for Executor {
         })
     }
     // Executes the model asynchronously and returns the output.
-    async fn execute(&self, options: &Options, prompt: &Prompt) -> Result<Output, Self::Error> {
-        let invocation =
-            LlamaInvocation::new(self.get_cascade(options), prompt).ok_or(Error::OptionsError)?;
-        Ok(self.run_model(invocation))
+    async fn execute(&self, options: &Options, prompt: &Prompt) -> Result<Output, ExecutorError> {
+        let invocation = LlamaInvocation::new(self.get_cascade(options), prompt)
+            .ok_or(ExecutorError::InvalidOptions)?;
+        self.run_model(invocation)
     }
 
     fn tokens_used(
@@ -223,7 +212,7 @@ impl<'a> LLamaTokenizer<'a> {
 
 impl Tokenizer for LLamaTokenizer<'_> {
     fn tokenize_str(&self, doc: &str) -> Result<TokenCollection, TokenizerError> {
-        let tokenized = llama_tokenize_helper(self.context, doc, true);
+        let tokenized = tokenize(self.context, doc, true);
         Ok(tokenized.into())
     }
 

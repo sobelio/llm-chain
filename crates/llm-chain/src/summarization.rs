@@ -34,9 +34,9 @@ impl Default for TextSummarizer {
 
 /// The error type returned by the `TextSummarizer` when summarizing text.
 #[derive(thiserror::Error, Debug)]
-pub enum TextSummarizerError<E: traits::ExecutorError> {
+pub enum TextSummarizerError {
     #[error("MapReduceChainError: {0}")]
-    MapReduceChainError(#[from] MapReduceChainError<E>),
+    MapReduceChainError(#[from] MapReduceChainError),
     #[error("No output was produced")]
     NoOutput,
 }
@@ -49,7 +49,7 @@ impl TextSummarizer {
         &self,
         exec: &E,
         text: &str,
-    ) -> Result<String, TextSummarizerError<E::Error>> {
+    ) -> Result<String, TextSummarizerError> {
         let params = parameters! {
             "text" => text,
         };
@@ -68,6 +68,6 @@ impl TextSummarizer {
 pub async fn summarize_text<E: traits::Executor>(
     exec: &E,
     text: &str,
-) -> Result<String, TextSummarizerError<E::Error>> {
+) -> Result<String, TextSummarizerError> {
     TextSummarizer::default().summarize_text(exec, text).await
 }

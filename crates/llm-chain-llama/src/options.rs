@@ -86,18 +86,18 @@ impl LlamaInvocation {
 
 lazy_static! {
     pub(crate) static ref DEFAULT_OPTIONS: Options = options!(
-        NThreads: 1 as usize,
-        MaxTokens: 0 as usize,
-        TopK: 40 as i32,
+        NThreads: 1_usize,
+        MaxTokens: 0_usize,
+        TopK: 40_i32,
         TopP: 0.95,
         TfsZ: 1.0,
         TypicalP: 1.0,
         Temperature: 0.8,
         RepeatPenalty: 1.1,
-        RepeatPenaltyLastN: 64 as usize,
+        RepeatPenaltyLastN: 64_usize,
         FrequencyPenalty: 1.1,
         PresencePenalty: 0.0,
-        Mirostat: 0 as i32,
+        Mirostat: 0_i32,
         MirostatTau: 5.0,
         MirostatEta: 0.1,
         PenalizeNl: true,

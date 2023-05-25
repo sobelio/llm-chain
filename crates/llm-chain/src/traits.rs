@@ -29,15 +29,26 @@ pub enum ExecutorCreationError {
     FieldRequiredError(String),
 }
 
-/// Marker trait for errors in `Executor` method. It is needed so the concrete Errors can have a derived `From<ExecutorError>`
-pub trait ExecutorError {}
+#[derive(thiserror::Error, Debug)]
+/// An error indicating that the model was not succesfully run.
+pub enum ExecutorError {
+    #[error("Unable to run model: {0}")]
+    /// An error occuring in the underlying executor code that doesn't fit any other category.
+    InnerError(#[from] Box<dyn Error + Send + Sync>),
+    #[error("Invalid options when calling the executor")]
+    /// An error indicating that the model was invoked with invalid options
+    InvalidOptions,
+    #[error(transparent)]
+    /// An error tokenizing the prompt.
+    PromptTokens(PromptTokensError),
+    #[error("the context was to small to fit your input")]
+    ContextTooSmall,
+}
+
 #[async_trait]
 /// The `Executor` trait represents an executor that performs a single step in a chain. It takes a
 /// step, executes it, and returns the output.
 pub trait Executor: Sized {
-    /// The error type produced by this executor.
-    type Error: ExecutorError + Debug + Error;
-
     type StepTokenizer<'a>: Tokenizer
     where
         Self: 'a;
@@ -51,7 +62,7 @@ pub trait Executor: Sized {
         Self::new_with_options(Options::empty().clone())
     }
 
-    async fn execute(&self, options: &Options, prompt: &Prompt) -> Result<Output, Self::Error>;
+    async fn execute(&self, options: &Options, prompt: &Prompt) -> Result<Output, ExecutorError>;
 
     /// Calculates the number of tokens used by the step given a set of parameters.
     ///

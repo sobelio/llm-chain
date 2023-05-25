@@ -88,17 +88,16 @@ pub trait AgentOutputParser {
 }
 
 #[derive(Debug, Error)]
-pub enum SelfAskWithSearchAgentError<T, E>
+pub enum SelfAskWithSearchAgentError<T>
 where
     T: std::fmt::Debug + std::error::Error + ToolError,
-    E: std::fmt::Debug + std::error::Error + ExecutorError,
 {
     #[error("Search tool input yaml was not of type string: {0:?}")]
     ToolInputNotString(serde_yaml::Value),
     #[error(transparent)]
     SearchToolError(T),
     #[error(transparent)]
-    ExecutorError(E),
+    ExecutorError(ExecutorError),
     #[error(transparent)]
     ParserError(#[from] ParserError),
     #[error(transparent)]
@@ -277,10 +276,7 @@ where
         &self,
         intermediate_steps: &Vec<AgentIntermediateStep>,
         query: &str,
-    ) -> Result<
-        AgentIntermediateStepOutput,
-        SelfAskWithSearchAgentError<<T as Tool>::Error, <E as Executor>::Error>,
-    > {
+    ) -> Result<AgentIntermediateStepOutput, SelfAskWithSearchAgentError<<T as Tool>::Error>> {
         let output = self.plan(intermediate_steps, query).await?;
 
         let decision = self.output_parser.parse(output)?;
@@ -335,8 +331,7 @@ where
         &self,
         intermediate_steps: &Vec<AgentIntermediateStep>,
         query: &str,
-    ) -> Result<String, SelfAskWithSearchAgentError<<T as Tool>::Error, <E as Executor>::Error>>
-    {
+    ) -> Result<String, SelfAskWithSearchAgentError<<T as Tool>::Error>> {
         let scratchpad = self.build_agent_scratchpad(intermediate_steps);
         let template_parameters = parameters!("input" => query, "agent_scratchpad" => scratchpad);
         let prompt = PromptTemplate::Text(PROMPT.into()).format(&template_parameters)?;
@@ -358,7 +353,7 @@ where
         query: &str,
     ) -> Result<
         (AgentFinish, Vec<AgentIntermediateStep>),
-        SelfAskWithSearchAgentError<<T as Tool>::Error, <E as Executor>::Error>,
+        SelfAskWithSearchAgentError<<T as Tool>::Error>,
     > {
         let mut intermediate_steps = vec![];
 
@@ -504,8 +499,6 @@ mod tests {
         #[error("Mocked executor error")]
         struct MockError;
 
-        impl ExecutorError for MockError {}
-
         impl ToolError for MockError {}
 
         impl From<serde_yaml::Error> for MockError {
@@ -537,7 +530,6 @@ mod tests {
         #[async_trait]
         impl Executor for MockExecutor {
             type StepTokenizer<'a> = MockTokenizer;
-            type Error = MockError;
 
             fn new_with_options(_: Options) -> Result<Self, crate::traits::ExecutorCreationError> {
                 todo!()
@@ -547,7 +539,7 @@ mod tests {
                 &self,
                 _: &Options,
                 _: &crate::prompt::Prompt,
-            ) -> Result<Output, Self::Error> {
+            ) -> Result<Output, ExecutorError> {
                 todo!()
             }
 

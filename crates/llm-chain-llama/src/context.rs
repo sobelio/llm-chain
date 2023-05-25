@@ -16,6 +16,10 @@ use llm_chain_llama_sys::{
 };
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, thiserror::Error)]
+#[error("LLAMA.cpp returned error-code {0}")]
+pub struct LLAMACPPErrorCode(i32);
+
 // Represents the configuration parameters for a LLamaContext.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContextParams {
@@ -212,6 +216,7 @@ impl LLamaContext {
         }
     }
 
+    #[allow(dead_code)]
     pub fn llama_token_to_str(&self, token: &i32) -> String {
         let c_ptr = unsafe { llama_token_to_str(self.ctx, *token) };
         let native_string = unsafe { CStr::from_ptr(c_ptr) }
@@ -228,13 +233,13 @@ impl LLamaContext {
         n_tokens: i32,
         n_past: i32,
         input: &LlamaInvocation,
-    ) -> Result<(), ()> {
+    ) -> Result<(), LLAMACPPErrorCode> {
         let res =
             unsafe { llama_eval(self.ctx, tokens.as_ptr(), n_tokens, n_past, input.n_threads) };
         if res == 0 {
             Ok(())
         } else {
-            Err(())
+            Err(LLAMACPPErrorCode(res))
         }
     }
 }

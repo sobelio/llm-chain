@@ -8,15 +8,8 @@
 //! to execute map-reduce operations using a provided `Executor`.
 
 use crate::{
-    frame::Frame,
-    output::Output,
-    prompt::Data,
-    serialization::StorableEntity,
-    step::Step,
-    tokens,
-    tokens::PromptTokensError,
-    traits::{Executor, ExecutorError},
-    Parameters,
+    frame::Frame, output::Output, prompt::Data, serialization::StorableEntity, step::Step, tokens,
+    tokens::PromptTokensError, traits::Executor, Parameters,
 };
 use futures::future::join_all;
 use futures::future::FutureExt;
@@ -27,10 +20,10 @@ use thiserror::Error;
 
 /// The `MapReduceChainError` enum represents errors that can occur when executing a map-reduce chain.
 #[derive(Error, Debug)]
-pub enum MapReduceChainError<Err: ExecutorError> {
+pub enum MapReduceChainError {
     /// An error relating to the operation of the Executor.
     #[error("FormatAndExecuteError: {0}")]
-    FormatAndExecuteError(#[from] crate::frame::FormatAndExecuteError<Err>),
+    FormatAndExecuteError(#[from] crate::frame::FormatAndExecuteError),
     /// An error relating to tokenizing the inputs.
     #[error("TokenizeError: {0}")]
     TokenizeError(#[from] crate::tokens::PromptTokensError),
@@ -70,7 +63,7 @@ impl Chain {
         documents: Vec<Parameters>,
         base_parameters: Parameters,
         executor: &E,
-    ) -> Result<Output, MapReduceChainError<E::Error>> {
+    ) -> Result<Output, MapReduceChainError> {
         if documents.is_empty() {
             return Err(MapReduceChainError::InputEmpty);
         }
@@ -144,12 +137,10 @@ impl Chain {
         executor: &E,
         mut v: Vec<Data<String>>,
         parameters: &Parameters,
-    ) -> Result<Vec<String>, MapReduceChainError<E::Error>> {
+    ) -> Result<Vec<String>, MapReduceChainError> {
         let mut new_outputs = Vec::new();
         while let Some(current) = v.pop() {
-            let mut current_doc = current
-                .extract_last_body().cloned()
-                .unwrap_or_default();
+            let mut current_doc = current.extract_last_body().cloned().unwrap_or_default();
             while let Some(next) = v.last() {
                 let Some(next_doc_content) = next.extract_last_body() else {
                     continue

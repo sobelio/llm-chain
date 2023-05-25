@@ -1,8 +1,8 @@
 use async_trait::async_trait;
 use lazy_static::lazy_static;
 use llm::{
-    load_progress_callback_stdout, InferenceParameters, InferenceRequest, Model, ModelArchitecture,
-    ModelParameters, TokenUtf8Buffer,
+    load_progress_callback_stdout, InferenceError, InferenceParameters, InferenceRequest, Model,
+    ModelArchitecture, ModelParameters, TokenUtf8Buffer,
 };
 use llm_chain::options;
 use llm_chain::options::{options_from_env, Opt, OptDiscriminants, Options, OptionsCascade};
@@ -18,12 +18,12 @@ use thiserror::Error;
 
 lazy_static! {
     static ref DEFAULT_OPTIONS: Options = options!(
-        NThreads: 4 as usize,
-        NBatch: 8 as usize,
-        TopK: 40 as i32,
+        NThreads: 4_usize,
+        NBatch: 8_usize,
+        TopK: 40_i32,
         TopP: 0.95,
         RepeatPenalty: 1.3,
-        RepeatPenaltyLastN: 512 as usize,
+        RepeatPenaltyLastN: 512_usize,
         Temperature: 0.8
     );
 }
@@ -35,19 +35,21 @@ pub struct Executor {
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("unable to tokenize prompt")]
-    PromptTokensError(PromptTokensError),
-    #[error("unable to create executor: {0}")]
-    InnerError(#[from] Box<dyn std::error::Error>),
-    #[error("Parameters not set")]
-    ParametersNotSet,
+    #[error("an invalid token was encountered during tokenization")]
+    /// During tokenization, one of the produced tokens was invalid / zero.
+    TokenizationFailed,
+    #[error("the context window is full")]
+    /// The context window for the model is full.
+    ContextFull,
+    #[error("reached end of text")]
+    /// The model has produced an end of text token, signalling that it thinks that the text should end here.
+    ///
+    /// Note that this error *can* be ignored and inference can continue, but the results are not guaranteed to be sensical.
+    EndOfText,
 }
-
-impl ExecutorError for Error {}
 
 #[async_trait]
 impl llm_chain::traits::Executor for Executor {
-    type Error = Error;
     type StepTokenizer<'a> = LocalLlmTokenizer<'a>;
 
     fn new_with_options(options: Options) -> Result<Self, ExecutorCreationError> {
@@ -56,22 +58,24 @@ impl llm_chain::traits::Executor for Executor {
             .with_options(&opts_from_env)
             .with_options(&options);
 
-        let model_type = opts_cas.get(OptDiscriminants::ModelType)
+        let model_type = opts_cas
+            .get(OptDiscriminants::ModelType)
             .and_then(|x| match x {
                 Opt::ModelType(mt) => Some(mt),
-                _ => None
+                _ => None,
             })
             .ok_or(ExecutorCreationError::FieldRequiredError(
-                "model_type, ensure to provide the parameter or set `LLM_MODEL_TYPE` environment variable ".to_string(),
+                "model_type".to_string(),
             ))?;
-        let model_path = opts_cas.get(OptDiscriminants::Model)
-        .and_then(|x| match x {
+        let model_path = opts_cas
+            .get(OptDiscriminants::Model)
+            .and_then(|x| match x {
                 Opt::Model(m) => Some(m),
-                _ => None
+                _ => None,
             })
-                .ok_or(ExecutorCreationError::FieldRequiredError(
-                    "model_path, ensure to provide the parameter or set `LLM_MODEL_PATH` environment variable ".to_string(),
-                ))?;
+            .ok_or(ExecutorCreationError::FieldRequiredError(
+                "model_path".to_string(),
+            ))?;
 
         let model_arch = model_type
             .parse::<ModelArchitecture>()
@@ -89,7 +93,7 @@ impl llm_chain::traits::Executor for Executor {
         Ok(Executor { llm, options })
     }
 
-    async fn execute(&self, options: &Options, prompt: &Prompt) -> Result<Output, Self::Error> {
+    async fn execute(&self, options: &Options, prompt: &Prompt) -> Result<Output, ExecutorError> {
         let opts = OptionsCascade::new()
             .with_options(&DEFAULT_OPTIONS)
             .with_options(&self.options)
@@ -104,7 +108,7 @@ impl llm_chain::traits::Executor for Executor {
                     prompt: prompt.to_text().as_str(),
                     parameters: Some(
                         &inference_params_from_options(opts)
-                            .map_err(|_| Error::ParametersNotSet)?,
+                            .map_err(|_| ExecutorError::InvalidOptions)?,
                     ),
                     // playback_previous_tokens
                     // maximum_token_count
@@ -118,7 +122,15 @@ impl llm_chain::traits::Executor for Executor {
                     Ok(())
                 },
             )
-            .map_err(|e| Error::InnerError(Box::new(e)))?;
+            .map_err(|e| match e {
+                InferenceError::ContextFull => Error::ContextFull,
+                InferenceError::EndOfText => Error::EndOfText,
+                InferenceError::TokenizationFailed => Error::TokenizationFailed,
+                InferenceError::UserCallback(_) => {
+                    panic!("user callback error should not be possible")
+                }
+            })
+            .map_err(|e| ExecutorError::InnerError(e.into()))?;
         Ok(Output::new_immediate(Prompt::text(output)))
     }
 

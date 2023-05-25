@@ -68,7 +68,7 @@ impl Step {
         &self,
         parameters: &Parameters,
         executor: &E,
-    ) -> Result<Output, FormatAndExecuteError<E::Error>>
+    ) -> Result<Output, FormatAndExecuteError>
     where
         Self: Sized,
         E: Executor,

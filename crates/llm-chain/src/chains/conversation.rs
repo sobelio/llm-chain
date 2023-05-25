@@ -58,7 +58,7 @@ impl Chain {
         step: Step,
         parameters: &Parameters,
         exec: &E,
-    ) -> Result<Output, Error<E::Error>> {
+    ) -> Result<Output, Error> {
         let fmt = step.format(parameters)?;
         self.send_message_raw(step.options(), &fmt, exec).await
     }
@@ -79,7 +79,7 @@ impl Chain {
         options: &Options,
         prompt: &Prompt,
         exec: &E,
-    ) -> Result<Output, Error<E::Error>> {
+    ) -> Result<Output, Error> {
         let tok = exec.tokens_used(options, prompt)?;
         let tokens_remaining = tok.tokens_remaining();
         let tokenizer = exec.get_tokenizer(options)?;
@@ -101,13 +101,13 @@ impl Chain {
 
 /// An error type representing various errors that can occur while interacting with the `Chain`.
 #[derive(thiserror::Error, Debug)]
-pub enum Error<E: ExecutorError> {
+pub enum Error {
     #[error("PromptTokensError: {0}")]
     PromptTokens(#[from] PromptTokensError),
     #[error("TokenizerError: {0}")]
     Tokenizer(#[from] TokenizerError),
     #[error("ExecutorError: {0}")]
-    Executor(#[from] E),
+    Executor(#[from] ExecutorError),
     #[error("No model output")]
     NoModelOutput,
     #[error("StringTemplateError: {0}")]

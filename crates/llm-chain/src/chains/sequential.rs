@@ -26,25 +26,20 @@
 //!
 //! This module also provides serialization and deserialization support for the `Chain` struct, allowing you to store and load chains using formats like JSON, YAML, or others.
 
-
 use serde::{Deserialize, Serialize};
 
 use crate::frame::FormatAndExecuteError;
 use crate::output::Output;
 use crate::{
-    frame::Frame,
-    serialization::StorableEntity,
-    step::Step,
-    traits::{Executor, ExecutorError},
-    Parameters,
+    frame::Frame, serialization::StorableEntity, step::Step, traits::Executor, Parameters,
 };
 
 #[derive(thiserror::Error, Debug)]
 
 /// The `SequentialChainError` enum represents errors that can occur when executing a sequential chain.
-pub enum SequentialChainError<Err: ExecutorError> {
+pub enum SequentialChainError {
     #[error("ExecutorError: {0}")]
-    FormatAndExecuteError(#[from] FormatAndExecuteError<Err>),
+    FormatAndExecuteError(#[from] FormatAndExecuteError),
     #[error("The vector of steps was empty")]
     NoSteps,
 }
@@ -92,7 +87,7 @@ impl Chain {
         &self,
         parameters: Parameters,
         executor: &E,
-    ) -> Result<Output, SequentialChainError<E::Error>>
+    ) -> Result<Output, SequentialChainError>
     where
         E: Executor,
     {
@@ -108,7 +103,8 @@ impl Chain {
                 .to_immediate()
                 .await
                 .as_content()
-                .extract_last_body().cloned()
+                .extract_last_body()
+                .cloned()
                 .unwrap_or_default();
             current_params = current_params.with_text(body);
         }

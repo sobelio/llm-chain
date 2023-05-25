@@ -1,5 +1,3 @@
-
-
 use llm_chain::{executor, parameters, prompt};
 
 /// This example demonstrates how to use the llm-chain-llama crate to generate text using a

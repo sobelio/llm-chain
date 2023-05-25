@@ -1,6 +1,5 @@
 use llm_chain::{chains::conversation::Chain, executor, parameters, prompt, step::Step};
 
-
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create a new ChatGPT executor.

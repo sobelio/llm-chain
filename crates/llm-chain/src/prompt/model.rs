@@ -161,7 +161,7 @@ impl Data<StringTemplate> {
         &self,
         parameters: &Parameters,
         executor: &E,
-    ) -> Result<Output, FormatAndExecuteError<E::Error>> {
+    ) -> Result<Output, FormatAndExecuteError> {
         Step::for_prompt_template(self.clone())
             .run(parameters, executor)
             .await
