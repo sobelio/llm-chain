@@ -47,7 +47,7 @@ impl Executor {
         };
         model.to_name()
     }
-
+    
     fn cascade<'a>(&'a self, opts: Option<&'a Options>) -> OptionsCascade<'a> {
         let mut v: Vec<&'a Options> = vec![&self.options];
         if let Some(o) = opts {

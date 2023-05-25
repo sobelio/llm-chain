@@ -9,6 +9,11 @@ use crate::tokens::Token;
 
 /// A collection of options that can be used to configure a model.
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
+/// `Options` is the struct that represents a set of options for a large language model.
+/// It provides methods for creating, adding, and retrieving options.
+///
+/// The 'Options' struct is mainly created using the `OptionsBuilder` to allow for
+/// flexibility in setting options.
 pub struct Options {
     /// The actual options, stored as a vector.
     opts: Vec<Opt>,
@@ -24,49 +29,64 @@ lazy_static! {
     static ref EMPTY_OPTIONS: Options = Options::builder().build();
 }
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
-pub struct OptionsBuilder {
-    opts: Vec<Opt>,
-}
-
-impl OptionsBuilder {
-    fn new() -> Self {
-        OptionsBuilder { opts: Vec::new() }
-    }
-
-    pub fn add_option(&mut self, opt: Opt) {
-        self.opts.push(opt);
-    }
-
-    pub fn build(self) -> Options {
-        Options { opts: self.opts }
-    }
-}
-
 impl Options {
-    /// Creates a new `OptionsBuilder`
+    /// Constructs a new `OptionsBuilder` for creating an `Options` instance.
+    ///
+    /// This function serves as an entry point for using the builder pattern to create `Options`.
+    ///
+    /// # Returns
+    ///
+    /// An `OptionsBuilder` instance.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use llm_chain::options::*;
+    /// let builder = Options::builder();
+    /// ```
     pub fn builder() -> OptionsBuilder {
         OptionsBuilder::new()
     }
+
     /// Returns a reference to an empty set of options.
+    ///
+    /// This function provides a static reference to an empty `Options` instance,
+    /// which can be useful as a default value.
+    ///
+    /// # Returns
+    ///
+    /// A reference to an empty `Options`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use llm_chain::options::*;
+    /// let empty_options = Options::empty();
+    /// ```
     pub fn empty() -> &'static Self {
         &EMPTY_OPTIONS
     }
-
-    /// Returns a new set of options with the given option added.
-    pub fn with_option(mut self, opt: Opt) -> Self {
-        self.add(opt);
-        self
-    }
-
-    /// Adds an option to this set of options.
-    pub fn add(&mut self, opt: Opt) {
-        self.opts.push(opt)
-    }
-
     /// Gets the value of an option from this set of options.
     ///
-    /// Returns `None` if the option is not present in this set.
+    /// This function finds the first option in `opts` that matches the provided `OptDiscriminants`.
+    ///
+    /// # Arguments
+    ///
+    /// * `opt_discriminant` - An `OptDiscriminants` value representing the discriminant of the desired `Opt`.
+    ///
+    /// # Returns
+    ///
+    /// An `Option` that contains a reference to the `Opt` if found, or `None` if not found.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use llm_chain::options::*;
+    /// let mut builder = Options::builder();
+    /// builder.add_option(Opt::Model(ModelRef::from_path("path_to_model")));
+    /// let options = builder.build();
+    /// let model_option = options.get(OptDiscriminants::Model);
+    /// ```
     pub fn get(&self, opt_discriminant: OptDiscriminants) -> Option<&Opt> {
         self.opts
             .iter()
@@ -123,6 +143,82 @@ macro_rules! options {
             _opts.build()
         }
     };
+}
+
+/// `OptionsBuilder` is a helper structure used to construct `Options` in a flexible way.
+///
+/// `OptionsBuilder` follows the builder pattern, providing a fluent interface to add options
+/// and finally, build an `Options` instance. This pattern is used to handle cases where the `Options`
+/// instance may require complex configuration or optional fields.
+///
+///
+/// # Example
+///
+/// ```rust
+/// # use llm_chain::options::*;
+/// let mut builder = OptionsBuilder::new();
+/// builder.add_option(Opt::Model(ModelRef::from_path("path_to_model")));
+/// let options = builder.build();
+/// ```
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+pub struct OptionsBuilder {
+    /// A Vec<Opt> field that holds the options to be added to the `Options` instance.
+    opts: Vec<Opt>,
+}
+
+impl OptionsBuilder {
+    /// Constructs a new, empty `OptionsBuilder`.
+    ///
+    /// Returns an `OptionsBuilder` instance with an empty `opts` field.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use llm_chain::options::*;
+    /// let builder = OptionsBuilder::new();
+    /// ```
+    pub fn new() -> Self {
+        OptionsBuilder { opts: Vec::new() }
+    }
+
+    /// Adds an option to the `OptionsBuilder`.
+    ///
+    /// This function takes an `Opt` instance and pushes it to the `opts` field.
+    ///
+    /// # Arguments
+    ///
+    /// * `opt` - An `Opt` instance to be added to the `OptionsBuilder`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use llm_chain::options::*;
+    /// let mut builder = OptionsBuilder::new();
+    /// builder.add_option(Opt::Model(ModelRef::from_path("path_to_model")));
+    /// ```
+    pub fn add_option(&mut self, opt: Opt) {
+        self.opts.push(opt);
+    }
+
+    /// Consumes the `OptionsBuilder`, returning an `Options` instance.
+    ///
+    /// This function consumes the `OptionsBuilder`, moving its `opts` field to a new `Options` instance.
+    ///
+    /// # Returns
+    ///
+    /// An `Options` instance with the options added through the builder.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use llm_chain::options::*;
+    /// let mut builder = OptionsBuilder::new();
+    /// builder.add_option(Opt::Model(ModelRef::from_path("path_to_model")));
+    /// let options = builder.build();
+    /// ```
+    pub fn build(self) -> Options {
+        Options { opts: self.opts }
+    }
 }
 
 /// A cascade of option sets.
@@ -195,6 +291,8 @@ impl<'a> Default for OptionsCascade<'a> {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+/// A reference to a model name or path
+/// Useful for
 pub struct ModelRef(String);
 
 impl ModelRef {

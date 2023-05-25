@@ -182,7 +182,6 @@ pub trait Tokenizer {
             .collect()
     }
 }
-
 /// Represents a single token.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(transparent)]
@@ -294,3 +293,4 @@ impl From<Vec<usize>> for TokenCollection {
         TokenCollection(TokenCollectionImpl::Usize(v))
     }
 }
+

@@ -11,7 +11,7 @@ use llm_chain::{chains::conversation::Chain, executor, parameters, prompt, step:
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let opts = options!(
-        NThreads: 4,
+        NThreads: 4 as usize,
         StopSequence: vec!["\n".to_string()]
     );
 
