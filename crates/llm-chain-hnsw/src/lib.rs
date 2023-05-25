@@ -40,7 +40,7 @@ where
 {
     hnsw: Arc<Hnsw<f32, DistCosine>>,
     document_store: Arc<Mutex<D>>,
-    embeddings: E,
+    embeddings: Arc<E>,
     _marker: PhantomData<M>,
 }
 
@@ -50,7 +50,7 @@ where
     D: DocumentStore<usize, M> + Send + Sync,
     M: Send + Sync + Serialize + DeserializeOwned,
 {
-    pub fn new(hnsw_args: HnswArgs, embeddings: E, document_store: Arc<Mutex<D>>) -> Self {
+    pub fn new(hnsw_args: HnswArgs, embeddings: Arc<E>, document_store: Arc<Mutex<D>>) -> Self {
         let hnsw = Hnsw::new(
             hnsw_args.max_nb_connection,
             hnsw_args.max_elements,
@@ -77,7 +77,7 @@ where
 
     pub fn load_from_file(
         filename: String,
-        embeddings: E,
+        embeddings: Arc<E>,
         document_store: Arc<Mutex<D>>,
     ) -> Result<Self, HnswVectorStoreError<E::Error, D::Error>> {
         let graph_fn = String::from(format!("{}.hnsw.graph", &filename));
