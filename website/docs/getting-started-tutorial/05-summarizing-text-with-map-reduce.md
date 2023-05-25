@@ -47,7 +47,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let res = chain.run(docs, Parameters::new(), &exec).await.unwrap();
 
     // Print the result to the console
-    println!("{}", res);
+    println!("{}", res.to_immediate().await?.as_content());
     Ok(())
 }
 ```
