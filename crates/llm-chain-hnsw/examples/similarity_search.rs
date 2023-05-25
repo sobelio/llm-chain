@@ -15,7 +15,7 @@ async fn main() {
     println!("OPENAI KEY: {}", std::env::var("OPENAI_API_KEY").unwrap());
     let embeddings = llm_chain_openai::embeddings::Embeddings::default();
     let document_store = Arc::new(Mutex::new(InMemoryDocumentStore::<EmptyMetadata>::new()));
-    let hnsw_vs = HnswVectorStore::new(HnswArgs::default(), embeddings, document_store);
+    let hnsw_vs = HnswVectorStore::new(HnswArgs::default(), Arc::new(embeddings), document_store);
 
     // Storing documents
 

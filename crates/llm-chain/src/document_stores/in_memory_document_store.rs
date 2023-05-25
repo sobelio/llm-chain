@@ -70,14 +70,14 @@ pub struct InMemoryDocumentStore<M>
 where
     M: Serialize + DeserializeOwned + Send + Sync,
 {
-    map: HashMap<String, InMemoryDocument<M>>,
+    map: HashMap<usize, InMemoryDocument<M>>,
 }
 
 impl<M> InMemoryDocumentStore<M>
 where
     M: Serialize + DeserializeOwned + Send + Sync,
 {
-    pub fn new() -> InMemoryDocumentStore<M> {
+    pub fn new() -> Self {
         InMemoryDocumentStore {
             map: HashMap::new(),
         }
@@ -85,24 +85,21 @@ where
 }
 
 #[async_trait]
-impl<M> DocumentStore<M> for InMemoryDocumentStore<M>
+impl<M> DocumentStore<usize, M> for InMemoryDocumentStore<M>
 where
     M: Serialize + DeserializeOwned + Send + Sync,
 {
     type Error = InMemoryDocumentStoreError;
 
-    async fn get(&self, id: &str) -> Result<Option<Document<M>>, Self::Error> {
+    async fn get(&self, id: &usize) -> Result<Option<Document<M>>, Self::Error> {
         Ok(self.map.get(id).map(|m| m.into()))
     }
 
-    async fn len(&self) -> Result<usize, Self::Error> {
+    async fn next_id(&self) -> Result<usize, Self::Error> {
         Ok(self.map.len())
     }
 
-    async fn insert(
-        &mut self,
-        documents: &HashMap<String, Document<M>>,
-    ) -> Result<(), Self::Error> {
+    async fn insert(&mut self, documents: &HashMap<usize, Document<M>>) -> Result<(), Self::Error> {
         for (key, value) in documents.iter() {
             if self.map.contains_key(key) {
                 return Err(InMemoryDocumentStoreError::KeyConflict(key.to_string()));

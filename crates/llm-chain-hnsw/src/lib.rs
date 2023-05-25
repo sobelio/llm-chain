@@ -35,22 +35,22 @@ impl Default for HnswArgs {
 pub struct HnswVectorStore<E, D, M>
 where
     E: Embeddings,
-    D: DocumentStore<M> + Send + Sync,
+    D: DocumentStore<usize, M> + Send + Sync,
     M: Serialize + DeserializeOwned + Send + Sync,
 {
     hnsw: Arc<Hnsw<f32, DistCosine>>,
     document_store: Arc<Mutex<D>>,
-    embeddings: E,
+    embeddings: Arc<E>,
     _marker: PhantomData<M>,
 }
 
 impl<E, D, M> HnswVectorStore<E, D, M>
 where
     E: Embeddings,
-    D: DocumentStore<M> + Send + Sync,
+    D: DocumentStore<usize, M> + Send + Sync,
     M: Send + Sync + Serialize + DeserializeOwned,
 {
-    pub fn new(hnsw_args: HnswArgs, embeddings: E, document_store: Arc<Mutex<D>>) -> Self {
+    pub fn new(hnsw_args: HnswArgs, embeddings: Arc<E>, document_store: Arc<Mutex<D>>) -> Self {
         let hnsw = Hnsw::new(
             hnsw_args.max_nb_connection,
             hnsw_args.max_elements,
@@ -77,7 +77,7 @@ where
 
     pub fn load_from_file(
         filename: String,
-        embeddings: E,
+        embeddings: Arc<E>,
         document_store: Arc<Mutex<D>>,
     ) -> Result<Self, HnswVectorStoreError<E::Error, D::Error>> {
         let graph_fn = String::from(format!("{}.hnsw.graph", &filename));
@@ -146,7 +146,7 @@ where
 impl<E, D, M> VectorStore<E, M> for HnswVectorStore<E, D, M>
 where
     E: Embeddings + Send + Sync,
-    D: DocumentStore<M> + Send + Sync,
+    D: DocumentStore<usize, M> + Send + Sync,
     M: Send + Sync + Serialize + DeserializeOwned,
 {
     type Error = HnswVectorStoreError<E::Error, D::Error>;
@@ -157,12 +157,12 @@ where
 
         let embedding_vecs = self.embeddings.embed_texts(texts.clone()).await?;
 
-        let cur_doc_size = document_store
-            .len()
+        let next_id = document_store
+            .next_id()
             .await
             .map_err(|e| HnswVectorStoreError::DocumentStoreError(e))?;
         let ids = (0..embedding_vecs.len())
-            .map(|i| cur_doc_size + i)
+            .map(|i| next_id + i)
             .collect::<Vec<usize>>();
 
         let iter = embedding_vecs
@@ -172,7 +172,7 @@ where
 
         for ((vec, text), id) in iter {
             document_store
-                .insert(&HashMap::from([(format!("{}", id), Document::new(text))]))
+                .insert(&HashMap::from([(id.to_owned(), Document::new(text))]))
                 .await
                 .map_err(|e| HnswVectorStoreError::DocumentStoreError(e))?;
             self.hnsw.insert((&vec, id.to_owned()));
@@ -192,12 +192,12 @@ where
         let texts = documents.iter().map(|d| d.page_content.clone()).collect();
         let embedding_vecs = self.embeddings.embed_texts(texts).await?;
 
-        let cur_doc_size = document_store
-            .len()
+        let next_id = document_store
+            .next_id()
             .await
             .map_err(|e| HnswVectorStoreError::DocumentStoreError(e))?;
         let ids = (0..embedding_vecs.len())
-            .map(|i| cur_doc_size + i)
+            .map(|i| next_id + i)
             .collect::<Vec<usize>>();
 
         let iter = embedding_vecs
@@ -207,7 +207,7 @@ where
 
         for ((vec, document), id) in iter {
             document_store
-                .insert(&HashMap::from([(format!("{}", id), document)]))
+                .insert(&HashMap::from([(id.to_owned(), document)]))
                 .await
                 .map_err(|e| HnswVectorStoreError::DocumentStoreError(e))?;
             self.hnsw.insert((&vec, id.to_owned()));
@@ -235,7 +235,7 @@ where
 
         let mut out = vec![];
         for r in res {
-            let id = format!("{}", r.d_id);
+            let id = r.d_id;
             let doc = document_store
                 .get(&id)
                 .await
