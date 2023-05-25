@@ -99,10 +99,7 @@ where
         Ok(self.map.len())
     }
 
-    async fn insert(
-        &mut self,
-        documents: &HashMap<usize, Document<M>>,
-    ) -> Result<(), Self::Error> {
+    async fn insert(&mut self, documents: &HashMap<usize, Document<M>>) -> Result<(), Self::Error> {
         for (key, value) in documents.iter() {
             if self.map.contains_key(key) {
                 return Err(InMemoryDocumentStoreError::KeyConflict(key.to_string()));

@@ -17,8 +17,7 @@ where
 
     async fn next_id(&self) -> Result<T, Self::Error>;
 
-    async fn insert(&mut self, documents: &HashMap<T, Document<M>>)
-        -> Result<(), Self::Error>;
+    async fn insert(&mut self, documents: &HashMap<T, Document<M>>) -> Result<(), Self::Error>;
 }
 
 pub trait DocumentStoreError {}
