@@ -65,7 +65,7 @@ pub(crate) fn tokenize(context: &LLamaContext, text: &str, add_bos: bool) -> Vec
     res
 }
 
-fn tokens_to_string(context: &LLamaContext, embd: &[i32]) -> String {
+pub(crate) fn tokens_to_string(context: &LLamaContext, embd: &[i32]) -> String {
     let bfr = String::with_capacity(embd.len() * 2);
     embd.iter()
         .map(|token| to_output(context, *token))

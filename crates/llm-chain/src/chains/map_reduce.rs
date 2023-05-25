@@ -7,6 +7,7 @@
 //! The `Chain` struct is generic over the type of the `Step` and provides a convenient way
 //! to execute map-reduce operations using a provided `Executor`.
 
+use crate::traits::ExecutorError;
 use crate::{
     frame::Frame, output::Output, prompt::Data, serialization::StorableEntity, step::Step, tokens,
     tokens::PromptTokensError, traits::Executor, Parameters,
@@ -92,13 +93,21 @@ impl Chain {
         let mapped_documents = mapped_documents
             .into_iter()
             .collect::<Result<Vec<Output>, _>>()?;
-        let mapped_documents: Vec<Data<String>> = join_all(
+        let mapped_documents: Vec<Result<Data<String>, ExecutorError>> = join_all(
             mapped_documents
                 .into_iter()
-                .map(|x| x.to_immediate().map(|x| x.as_content()))
+                .map(|x| x.to_immediate().map(|x| x.map(|y| y.as_content())))
                 .collect::<Vec<_>>(),
         )
         .await;
+        let mapped_documents: Vec<Data<String>> = mapped_documents
+            .into_iter()
+            .collect::<Result<Vec<Data<String>>, ExecutorError>>()
+            .map_err(|e| {
+                MapReduceChainError::FormatAndExecuteError(
+                    crate::frame::FormatAndExecuteError::Execute(e),
+                )
+            })?;
 
         let mut documents = self
             .combine_documents_up_to(executor, mapped_documents, &base_parameters)
@@ -119,9 +128,17 @@ impl Chain {
             let new_docs = join_all(
                 new_docs
                     .into_iter()
-                    .map(|x| x.to_immediate().map(|x| x.as_content())),
+                    .map(|x| x.to_immediate().map(|x| x.map(|y| y.as_content()))),
             )
             .await;
+            let new_docs = new_docs
+                .into_iter()
+                .collect::<Result<Vec<Data<String>>, ExecutorError>>()
+                .map_err(|e| {
+                    MapReduceChainError::FormatAndExecuteError(
+                        crate::frame::FormatAndExecuteError::Execute(e),
+                    )
+                })?;
             let n_new_docs = new_docs.len();
             if n_new_docs == 1 {
                 return Ok(Output::new_immediate(new_docs[0].clone()));

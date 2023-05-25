@@ -1,4 +1,5 @@
 use crate::prompt::{ChatRole, Data};
+use crate::traits::ExecutorError;
 use futures::StreamExt;
 use std::pin::Pin;
 use std::task::{Context, Poll};
@@ -9,6 +10,7 @@ use crate::prompt::{ChatMessage, ChatMessageCollection};
 pub enum StreamSegment {
     Role(ChatRole),
     Content(String),
+    Err(ExecutorError),
 }
 
 pub struct OutputStream {
@@ -40,7 +42,7 @@ impl OutputStream {
         Self { receiver }
     }
 
-    pub(super) async fn into_data(self) -> Data<String> {
+    pub(super) async fn into_data(self) -> Result<Data<String>, ExecutorError> {
         let mut messages = ChatMessageCollection::new();
         let mut current_role = None;
         let mut current_body = Vec::new();
@@ -62,6 +64,7 @@ impl OutputStream {
                 StreamSegment::Content(text) => {
                     current_body.push(text);
                 }
+                StreamSegment::Err(err) => return Err(err),
             }
         }
 
@@ -71,9 +74,9 @@ impl OutputStream {
             if !current_body.is_empty() {
                 messages.add_message(ChatMessage::new(role, body));
             }
-            messages.into()
+            Ok(messages.into())
         } else {
-            Data::text(body)
+            Ok(Data::text(body))
         }
     }
 }

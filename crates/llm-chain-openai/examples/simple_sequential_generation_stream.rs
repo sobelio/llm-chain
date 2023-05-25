@@ -31,7 +31,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Print the result to the console
     // Call `res.primary_textual_output()` explictly to get the streamed response.
-    println!("{:?}", res.to_immediate().await.as_content());
+    println!("{:?}", res.to_immediate().await?.as_content());
 
     // Call `res.as_stream()` to access the Stream without polling.
     Ok(())

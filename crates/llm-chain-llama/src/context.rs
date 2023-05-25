@@ -46,6 +46,12 @@ impl ContextParams {
     }
 }
 
+impl Default for ContextParams {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl From<ContextParams> for llama_context_params {
     fn from(params: ContextParams) -> Self {
         llama_context_params {
@@ -216,7 +222,6 @@ impl LLamaContext {
         }
     }
 
-    #[allow(dead_code)]
     pub fn llama_token_to_str(&self, token: &i32) -> String {
         let c_ptr = unsafe { llama_token_to_str(self.ctx, *token) };
         let native_string = unsafe { CStr::from_ptr(c_ptr) }

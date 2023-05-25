@@ -102,6 +102,9 @@ impl Chain {
                 .await?
                 .to_immediate()
                 .await
+                .map_err(|err| {
+                    SequentialChainError::FormatAndExecuteError(FormatAndExecuteError::Execute(err))
+                })?
                 .as_content()
                 .extract_last_body()
                 .cloned()

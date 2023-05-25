@@ -2,7 +2,7 @@ mod stream;
 
 use core::fmt;
 
-use crate::prompt::Data;
+use crate::{prompt::Data, traits::ExecutorError};
 use futures::Stream;
 use tokio::sync::mpsc;
 
@@ -23,10 +23,10 @@ impl Output {
     /// Converts the `Output` to its `Immediate` form.
     /// If the output is `Stream`, it will be consumed and turned into an `Immediate` output.
     /// This operation is asynchronous as it may need to wait for all data to be produced in the case of a `Stream`.
-    pub async fn to_immediate(self) -> Immediate {
+    pub async fn to_immediate(self) -> Result<Immediate, ExecutorError> {
         match self {
-            Output::Immediate(x) => x,
-            Output::Stream(x) => Immediate(x.into_data().await),
+            Output::Immediate(x) => Ok(x),
+            Output::Stream(x) => Ok(Immediate(x.into_data().await?)),
         }
     }
 

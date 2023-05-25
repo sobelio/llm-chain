@@ -342,6 +342,7 @@ where
             .map_err(SelfAskWithSearchAgentError::ExecutorError)?;
         plan.to_immediate()
             .await
+            .map_err(SelfAskWithSearchAgentError::ExecutorError)?
             .as_content()
             .extract_last_body()
             .cloned()

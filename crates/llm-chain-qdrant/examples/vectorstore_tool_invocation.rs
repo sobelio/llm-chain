@@ -171,7 +171,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .process_chat_input(
             &result
                 .to_immediate()
-                .await
+                .await?
                 .primary_textual_output()
                 .unwrap(),
         )

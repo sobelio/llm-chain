@@ -1,8 +1,10 @@
 //! Opinionated text summarization functionality
 //!
 //! This module contains the `TextSummarizer` struct, that provides an easy way to summarize text.
+
 use crate::{
     chains::map_reduce::{self, MapReduceChainError},
+    frame::FormatAndExecuteError,
     parameters, prompt,
     step::Step,
     traits,
@@ -57,6 +59,11 @@ impl TextSummarizer {
         chain_output
             .to_immediate()
             .await
+            .map_err(|err| {
+                TextSummarizerError::MapReduceChainError(
+                    MapReduceChainError::FormatAndExecuteError(FormatAndExecuteError::Execute(err)),
+                )
+            })?
             .primary_textual_output()
             .ok_or(TextSummarizerError::NoOutput)
     }

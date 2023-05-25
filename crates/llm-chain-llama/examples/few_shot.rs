@@ -22,7 +22,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let res = Step::for_prompt_template(prompt!(user: user_prompt))
         .run(&parameters!().with("full_name", "Elon Musk"), &exec_1)
         .await?;
-    println!("{} (zero-shot answer)", res.to_immediate().await); // probably not correct
+    println!("{} (zero-shot answer)", res.to_immediate().await?); // probably not correct
     let conversation = Conversation::new()
         .with_user_template(
             user_prompt,
@@ -51,6 +51,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let res = chain
         .send_message(step, &parameters!().with("full_name", "Elon Musk"), &exec_2)
         .await?;
-    println!("{} (few-shot CoT answer)", res.to_immediate().await);
+    println!("{} (few-shot CoT answer)", res.to_immediate().await?);
     Ok(())
 }
