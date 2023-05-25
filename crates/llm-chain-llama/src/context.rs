@@ -1,4 +1,7 @@
-use std::{ffi::CStr, ptr::null_mut};
+use std::{
+    ffi::{CStr, CString},
+    ptr::null_mut,
+};
 
 use crate::options::LlamaInvocation;
 use anyhow::Result;
@@ -80,8 +83,9 @@ pub(crate) struct LLamaContext {
 impl LLamaContext {
     // Creates a new LLamaContext from the specified file and configuration parameters.
     pub fn from_file_and_params(path: &str, params: Option<&ContextParams>) -> Self {
+        let path = CString::new(path).expect("could not convert to CString");
         let params = ContextParams::or_default(params);
-        let ctx = unsafe { llama_init_from_file(path.as_ptr() as *const i8, params) };
+        let ctx = unsafe { llama_init_from_file(path.into_raw() as *const i8, params) };
         Self { ctx }
     }
 
