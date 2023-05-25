@@ -231,7 +231,7 @@ impl TokenBias {
 
 #[derive(EnumDiscriminants, Clone, Debug, Serialize, Deserialize)]
 pub enum Opt {
-    /// The model to use for inference.
+    /// The name or path of the model used.
     Model(ModelRef),
     /// The API key for the model service.
     ApiKey(String),
@@ -351,6 +351,7 @@ opt_parse_str!(RepeatPenalty);
 opt_parse_str!(RepeatPenaltyLastN);
 opt_parse_str!(TfsZ);
 opt_parse_str!(PenalizeNl);
+opt_parse_str!(NBatch);
 
 macro_rules! opt_from_env {
     ($opt:ident, $v:ident) => {
@@ -370,7 +371,10 @@ macro_rules! opts_from_env {
     };
 }
 
-// Function to load options from environment variables
+/// Loads options from environment variables.
+/// Every option that can be easily understood from a string is avaliable the name
+/// of the option will be in upper snake case, that means that the option `Opt::ApiKey` has the environment variable
+/// `LLM_CHAIN_API_KEY`
 pub fn options_from_env() -> Result<Options, VarError> {
     let mut opts = OptionsBuilder::new();
 
@@ -389,7 +393,8 @@ pub fn options_from_env() -> Result<Options, VarError> {
         RepeatPenalty,
         RepeatPenaltyLastN,
         TfsZ,
-        PenalizeNl
+        PenalizeNl,
+        NBatch
     );
     Ok(opts.build())
 }
