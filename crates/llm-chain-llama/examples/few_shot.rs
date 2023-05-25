@@ -1,4 +1,4 @@
-use llm_chain::options::{Opt, Options};
+use llm_chain::options;
 use llm_chain::prompt::Conversation;
 use llm_chain::{chains::conversation::Chain, executor, parameters, prompt, step::Step};
 /// This example demonstrates how to use the llm-chain for few-shot prompting
@@ -10,9 +10,10 @@ use llm_chain::{chains::conversation::Chain, executor, parameters, prompt, step:
 /// Make sure to have the env var 'LLAMA_MODEL_PATH' set
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let opts = Options::new()
-        .with_option(Opt::NThreads(4))
-        .with_option(Opt::StopSequence(vec!["\n".to_string()]));
+    let opts = options!(
+        NThreads: 4,
+        StopSequence: vec!["\n".to_string()]
+    );
 
     let exec_1 = executor!(llama, opts.clone())?;
 

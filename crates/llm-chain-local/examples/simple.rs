@@ -1,8 +1,9 @@
-use llm_chain::options::{ModelRef, Opt, Options};
+use llm_chain::executor;
+use llm_chain::options;
+use llm_chain::options::{ModelRef, Options};
 use std::{env::args, error::Error};
 
 use llm_chain::{prompt::Data, traits::Executor};
-use llm_chain_local::Executor as LocalExecutor;
 
 extern crate llm_chain_local;
 
@@ -27,13 +28,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let model_path = args.1;
     let prompt = args.2;
 
-    let options = Options::new()
-        .with_option(Opt::Model(ModelRef::from_path(model_path)))
-        .with_option(Opt::ModelType(model_type.to_string()));
-
-    let exec = LocalExecutor::new_with_options(options)?;
+    let exec = executor!(
+        local,
+        options!(
+            Model: ModelRef::from_path(model_path),
+            ModelType: model_type.to_string()
+        )
+    )?;
     let res = exec
-        .execute(Options::empty(), &Data::Text(String::from(prompt)), None)
+        .execute(Options::empty(), &Data::Text(String::from(prompt)))
         .await?;
 
     println!("{}", res);

@@ -49,7 +49,7 @@ pub fn format_chat_messages(
 pub fn create_chat_completion_request(
     model: String,
     prompt: &Prompt,
-    is_streaming: Option<bool>,
+    is_streaming: bool,
 ) -> Result<CreateChatCompletionRequest, StringTemplateError> {
     let messages = format_chat_messages(prompt.to_chat())?;
     Ok(CreateChatCompletionRequest {
@@ -58,7 +58,7 @@ pub fn create_chat_completion_request(
         temperature: None,
         top_p: None,
         n: Some(1),
-        stream: is_streaming,
+        stream: Some(is_streaming),
         stop: None,
         max_tokens: None, // We should consider something here
         presence_penalty: None,

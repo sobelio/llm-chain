@@ -1,5 +1,6 @@
 use lazy_static::lazy_static;
 use llm_chain::{
+    options,
     options::{Opt, OptDiscriminants, Options, OptionsCascade},
     prompt::Prompt,
 };
@@ -84,24 +85,24 @@ impl LlamaInvocation {
 }
 
 lazy_static! {
-    pub(crate) static ref DEFAULT_OPTIONS: Options = Options::new()
-        .with_option(Opt::NThreads(1),)
-        .with_option(Opt::MaxTokens(0))
-        .with_option(Opt::TopK(40))
-        .with_option(Opt::TopP(0.95))
-        .with_option(Opt::TfsZ(1.0))
-        .with_option(Opt::TypicalP(1.0))
-        .with_option(Opt::Temperature(0.8))
-        .with_option(Opt::RepeatPenalty(1.1))
-        .with_option(Opt::RepeatPenaltyLastN(64))
-        .with_option(Opt::FrequencyPenalty(1.1))
-        .with_option(Opt::FrequencyPenalty(0.0))
-        .with_option(Opt::PresencePenalty(0.0))
-        .with_option(Opt::Mirostat(0))
-        .with_option(Opt::MirostatTau(5.0))
-        .with_option(Opt::MirostatEta(0.1))
-        .with_option(Opt::PenalizeNl(true))
-        .with_option(Opt::StopSequence(vec!["\n\n".to_string()]));
+    pub(crate) static ref DEFAULT_OPTIONS: Options = options!(
+        NThreads: 1 as usize,
+        MaxTokens: 0 as usize,
+        TopK: 40 as i32,
+        TopP: 0.95,
+        TfsZ: 1.0,
+        TypicalP: 1.0,
+        Temperature: 0.8,
+        RepeatPenalty: 1.1,
+        RepeatPenaltyLastN: 64 as usize,
+        FrequencyPenalty: 1.1,
+        PresencePenalty: 0.0,
+        Mirostat: 0 as i32,
+        MirostatTau: 5.0,
+        MirostatEta: 0.1,
+        PenalizeNl: true,
+        StopSequence: vec!["\n\n".to_string()]
+    );
 }
 
 pub(crate) fn get_executor_initial_opts(opt: &OptionsCascade) -> Option<(String, ContextParams)> {

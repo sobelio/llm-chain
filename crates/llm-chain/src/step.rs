@@ -2,6 +2,7 @@
 //!
 //! Steps are used to set the per-invocation settings for a prompt. Useful when you want to change the settings for a specific prompt in a chain.
 use crate::frame::{FormatAndExecuteError, Frame};
+use crate::options::Opt;
 use crate::options::Options;
 use crate::output::Output;
 use crate::prompt::{Prompt, StringTemplateError};
@@ -15,39 +16,29 @@ use serde::Serialize;
 pub struct Step {
     pub(crate) prompt: prompt::PromptTemplate,
     pub(crate) options: Options,
-    pub(crate) is_streaming: Option<bool>,
 }
 
 impl Step {
     pub fn for_prompt_template(prompt: prompt::PromptTemplate) -> Self {
         Self {
             prompt,
-            options: Options::new(),
-            is_streaming: None,
+            options: Options::empty().clone(),
         }
     }
     pub fn for_prompt_with_streaming(prompt: prompt::PromptTemplate) -> Self {
-        Self {
-            prompt,
-            options: Options::new(),
-            is_streaming: Some(true),
-        }
+        let mut options = Options::builder();
+        options.add_option(Opt::Stream(true));
+        let options = options.build();
+        Self { prompt, options }
     }
     pub fn for_prompt_and_options(prompt: prompt::PromptTemplate, options: Options) -> Self {
-        Self {
-            prompt,
-            options,
-            is_streaming: None,
-        }
+        Self { prompt, options }
     }
     pub fn prompt(&self) -> &prompt::PromptTemplate {
         &self.prompt
     }
     pub fn options(&self) -> &Options {
         &self.options
-    }
-    pub fn is_streaming(&self) -> Option<bool> {
-        self.is_streaming
     }
 
     /// Converts this step into a sequential chain with a single step.

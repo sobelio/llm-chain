@@ -259,6 +259,7 @@ impl TokenCollection {
         }
     }
 
+    /// Returns the number of tokens in the token collection
     pub fn len(&self) -> usize {
         match &self.0 {
             TokenCollectionImpl::I32(x) => x.len(),
@@ -266,6 +267,12 @@ impl TokenCollection {
         }
     }
 
+    /// Returns true if the TokenCollection is empty
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    /// Slices the token collection between start and end.
     pub fn slice(&self, start: usize, end: usize) -> Self {
         match &self.0 {
             TokenCollectionImpl::I32(v) => Vec::from(&v[start..end]).into(),

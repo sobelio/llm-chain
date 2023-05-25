@@ -60,8 +60,7 @@ impl Chain {
         exec: &E,
     ) -> Result<Output, Error<E::Error>> {
         let fmt = step.format(parameters)?;
-        self.send_message_raw(step.options(), &fmt, step.is_streaming(), exec)
-            .await
+        self.send_message_raw(step.options(), &fmt, exec).await
     }
 
     /// Sends a message to the LLM and returns the response.
@@ -79,7 +78,6 @@ impl Chain {
         &mut self,
         options: &Options,
         prompt: &Prompt,
-        is_streaming: Option<bool>,
         exec: &E,
     ) -> Result<Output, Error<E::Error>> {
         let tok = exec.tokens_used(options, prompt)?;
@@ -91,9 +89,7 @@ impl Chain {
         let prompt_with_history = Prompt::Chat(self.state.clone()).combine(prompt);
 
         // Execute the prompt and retrieve the LLM's response.
-        let res = exec
-            .execute(options, &prompt_with_history, is_streaming)
-            .await?;
+        let res = exec.execute(options, &prompt_with_history).await?;
         let content = res.to_immediate().await.as_content().to_chat();
 
         self.state = prompt_with_history.to_chat();

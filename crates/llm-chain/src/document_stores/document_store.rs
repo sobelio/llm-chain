@@ -16,6 +16,11 @@ where
 
     async fn len(&self) -> Result<usize, Self::Error>;
 
+    /// Checks if the document store is empty
+    async fn is_empty(&self) -> Result<bool, Self::Error> {
+        Ok(self.len().await? == 0)
+    }
+
     async fn insert(&mut self, documents: &HashMap<String, Document<M>>)
         -> Result<(), Self::Error>;
 }

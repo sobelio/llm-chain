@@ -342,13 +342,14 @@ where
         let prompt = PromptTemplate::Text(PROMPT.into()).format(&template_parameters)?;
         let plan = self
             .executor
-            .execute(&Options::new(), &prompt, None)
+            .execute(Options::empty(), &prompt)
             .await
             .map_err(SelfAskWithSearchAgentError::ExecutorError)?;
         plan.to_immediate()
             .await
             .as_content()
-            .extract_last_body().cloned()
+            .extract_last_body()
+            .cloned()
             .ok_or(SelfAskWithSearchAgentError::NoChoicesReturned)
     }
 
@@ -386,7 +387,7 @@ where
 mod tests {
 
     use async_trait::async_trait;
-    
+
     use thiserror::Error;
 
     use crate::{
@@ -546,7 +547,6 @@ mod tests {
                 &self,
                 _: &Options,
                 _: &crate::prompt::Prompt,
-                _: Option<bool>,
             ) -> Result<Output, Self::Error> {
                 todo!()
             }

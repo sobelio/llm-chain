@@ -1,7 +1,4 @@
-use llm_chain::{
-    options::{ModelRef, Opt},
-    traits,
-};
+use llm_chain::options::{ModelRef, Opt};
 use serde::{Deserialize, Serialize};
 use strum_macros::EnumString;
 
@@ -93,14 +90,14 @@ impl ToString for Model {
 /// Conversion from Model to ModelRef
 impl From<Model> for ModelRef {
     fn from(value: Model) -> Self {
-        ModelRef::from_model_name(value)
+        ModelRef::from_model_name(value.to_string())
     }
 }
 
 /// Conversion from Model to Option
 impl From<Model> for Opt {
     fn from(value: Model) -> Self {
-        ModelRef(value.into())
+        Opt::Model(value.into())
     }
 }
 
@@ -145,6 +142,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn test_to_string_deprecated() {
         assert_eq!(Model::ChatGPT3_5Turbo.to_string(), "gpt-3.5-turbo");
         assert_eq!(Model::GPT4.to_string(), "gpt-4");

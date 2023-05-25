@@ -51,12 +51,7 @@ pub trait Executor: Sized {
         Self::new_with_options(Options::empty().clone())
     }
 
-    async fn execute(
-        &self,
-        options: &Options,
-        prompt: &Prompt,
-        is_streaming: Option<bool>,
-    ) -> Result<Output, Self::Error>;
+    async fn execute(&self, options: &Options, prompt: &Prompt) -> Result<Output, Self::Error>;
 
     /// Calculates the number of tokens used by the step given a set of parameters.
     ///

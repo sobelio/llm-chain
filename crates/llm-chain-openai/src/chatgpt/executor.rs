@@ -47,6 +47,14 @@ impl Executor {
         };
         model.to_name()
     }
+
+    fn cascade<'a>(&'a self, opts: Option<&'a Options>) -> OptionsCascade<'a> {
+        let mut v: Vec<&'a Options> = vec![&self.options];
+        if let Some(o) = opts {
+            v.push(o);
+        }
+        OptionsCascade::from_vec(v)
+    }
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -79,19 +87,12 @@ impl traits::Executor for Executor {
         Ok(Self { client, options })
     }
 
-    async fn execute(
-        &self,
-        options: &Options,
-        prompt: &Prompt,
-        is_streaming: Option<bool>,
-    ) -> Result<Output, Self::Error> {
-        let opts = OptionsCascade::new()
-            .with_options(&self.options)
-            .with_options(options);
+    async fn execute(&self, options: &Options, prompt: &Prompt) -> Result<Output, Self::Error> {
+        let opts = self.cascade(Some(options));
         let client = self.client.clone();
         let model = self.get_model_from_invocation_options(&opts);
-        let input = create_chat_completion_request(model, prompt, is_streaming).unwrap();
-        if let Some(true) = is_streaming {
+        let input = create_chat_completion_request(model, prompt, opts.is_streaming()).unwrap();
+        if opts.is_streaming() {
             let res = async move { client.chat().create_stream(input).await }.await?;
             Ok(stream_to_output(res))
         } else {
@@ -105,9 +106,7 @@ impl traits::Executor for Executor {
         opts: &Options,
         prompt: &Prompt,
     ) -> Result<TokenCount, PromptTokensError> {
-        let opts_cas = OptionsCascade::new()
-            .with_options(&self.options)
-            .with_options(opts);
+        let opts_cas = self.cascade(Some(opts));
         let model = self.get_model_from_invocation_options(&opts_cas);
         let messages = format_chat_messages(prompt.to_chat())?;
         let tokens_used = num_tokens_from_messages(&model, &messages)
@@ -120,9 +119,7 @@ impl traits::Executor for Executor {
     }
     /// Get the context size from the model or return default context size
     fn max_tokens_allowed(&self, opts: &Options) -> i32 {
-        let opts_cas = OptionsCascade::new()
-            .with_options(&self.options)
-            .with_options(opts);
+        let opts_cas = self.cascade(Some(opts));
         let model = self.get_model_from_invocation_options(&opts_cas);
         tiktoken_rs::model::get_context_size(&model)
             .try_into()
@@ -134,11 +131,7 @@ impl traits::Executor for Executor {
     }
 
     fn get_tokenizer(&self, options: &Options) -> Result<OpenAITokenizer, TokenizerError> {
-        Ok(OpenAITokenizer::new(
-            OptionsCascade::new()
-                .with_options(&self.options)
-                .with_options(options),
-        ))
+        Ok(OpenAITokenizer::new(self.cascade(Some(options))))
     }
 }
 

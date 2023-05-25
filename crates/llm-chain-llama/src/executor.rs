@@ -155,12 +155,7 @@ impl ExecutorTrait for Executor {
         })
     }
     // Executes the model asynchronously and returns the output.
-    async fn execute(
-        &self,
-        options: &Options,
-        prompt: &Prompt,
-        _is_streaming: Option<bool>,
-    ) -> Result<Output, Self::Error> {
+    async fn execute(&self, options: &Options, prompt: &Prompt) -> Result<Output, Self::Error> {
         let invocation =
             LlamaInvocation::new(self.get_cascade(options), prompt).ok_or(Error::OptionsError)?;
         Ok(self.run_model(invocation))

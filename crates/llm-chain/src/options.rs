@@ -1,4 +1,5 @@
 use lazy_static::lazy_static;
+use paste::paste;
 use std::{collections::HashMap, env::VarError, ffi::OsStr};
 
 use serde::{Deserialize, Serialize};
@@ -6,66 +7,168 @@ use strum_macros::EnumDiscriminants;
 
 use crate::tokens::Token;
 
+/// A collection of options that can be used to configure a model.
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct Options {
+    /// The actual options, stored as a vector.
     opts: Vec<Opt>,
 }
 
 #[derive(thiserror::Error, Debug)]
-/// Errror indicating that an option is not set.
-#[error("Options not set")]
+/// An error indicating that a required option is not set.
+#[error("Option not set")]
 struct OptionNotSetError;
 
 lazy_static! {
-    static ref EMPTY_OPTIONS: Options = Options::new();
+    /// An empty set of options, useful as a default.
+    static ref EMPTY_OPTIONS: Options = Options::builder().build();
+}
+
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+pub struct OptionsBuilder {
+    opts: Vec<Opt>,
+}
+
+impl OptionsBuilder {
+    fn new() -> Self {
+        OptionsBuilder { opts: Vec::new() }
+    }
+
+    pub fn add_option(&mut self, opt: Opt) {
+        self.opts.push(opt);
+    }
+
+    pub fn build(self) -> Options {
+        Options { opts: self.opts }
+    }
 }
 
 impl Options {
-    /// Returns a reference to an empty options set.
+    /// Creates a new `OptionsBuilder`
+    pub fn builder() -> OptionsBuilder {
+        OptionsBuilder::new()
+    }
+    /// Returns a reference to an empty set of options.
     pub fn empty() -> &'static Self {
         &EMPTY_OPTIONS
     }
 
-    pub fn new() -> Self {
-        Options { opts: Vec::new() }
-    }
-
+    /// Returns a new set of options with the given option added.
     pub fn with_option(mut self, opt: Opt) -> Self {
         self.add(opt);
         self
     }
 
+    /// Adds an option to this set of options.
     pub fn add(&mut self, opt: Opt) {
         self.opts.push(opt)
     }
 
+    /// Gets the value of an option from this set of options.
+    ///
+    /// Returns `None` if the option is not present in this set.
     pub fn get(&self, opt_discriminant: OptDiscriminants) -> Option<&Opt> {
         self.opts
             .iter()
             .find(|opt| OptDiscriminants::from(*opt) == opt_discriminant)
     }
 }
+
+/// `options!` is a declarative macro that facilitates the creation of an `Options` instance.
+///
+/// # Usage
+///
+/// This macro can be used to construct an instance of `Options` using a more readable and
+/// ergonomic syntax. The syntax of the macro is:
+///
+/// ```ignore
+/// options!{
+///     OptionName1: value1,
+///     OptionName2: value2,
+///     ...
+/// }
+/// ```
+///
+/// Here, `OptionNameN` is the identifier of the option you want to set, and `valueN` is the value
+/// you want to assign to that option.
+///
+/// # Example
+///
+/// ```ignore
+/// let options = options!{
+///     FooBar: "lol",
+///     SomeReadyMadeOption: "another_value"
+/// };
+/// ```
+///
+/// In this example, an instance of `Options` is being created with two options: `FooBar` and
+/// `SomeReadyMadeOption`, which are set to `"lol"` and `"another_value"`, respectively.
+///
+/// # Notes
+///
+/// - The option identifier (`OptionNameN`) must match an enum variant in `Opt`. If the identifier
+///   does not match any of the `Opt` variants, a compilation error will occur.
+///
+/// - The value (`valueN`) should be of a type that is acceptable for the corresponding option.
+///   If the value type does not match the expected type for the option, a compilation error will occur.
+///
+#[macro_export]
+macro_rules! options {
+    ( $( $opt_name:ident : $opt_value:expr ),* ) => {
+        {
+            let mut _opts = $crate::options::Options::builder();
+            $(
+                $crate::options::Opt::$opt_name($opt_value.into());
+            )*
+            _opts.build()
+        }
+    };
+}
+
+/// A cascade of option sets.
+///
+/// Options added later in the cascade override earlier options.
 pub struct OptionsCascade<'a> {
+    /// The sets of options, in the order they were added.
     cascades: Vec<&'a Options>,
 }
 
 impl<'a> OptionsCascade<'a> {
+    /// Creates a new, empty cascade of options.
     pub fn new() -> Self {
         OptionsCascade::from_vec(Vec::new())
     }
 
+    /// Setups a typical options cascade, with model_defaults, environment defaults a model config and possibly a specific config.
+    pub fn new_typical(
+        model_default: &'a Options,
+        env_defaults: &'a Options,
+        model_config: &'a Options,
+        specific_config: Option<&'a Options>,
+    ) -> Self {
+        let mut v = vec![model_default, env_defaults, model_config];
+        if let Some(specific_config) = specific_config {
+            v.push(specific_config);
+        }
+        Self::from_vec(v)
+    }
+
+    /// Creates a new cascade of options from a vector of option sets.
     pub fn from_vec(cascades: Vec<&'a Options>) -> Self {
         OptionsCascade { cascades }
     }
 
+    /// Returns a new cascade of options with the given set of options added.
     pub fn with_options(mut self, options: &'a Options) -> Self {
         self.cascades.push(options);
         self
     }
 
-    pub fn cascades(&self) -> &[&'a Options] {
-        &self.cascades
-    }
+    /// Gets the value of an option from this cascade.
+    ///
+    /// Returns `None` if the option is not present in any set in this cascade.
+    /// If the option is present in multiple sets, the value from the most
+    /// recently added set is returned.
     pub fn get(&self, opt_discriminant: OptDiscriminants) -> Option<&Opt> {
         for options in self.cascades.iter().rev() {
             if let Some(opt) = options.get(opt_discriminant) {
@@ -74,9 +177,18 @@ impl<'a> OptionsCascade<'a> {
         }
         None
     }
+
+    /// Returns a boolean indicating if options indicate that requests should be streamed or not.
+    pub fn is_streaming(&self) -> bool {
+        let Some(Opt::Stream(val)) = self.get(OptDiscriminants::Stream) else {
+            return false
+        };
+        *val
+    }
 }
 
 impl<'a> Default for OptionsCascade<'a> {
+    /// Returns a new, empty cascade of options.
     fn default() -> Self {
         Self::new()
     }
@@ -119,65 +231,75 @@ impl TokenBias {
 
 #[derive(EnumDiscriminants, Clone, Debug, Serialize, Deserialize)]
 pub enum Opt {
+    /// The model to use for inference.
     Model(ModelRef),
+    /// The API key for the model service.
     ApiKey(String),
-    /// Common for all models
+    /// The number of threads to use for parallel processing.
+    /// This is common to all models.
     NThreads(usize),
-    /// Common for all models
+    /// The maximum number of tokens that the model will generate.
+    /// This is common to all models.
     MaxTokens(usize),
-    /// The maximum context size of the model
+    /// The maximum context size of the model.
     MaxContextSize(usize),
-    /// COmmon for all models openai allows up to four stopseqs.
+    /// The sequences that, when encountered, will cause the model to stop generating further tokens.
+    /// OpenAI models allow up to four stop sequences.
     StopSequence(Vec<String>),
-    /// Common for all
+    /// Whether or not to use streaming mode.
+    /// This is common to all models.
     Stream(bool),
 
-    /// For OpenAI and llama
+    /// The penalty to apply for using frequent tokens.
+    /// This is used by OpenAI and llama models.
     FrequencyPenalty(f32),
-    /// For OpenAI and llama
+    /// The penalty to apply for using novel tokens.
+    /// This is used by OpenAI and llama models.
     PresencePenalty(f32),
 
-    /// For OpenAI and llm-chain-local, Logit-bias in openai
+    /// A bias to apply to certain tokens during the inference process.
+    /// This is known as logit bias in OpenAI and is also used in llm-chain-local.
     TokenBias(TokenBias),
 
-    /// Common for all models, not in OpenAI
+    /// The maximum number of tokens to consider for each step of generation.
+    /// This is common to all models, but is not used by OpenAI.
     TopK(i32),
-    /// Common for all models
+    /// The cumulative probability threshold for token selection.
+    /// This is common to all models.
     TopP(f32),
-    /// Common for all models
+    /// The temperature to use for token selection. Higher values result in more random output.
+    /// This is common to all models.
     Temperature(f32),
-    /// Common for all models
+    /// The penalty to apply for repeated tokens.
+    /// This is common to all models.
     RepeatPenalty(f32),
-    /// Common for all models
+    /// The number of most recent tokens to consider when applying the repeat penalty.
+    /// This is common to all models.
     RepeatPenaltyLastN(usize),
 
-    /// For llm-chain-llama
+    /// The TfsZ parameter for llm-chain-llama.
     TfsZ(f32),
-    /// For llm-chain-llama
+    /// The TypicalP parameter for llm-chain-llama.
     TypicalP(f32),
-    /// For llm-chain-llama
+    /// The Mirostat parameter for llm-chain-llama.
     Mirostat(i32),
-    /// For llm-chain-llama
+    /// The MirostatTau parameter for llm-chain-llama.
     MirostatTau(f32),
-    /// For llm-chain-llama
+    /// The MirostatEta parameter for llm-chain-llama.
     MirostatEta(f32),
-    /// For llm-chain-llama
+    /// Whether or not to penalize newline characters for llm-chain-llama.
     PenalizeNl(bool),
 
-    /// For llm-chain-local
+    /// The batch size for llm-chain-local.
     NBatch(usize),
-    /// For llm-chain-local
-    BiasTokens(String),
-    /// For llm-chain-local
-
-    /// For llm-chain-openai
-
-    /// For llm-chain-openai
+    /// The username for llm-chain-openai.
     User(String),
+    /// The type of the model.
     ModelType(String),
 }
 
-fn option_from_env<K, F>(opts: &mut Options, key: K, f: F) -> Result<(), VarError>
+// Helper function to extract environment variables
+fn option_from_env<K, F>(opts: &mut OptionsBuilder, key: K, f: F) -> Result<(), VarError>
 where
     K: AsRef<OsStr>,
     F: FnOnce(String) -> Option<Opt>,
@@ -185,7 +307,7 @@ where
     match std::env::var(key) {
         Ok(v) => {
             if let Some(x) = f(v) {
-                opts.add(x)
+                opts.add_option(x);
             }
             Ok(())
         }
@@ -194,18 +316,80 @@ where
     }
 }
 
+// Conversion functions for each Opt variant
+fn model_from_string(s: String) -> Option<Opt> {
+    Some(Opt::Model(ModelRef::from_path(s)))
+}
+
+fn api_key_from_string(s: String) -> Option<Opt> {
+    Some(Opt::ApiKey(s))
+}
+
+macro_rules! opt_parse_str {
+    ($v:ident) => {
+        paste! {
+            fn [< $v:snake:lower _from_string >] (s: String) -> Option<Opt> {
+                        Some(Opt::$v(s.parse().ok()?))
+            }
+        }
+    };
+}
+
+opt_parse_str!(NThreads);
+opt_parse_str!(MaxTokens);
+opt_parse_str!(MaxContextSize);
+// Skip stop sequence?
+// Skip stream?
+
+opt_parse_str!(FrequencyPenalty);
+opt_parse_str!(PresencePenalty);
+// Skip TokenBias for now
+opt_parse_str!(TopK);
+opt_parse_str!(TopP);
+opt_parse_str!(Temperature);
+opt_parse_str!(RepeatPenalty);
+opt_parse_str!(RepeatPenaltyLastN);
+opt_parse_str!(TfsZ);
+opt_parse_str!(PenalizeNl);
+
+macro_rules! opt_from_env {
+    ($opt:ident, $v:ident) => {
+        paste! {
+            option_from_env(&mut $opt, stringify!([<
+                LLM_CHAIN_ $v:upper:snake
+                >]), [< $v:snake:lower _from_string >])?;
+        }
+    };
+}
+
+macro_rules! opts_from_env {
+    ($opt:ident, $($v:ident),*) => {
+        $(
+            opt_from_env!($opt, $v);
+        )*
+    };
+}
+
+// Function to load options from environment variables
 pub fn options_from_env() -> Result<Options, VarError> {
-    let mut opts = Options::new();
+    let mut opts = OptionsBuilder::new();
 
-    if let Ok(x) = std::env::var("LLM_CHAIN_MODEL_PATH") {
-        opts.add(Opt::Model(ModelRef::from_path(x)));
-    }
-    option_from_env(&mut opts, "LLM_CHAIN_MODEL_PATH", |s| {
-        Some(Opt::Model(ModelRef::from_path(s)))
-    })?;
-    option_from_env(&mut opts, "LLM_CHAIN_MODEL_TYPE", |s| {
-        Some(Opt::ModelType(s))
-    })?;
-
-    Ok(opts)
+    opts_from_env!(
+        opts,
+        Model,
+        ApiKey,
+        NThreads,
+        MaxTokens,
+        MaxContextSize,
+        FrequencyPenalty,
+        PresencePenalty,
+        TopK,
+        TopP,
+        Temperature,
+        RepeatPenalty,
+        RepeatPenaltyLastN,
+        TfsZ,
+        PenalizeNl
+    );
+    Ok(opts.build())
 }

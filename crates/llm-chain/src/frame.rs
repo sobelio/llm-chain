@@ -46,10 +46,7 @@ where
         parameters: &Parameters,
     ) -> Result<Output, FormatAndExecuteError<E::Error>> {
         let prompt = self.step.format(parameters)?;
-        Ok(self
-            .executor
-            .execute(self.step.options(), &prompt, self.step.is_streaming())
-            .await?)
+        Ok(self.executor.execute(self.step.options(), &prompt).await?)
     }
 }
 

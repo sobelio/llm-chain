@@ -1,12 +1,10 @@
-use lazy_static::lazy_static;
-use std::convert::Infallible;
-use std::path::Path;
-
 use async_trait::async_trait;
+use lazy_static::lazy_static;
 use llm::{
     load_progress_callback_stdout, InferenceParameters, InferenceRequest, Model, ModelArchitecture,
     ModelParameters, TokenUtf8Buffer,
 };
+use llm_chain::options;
 use llm_chain::options::{options_from_env, Opt, OptDiscriminants, Options, OptionsCascade};
 use llm_chain::output::Output;
 use llm_chain::prompt::Prompt;
@@ -14,17 +12,20 @@ use llm_chain::tokens::{
     PromptTokensError, TokenCollection, TokenCount, Tokenizer, TokenizerError,
 };
 use llm_chain::traits::{ExecutorCreationError, ExecutorError};
+use std::convert::Infallible;
+use std::path::Path;
 use thiserror::Error;
 
 lazy_static! {
-    static ref DEFAULT_OPTIONS: Options = Options::new()
-        .with_option(Opt::NThreads(4))
-        .with_option(Opt::NBatch(8))
-        .with_option(Opt::TopK(40))
-        .with_option(Opt::TopP(0.95))
-        .with_option(Opt::RepeatPenalty(1.3))
-        .with_option(Opt::RepeatPenaltyLastN(512))
-        .with_option(Opt::Temperature(0.8));
+    static ref DEFAULT_OPTIONS: Options = options!(
+        NThreads: 4 as usize,
+        NBatch: 8 as usize,
+        TopK: 40 as i32,
+        TopP: 0.95,
+        RepeatPenalty: 1.3,
+        RepeatPenaltyLastN: 512 as usize,
+        Temperature: 0.8
+    );
 }
 /// Executor is responsible for running the LLM and managing its context.
 pub struct Executor {
@@ -88,12 +89,7 @@ impl llm_chain::traits::Executor for Executor {
         Ok(Executor { llm, options })
     }
 
-    async fn execute(
-        &self,
-        options: &Options,
-        prompt: &Prompt,
-        _is_streaming: Option<bool>,
-    ) -> Result<Output, Self::Error> {
+    async fn execute(&self, options: &Options, prompt: &Prompt) -> Result<Output, Self::Error> {
         let opts = OptionsCascade::new()
             .with_options(&DEFAULT_OPTIONS)
             .with_options(&self.options)
