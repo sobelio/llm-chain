@@ -1,5 +1,3 @@
-use std::io::Write;
-
 use llm_chain::{executor, parameters, prompt};
 
 /// This example demonstrates how to use the llm-chain-llama crate to generate text using a
@@ -11,14 +9,11 @@ use llm_chain::{executor, parameters, prompt};
 /// cargo run --example simple /models/llama
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let exec = executor!(llama)?.with_callback(|output| {
-        print!("{}", output);
-        std::io::stdout().flush().unwrap();
-    });
+    let exec = executor!(llama)?;
 
     let res = prompt!("The Colors of the Rainbow are (in order): ")
         .run(&parameters!(), &exec)
         .await?;
-    println!("{}", res);
+    println!("{}", res.to_immediate().await?);
     Ok(())
 }

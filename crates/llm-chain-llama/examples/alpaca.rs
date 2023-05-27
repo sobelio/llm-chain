@@ -10,6 +10,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             &exec,
         )
         .await?;
-    println!("{}", res);
+    println!("{}", res.to_immediate().await?);
     Ok(())
 }

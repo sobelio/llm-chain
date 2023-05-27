@@ -20,6 +20,8 @@ llm-chain-llama-sys = { path = "../llm-chain-llama-sys", version = "0.11" }
 llm-chain = { path = "../llm-chain", version = "0.11.2" }
 serde = { version = "1.0.163", features = ["derive"] }
 thiserror = "1.0.40"
+lazy_static = "1.4.0"
+tokio = "1.28.1"
 
 [dev-dependencies]
 tokio = { version = "1.28.1", features = ["macros", "rt"] }

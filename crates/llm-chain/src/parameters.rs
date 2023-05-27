@@ -1,7 +1,7 @@
 //! Parameters are used to pass data steps of the chain. This module implements them.
 //!
 //! Parameters are used to pass data between steps of the chain. They are used to fill in the prompt template, and are also filled in by the output of the previous step. Parameters have a special key, `text`, which is used as a default key for simple use cases.
-use crate::output::Output;
+
 use std::{
     collections::{BTreeMap, HashMap},
     fmt::Debug,
@@ -125,12 +125,7 @@ impl Parameters {
     pub fn with_text<K: Into<String>>(&self, text: K) -> Parameters {
         self.with(TEXT_KEY, text)
     }
-    pub async fn with_text_from_output<O: Output>(&self, output: &O) -> Parameters {
-        output
-            .primary_textual_output()
-            .await
-            .map_or(self.clone(), |text| self.with_text(text))
-    }
+
     /// Combines two sets of parameters, returning a new set of parameters with all the keys from both sets.
     pub fn combine(&self, other: &Parameters) -> Parameters {
         let mut copy = self.clone();

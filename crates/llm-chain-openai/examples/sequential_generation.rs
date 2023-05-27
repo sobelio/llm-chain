@@ -10,7 +10,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let exec = Executor::new()?;
 
     // Create a chain of steps with two prompts
-    let chain: Chain<Executor> = Chain::new(vec![
+    let chain: Chain = Chain::new(vec![
         // First step: make a personalized birthday email
         Step::for_prompt_template(
             prompt!("You are a bot for making personalized greetings", "Make personalized birthday e-mail to the whole company for {{name}} who has their birthday on {{date}}. Include their name")
@@ -33,6 +33,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap();
 
     // Print the result to the console
-    println!("{:?}", res);
+    println!("{:}", res);
     Ok(())
 }

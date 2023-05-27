@@ -12,7 +12,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     path.push("chain-from-yaml.yaml");
     let path = path.to_str().unwrap();
 
-    let chain_to_write: Chain<Executor> = Step::for_prompt_template(prompt!(
+    let chain_to_write: Chain = Step::for_prompt_template(prompt!(
         "You are a bot for making personalized greetings",
         "Make a personalized greet for Joe"
     ))
@@ -20,7 +20,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     chain_to_write.write_file_sync(path)?;
     println!("Wrote chain to {}", path);
 
-    let chain = Chain::<Executor>::read_file_sync(path).unwrap();
+    let chain = Chain::read_file_sync(path).unwrap();
     let res = chain.run(parameters!(), &chatgpt).await.unwrap();
     println!("{}", res);
     Ok(())

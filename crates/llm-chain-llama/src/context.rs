@@ -1,8 +1,10 @@
-use std::{ffi::CStr, ptr::null_mut};
+use std::{
+    ffi::{CStr, CString},
+    ptr::null_mut,
+};
 
 use crate::options::LlamaInvocation;
 use anyhow::Result;
-use llm_chain::traits;
 use llm_chain_llama_sys::{
     llama_context, llama_context_default_params, llama_context_params, llama_eval, llama_free,
     llama_get_logits, llama_init_from_file, llama_n_vocab,
@@ -13,6 +15,10 @@ use llm_chain_llama_sys::{
     llama_token_data_array, llama_token_nl, llama_token_to_str,
 };
 use serde::{Deserialize, Serialize};
+
+#[derive(Debug, thiserror::Error)]
+#[error("LLAMA.cpp returned error-code {0}")]
+pub struct LLAMACPPErrorCode(i32);
 
 // Represents the configuration parameters for a LLamaContext.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -37,6 +43,12 @@ impl ContextParams {
             Some(params) => params.clone().into(),
             None => unsafe { llama_context_default_params() },
         }
+    }
+}
+
+impl Default for ContextParams {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -73,8 +85,6 @@ impl From<llama_context_params> for ContextParams {
     }
 }
 
-impl traits::Options for ContextParams {}
-
 // Represents the LLamaContext which wraps FFI calls to the llama.cpp library.
 pub(crate) struct LLamaContext {
     ctx: *mut llama_context,
@@ -83,8 +93,9 @@ pub(crate) struct LLamaContext {
 impl LLamaContext {
     // Creates a new LLamaContext from the specified file and configuration parameters.
     pub fn from_file_and_params(path: &str, params: Option<&ContextParams>) -> Self {
+        let path = CString::new(path).expect("could not convert to CString");
         let params = ContextParams::or_default(params);
-        let ctx = unsafe { llama_init_from_file(path.as_ptr() as *const i8, params) };
+        let ctx = unsafe { llama_init_from_file(path.into_raw() as *const i8, params) };
         Self { ctx }
     }
 
@@ -110,29 +121,29 @@ impl LLamaContext {
         input: &LlamaInvocation,
     ) -> i32 {
         let top_k = if input.top_k <= 0 {
-            self.llama_n_vocab().clone()
+            self.llama_n_vocab()
         } else {
-            input.top_k.clone()
+            input.top_k
         };
         let repeat_last_n = if input.repeat_last_n < 0 {
-            n_ctx as i32
+            n_ctx
         } else {
             input.repeat_last_n
         };
         let n_vocab = self.llama_n_vocab() as usize;
         // only get the last row, as the sample only requires this.
-        let mut logits = self.llama_get_logits_as_slice(1, n_vocab as usize);
+        let mut logits = self.llama_get_logits_as_slice(1, n_vocab);
 
         // let id : llama_token = 0;
         input
             .logit_bias
             .iter()
             .for_each(|(k, v)| logits[*k as usize] += v);
-        let mut candidates: Vec<llama_token_data> = Vec::with_capacity(n_vocab as usize);
+        let mut candidates: Vec<llama_token_data> = Vec::with_capacity(n_vocab);
         (0..n_vocab).for_each(|i| {
             candidates.push(llama_token_data {
                 id: i as i32,
-                logit: logits[i].into(),
+                logit: logits[i],
                 p: input.top_p,
             })
         });
@@ -174,42 +185,40 @@ impl LLamaContext {
         if input.temp <= 0.0 {
             // Greedy sampling
             unsafe { llama_sample_token_greedy(self.ctx, &mut candidates_p) }
-        } else {
-            if input.mirostat == 1 {
-                let mut mirostat_mu = 2.0 * input.mirostat_tau;
-                let mirostat_m = 100 as i32;
-                unsafe { llama_sample_temperature(self.ctx, &mut candidates_p, input.temp) };
-                unsafe {
-                    llama_sample_token_mirostat(
-                        self.ctx,
-                        &mut candidates_p,
-                        input.mirostat_tau,
-                        input.mirostat_eta,
-                        mirostat_m,
-                        &mut mirostat_mu,
-                    )
-                }
-            } else if input.mirostat == 2 {
-                let mut mirostat_mu = 2.0 * input.mirostat_tau;
-                unsafe { llama_sample_temperature(self.ctx, &mut candidates_p, input.temp) };
-                unsafe {
-                    llama_sample_token_mirostat_v2(
-                        self.ctx,
-                        &mut candidates_p,
-                        input.mirostat_tau,
-                        input.mirostat_eta,
-                        &mut mirostat_mu,
-                    )
-                }
-            } else {
-                // Temperature sampling
-                unsafe { llama_sample_top_k(self.ctx, &mut candidates_p, top_k, 1) };
-                unsafe { llama_sample_tail_free(self.ctx, &mut candidates_p, input.tfs_z, 1) };
-                unsafe { llama_sample_typical(self.ctx, &mut candidates_p, input.typical_p, 1) };
-                unsafe { llama_sample_top_p(self.ctx, &mut candidates_p, input.top_p, 1) };
-                unsafe { llama_sample_temperature(self.ctx, &mut candidates_p, input.temp) };
-                unsafe { llama_sample_token(self.ctx, &mut candidates_p) }
+        } else if input.mirostat == 1 {
+            let mut mirostat_mu = 2.0 * input.mirostat_tau;
+            let mirostat_m = 100_i32;
+            unsafe { llama_sample_temperature(self.ctx, &mut candidates_p, input.temp) };
+            unsafe {
+                llama_sample_token_mirostat(
+                    self.ctx,
+                    &mut candidates_p,
+                    input.mirostat_tau,
+                    input.mirostat_eta,
+                    mirostat_m,
+                    &mut mirostat_mu,
+                )
             }
+        } else if input.mirostat == 2 {
+            let mut mirostat_mu = 2.0 * input.mirostat_tau;
+            unsafe { llama_sample_temperature(self.ctx, &mut candidates_p, input.temp) };
+            unsafe {
+                llama_sample_token_mirostat_v2(
+                    self.ctx,
+                    &mut candidates_p,
+                    input.mirostat_tau,
+                    input.mirostat_eta,
+                    &mut mirostat_mu,
+                )
+            }
+        } else {
+            // Temperature sampling
+            unsafe { llama_sample_top_k(self.ctx, &mut candidates_p, top_k, 1) };
+            unsafe { llama_sample_tail_free(self.ctx, &mut candidates_p, input.tfs_z, 1) };
+            unsafe { llama_sample_typical(self.ctx, &mut candidates_p, input.typical_p, 1) };
+            unsafe { llama_sample_top_p(self.ctx, &mut candidates_p, input.top_p, 1) };
+            unsafe { llama_sample_temperature(self.ctx, &mut candidates_p, input.temp) };
+            unsafe { llama_sample_token(self.ctx, &mut candidates_p) }
         }
     }
 
@@ -229,13 +238,13 @@ impl LLamaContext {
         n_tokens: i32,
         n_past: i32,
         input: &LlamaInvocation,
-    ) -> Result<(), ()> {
+    ) -> Result<(), LLAMACPPErrorCode> {
         let res =
             unsafe { llama_eval(self.ctx, tokens.as_ptr(), n_tokens, n_past, input.n_threads) };
         if res == 0 {
             Ok(())
         } else {
-            Err(())
+            Err(LLAMACPPErrorCode(res))
         }
     }
 }

@@ -1,9 +1,13 @@
-use super::options::PerInvocation;
-use super::output::Output;
+use super::prompt::completion_to_output;
+use super::prompt::stream_to_output;
+use llm_chain::options::Opt;
+use llm_chain::options::Options;
+use llm_chain::options::OptionsCascade;
+use llm_chain::output::Output;
+use llm_chain::tokens::TokenCollection;
+
 use super::prompt::create_chat_completion_request;
 use super::prompt::format_chat_messages;
-use super::Model;
-use super::OpenAITextSplitter;
 use async_openai::error::OpenAIError;
 use llm_chain::prompt::Prompt;
 
@@ -12,7 +16,6 @@ use llm_chain::tokens::{Tokenizer, TokenizerError};
 use llm_chain::traits;
 use llm_chain::traits::{ExecutorCreationError, ExecutorError};
 
-use super::options::PerExecutor;
 use async_trait::async_trait;
 use llm_chain::tokens::TokenCount;
 
@@ -26,25 +29,31 @@ pub struct Executor {
     /// The client used to communicate with the OpenAI API.
     client: Arc<async_openai::Client>,
     /// The per-invocation options for this executor.
-    per_invocation_options: Option<PerInvocation>,
+    options: Options,
 }
 
 impl Executor {
     /// Creates a new `Executor` with the given client.
-    pub fn for_client(
-        client: async_openai::Client,
-        per_invocation_options: Option<PerInvocation>,
-    ) -> Self {
+    pub fn for_client(client: async_openai::Client, options: Options) -> Self {
         use llm_chain::traits::Executor as _;
-        let mut exec = Self::new_with_options(None, per_invocation_options).unwrap();
+        let mut exec = Self::new_with_options(options).unwrap();
         exec.client = Arc::new(client);
         exec
     }
 
-    fn get_model_from_invocation_options(&self, opts: Option<&PerInvocation>) -> Model {
-        opts.or(self.per_invocation_options.as_ref())
-            .and_then(|opts| opts.model.clone())
-            .unwrap_or_default()
+    fn get_model_from_invocation_options(&self, opts: &OptionsCascade) -> String {
+        let Some(Opt::Model(model)) = opts.get(llm_chain::options::OptDiscriminants::Model) else {
+            return "gpt-3.5-turbo".to_string()
+        };
+        model.to_name()
+    }
+
+    fn cascade<'a>(&'a self, opts: Option<&'a Options>) -> OptionsCascade<'a> {
+        let mut v: Vec<&'a Options> = vec![&self.options];
+        if let Some(o) = opts {
+            v.push(o);
+        }
+        OptionsCascade::from_vec(v)
     }
 }
 
@@ -53,68 +62,55 @@ impl Executor {
 pub enum Error {
     OpenAIError(#[from] OpenAIError),
 }
-impl ExecutorError for Error {}
 
 #[async_trait]
 impl traits::Executor for Executor {
-    type PerInvocationOptions = PerInvocation;
-    type PerExecutorOptions = PerExecutor;
-
-    type Output = Output;
-    type Token = usize;
     type StepTokenizer<'a> = OpenAITokenizer;
-    type TextSplitter<'a> = OpenAITextSplitter;
-    type Error = Error;
-
     /// Creates a new `Executor` with the given options.
     ///
     /// if the `OPENAI_ORG_ID` environment variable is present, it will be used as the org_ig for the OpenAI client.
-    fn new_with_options(
-        executor_options: Option<Self::PerExecutorOptions>,
-        invocation_options: Option<Self::PerInvocationOptions>,
-    ) -> Result<Self, ExecutorCreationError> {
+    fn new_with_options(options: Options) -> Result<Self, ExecutorCreationError> {
         let mut client = async_openai::Client::new();
-        if let Some(executor_options) = executor_options {
-            if let Some(api_key) = executor_options.api_key {
-                client = client.with_api_key(api_key)
-            }
+        let opts = OptionsCascade::new().with_options(&options);
+
+        if let Some(Opt::ApiKey(api_key)) = opts.get(llm_chain::options::OptDiscriminants::ApiKey) {
+            client = client.with_api_key(api_key)
         }
+
         if let Ok(org_id) = std::env::var("OPENAI_ORG_ID") {
             client = client.with_org_id(org_id);
         }
         let client = Arc::new(client);
-        Ok(Self {
-            client,
-            per_invocation_options: invocation_options,
-        })
+        Ok(Self { client, options })
     }
 
-    async fn execute(
-        &self,
-        opts: Option<&PerInvocation>,
-        prompt: &Prompt,
-        is_streaming: Option<bool>,
-    ) -> Result<Self::Output, Self::Error> {
+    async fn execute(&self, options: &Options, prompt: &Prompt) -> Result<Output, ExecutorError> {
+        let opts = self.cascade(Some(options));
         let client = self.client.clone();
-        let model = self.get_model_from_invocation_options(opts);
-        let input = create_chat_completion_request(&model, prompt, is_streaming).unwrap();
-        if let Some(true) = is_streaming {
-            let res = async move { client.chat().create_stream(input).await }.await?;
-            Ok(res.into())
+        let model = self.get_model_from_invocation_options(&opts);
+        let input = create_chat_completion_request(model, prompt, opts.is_streaming()).unwrap();
+        if opts.is_streaming() {
+            let res = async move { client.chat().create_stream(input).await }
+                .await
+                .map_err(|e| ExecutorError::InnerError(e.into()))?;
+            Ok(stream_to_output(res))
         } else {
-            let res = async move { client.chat().create(input).await }.await?;
-            Ok(res.into())
+            let res = async move { client.chat().create(input).await }
+                .await
+                .map_err(|e| ExecutorError::InnerError(e.into()))?;
+            Ok(completion_to_output(res))
         }
     }
 
     fn tokens_used(
         &self,
-        opts: Option<&PerInvocation>,
+        opts: &Options,
         prompt: &Prompt,
     ) -> Result<TokenCount, PromptTokensError> {
-        let model = self.get_model_from_invocation_options(opts);
+        let opts_cas = self.cascade(Some(opts));
+        let model = self.get_model_from_invocation_options(&opts_cas);
         let messages = format_chat_messages(prompt.to_chat())?;
-        let tokens_used = num_tokens_from_messages(&model.to_string(), &messages)
+        let tokens_used = num_tokens_from_messages(&model, &messages)
             .map_err(|_| PromptTokensError::NotAvailable)?;
 
         Ok(TokenCount::new(
@@ -123,9 +119,10 @@ impl traits::Executor for Executor {
         ))
     }
     /// Get the context size from the model or return default context size
-    fn max_tokens_allowed(&self, opts: Option<&PerInvocation>) -> i32 {
-        let model = self.get_model_from_invocation_options(opts);
-        tiktoken_rs::model::get_context_size(&model.to_string())
+    fn max_tokens_allowed(&self, opts: &Options) -> i32 {
+        let opts_cas = self.cascade(Some(opts));
+        let model = self.get_model_from_invocation_options(&opts_cas);
+        tiktoken_rs::model::get_context_size(&model)
             .try_into()
             .unwrap_or(4096)
     }
@@ -134,24 +131,8 @@ impl traits::Executor for Executor {
         None
     }
 
-    fn get_tokenizer(
-        &self,
-        options: Option<&PerInvocation>,
-    ) -> Result<OpenAITokenizer, TokenizerError> {
-        let opts = options
-            .or(self.per_invocation_options.as_ref())
-            .cloned()
-            .unwrap_or_default();
-        Ok(OpenAITokenizer::new(&opts))
-    }
-
-    fn get_text_splitter(
-        &self,
-        options: Option<&PerInvocation>,
-    ) -> Result<Self::TextSplitter<'_>, Self::Error> {
-        Ok(OpenAITextSplitter::new(
-            self.get_model_from_invocation_options(options),
-        ))
+    fn get_tokenizer(&self, options: &Options) -> Result<OpenAITokenizer, TokenizerError> {
+        Ok(OpenAITokenizer::new(self.cascade(Some(options))))
     }
 }
 
@@ -160,10 +141,17 @@ pub struct OpenAITokenizer {
 }
 
 impl OpenAITokenizer {
-    pub fn new(options: &PerInvocation) -> Self {
-        Self {
-            model_name: options.model.clone().unwrap_or_default().to_string(),
-        }
+    pub fn new(options: OptionsCascade) -> Self {
+        let model_name = match options.get(llm_chain::options::OptDiscriminants::Model) {
+            Some(Opt::Model(model_name)) => model_name.to_name(),
+            _ => "".to_string(),
+        };
+        Self::for_model_name(model_name)
+    }
+    /// Creates an OpenAITokenizer for the passed in model name
+    pub fn for_model_name<S: Into<String>>(model_name: S) -> Self {
+        let model_name: String = model_name.into();
+        Self { model_name }
     }
 
     fn get_bpe_from_model(&self) -> Result<tiktoken_rs::CoreBPE, PromptTokensError> {
@@ -172,19 +160,20 @@ impl OpenAITokenizer {
     }
 }
 
-impl Tokenizer<usize> for OpenAITokenizer {
-    fn tokenize_str(&self, doc: &str) -> Result<Vec<usize>, TokenizerError> {
+impl Tokenizer for OpenAITokenizer {
+    fn tokenize_str(&self, doc: &str) -> Result<TokenCollection, TokenizerError> {
         Ok(self
             .get_bpe_from_model()
             .map_err(|_| TokenizerError::TokenizationError)?
-            .encode_ordinary(doc))
+            .encode_ordinary(doc)
+            .into())
     }
 
-    fn to_string(&self, tokens: Vec<usize>) -> Result<String, TokenizerError> {
+    fn to_string(&self, tokens: TokenCollection) -> Result<String, TokenizerError> {
         let res = self
             .get_bpe_from_model()
             .map_err(|_e| TokenizerError::ToStringError)?
-            .decode(tokens.to_vec())
+            .decode(tokens.as_usize()?)
             .map_err(|_e| TokenizerError::ToStringError)?;
         Ok(res)
     }

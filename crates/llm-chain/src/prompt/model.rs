@@ -51,6 +51,14 @@ impl<T> Data<T> {
             Self::Text(text) => Ok(Data::Text(f(text)?)),
         }
     }
+
+    /// Extracts the body of the last message in the Data, or simply returns the Text if it is a text prompt
+    pub fn extract_last_body(&self) -> Option<&T> {
+        match self {
+            Self::Chat(c) => c.extract_last_body(),
+            Self::Text(t) => Some(t),
+        }
+    }
 }
 
 impl<T: fmt::Display> fmt::Display for Data<T> {
@@ -131,6 +139,7 @@ impl<T> From<ChatMessage<T>> for Data<T> {
 }
 
 use crate::frame::FormatAndExecuteError;
+use crate::output::Output;
 use crate::prompt::{StringTemplate, StringTemplateError};
 use crate::step::Step;
 use crate::traits::Executor;
@@ -152,7 +161,7 @@ impl Data<StringTemplate> {
         &self,
         parameters: &Parameters,
         executor: &E,
-    ) -> Result<E::Output, FormatAndExecuteError<E::Error>> {
+    ) -> Result<Output, FormatAndExecuteError> {
         Step::for_prompt_template(self.clone())
             .run(parameters, executor)
             .await

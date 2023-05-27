@@ -13,6 +13,7 @@ repository = "https://github.com/sobelio/llm-chain/"
 
 [dependencies]
 async-trait = "0.1.68"
+lazy_static = "1.4.0"
 llm = "0.1.1"
 llm-chain = { path = "../llm-chain", version = "0.11.2", default-features = false }
 rand = "0.8.5"

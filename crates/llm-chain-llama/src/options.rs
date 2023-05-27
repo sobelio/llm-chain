@@ -1,6 +1,10 @@
-use llm_chain::prompt::Prompt;
-use llm_chain::traits::Options;
-use serde::{Deserialize, Serialize};
+use lazy_static::lazy_static;
+use llm_chain::{
+    options,
+    options::{Opt, OptDiscriminants, Options, OptionsCascade},
+    prompt::Prompt,
+};
+
 use std::collections::HashMap;
 
 use crate::context::ContextParams;
@@ -23,128 +27,88 @@ pub struct LlamaInvocation {
     pub(crate) mirostat_tau: f32,
     pub(crate) mirostat_eta: f32,
     pub(crate) penalize_nl: bool,
-    pub(crate) stop_sequence: String,
+    pub(crate) stop_sequence: Vec<String>,
     pub(crate) prompt: Prompt,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-/// pub(crate) LlamaConfig is an overridable collection of configuration parameters for the LLAMA model. It is combined with a prompt to create an invocation.
-pub struct PerInvocation {
-    pub n_threads: Option<i32>,
-    pub n_tok_predict: Option<usize>,
-    pub top_k: Option<i32>,
-    pub top_p: Option<f32>,
-    pub tfs_z: Option<f32>,
-    pub typical_p: Option<f32>,
-    pub temp: Option<f32>,
-    pub repeat_penalty: Option<f32>,
-    pub repeat_last_n: Option<i32>,
-    pub frequency_penalty: Option<f32>,
-    pub presence_penalty: Option<f32>,
-    pub mirostat: Option<i32>,
-    pub mirostat_tau: Option<f32>,
-    pub mirostat_eta: Option<f32>,
-    pub penalize_nl: Option<bool>,
-    pub stop_sequence: Option<String>,
+macro_rules! opt_extract {
+    ($opt:ident, $var:ident, $discriminant:ident) => {
+        let Some(Opt::$discriminant($var)) = $opt.get(OptDiscriminants::$discriminant) else {
+                                                                                    return None
+                                                                                };
+    };
 }
 
-impl Options for PerInvocation {}
+impl LlamaInvocation {
+    pub(crate) fn new(opt: OptionsCascade, prompt: &Prompt) -> Option<LlamaInvocation> {
+        opt_extract!(opt, n_threads, NThreads);
+        opt_extract!(opt, n_tok_predict, MaxTokens);
+        opt_extract!(opt, token_bias, TokenBias);
+        opt_extract!(opt, top_k, TopK);
+        opt_extract!(opt, top_p, TopP);
+        opt_extract!(opt, tfs_z, TfsZ);
+        opt_extract!(opt, typical_p, TypicalP);
+        opt_extract!(opt, temp, Temperature);
+        opt_extract!(opt, repeat_penalty, RepeatPenalty);
+        opt_extract!(opt, repeat_last_n, RepeatPenaltyLastN);
+        opt_extract!(opt, frequency_penalty, FrequencyPenalty);
+        opt_extract!(opt, presence_penalty, PresencePenalty);
+        opt_extract!(opt, mirostat, Mirostat);
+        opt_extract!(opt, mirostat_tau, MirostatTau);
+        opt_extract!(opt, mirostat_eta, MirostatEta);
+        opt_extract!(opt, penalize_nl, PenalizeNl);
+        opt_extract!(opt, stop_sequence, StopSequence);
 
-impl PerInvocation {
-    /// Creates a new `PerInvocation` instance with default values.
-    pub fn new() -> Self {
-        Self::default()
-    }
+        let logit_bias = token_bias.as_i32_f32_hashmap()?;
 
-    /// Converts the current `PerInvocation` instance to a LlamaInvocation instance, using the given prompt.
-    ///
-    /// # Arguments
-    ///
-    /// * `prompt` - The prompt for the invocation.
-    ///
-    /// # Returns
-    ///
-    /// A LlamaInvocation instance with the specified configuration and prompt.
-    pub(crate) fn to_invocation(&self, prompt: &Prompt) -> LlamaInvocation {
-        LlamaInvocation {
-            n_threads: self.n_threads.unwrap_or(1),
-            n_tok_predict: self.n_tok_predict.unwrap_or(0),
-            logit_bias: HashMap::new(),
-            top_k: self.top_k.unwrap_or(40),
-            top_p: self.top_p.unwrap_or(0.95),
-            tfs_z: self.tfs_z.unwrap_or(1.0),
-            typical_p: self.typical_p.unwrap_or(1.0),
-            temp: self.temp.unwrap_or(0.8),
-            repeat_penalty: self.repeat_penalty.unwrap_or(1.1),
-            repeat_last_n: self.repeat_last_n.unwrap_or(64),
-            frequency_penalty: self.frequency_penalty.unwrap_or(0.0),
-            presence_penalty: self.presence_penalty.unwrap_or(0.0),
-            mirostat: self.mirostat.unwrap_or(0),
-            mirostat_tau: self.mirostat_tau.unwrap_or(5.0),
-            mirostat_eta: self.mirostat_eta.unwrap_or(0.1),
-            penalize_nl: self.penalize_nl.unwrap_or(true),
-            stop_sequence: self
-                .stop_sequence
-                .clone()
-                .unwrap_or_else(|| "\n\n".to_string()),
+        Some(LlamaInvocation {
+            n_threads: *n_threads as i32,
+            n_tok_predict: *n_tok_predict,
+            logit_bias,
+            top_k: *top_k,
+            top_p: *top_p,
+            tfs_z: *tfs_z,
+            typical_p: *typical_p,
+            temp: *temp,
+            repeat_penalty: *repeat_penalty,
+            repeat_last_n: *repeat_last_n as i32,
+            frequency_penalty: *frequency_penalty,
+            presence_penalty: *presence_penalty,
+            mirostat: *mirostat,
+            mirostat_tau: *mirostat_tau,
+            mirostat_eta: *mirostat_eta,
+            penalize_nl: *penalize_nl,
+            stop_sequence: stop_sequence.clone(),
             prompt: prompt.clone(),
-        }
+        })
     }
 }
 
-/// `PerExecutor` represents a collection of configuration parameters for the executor of the LLAMA model.
-/// It contains optional fields for the model path and context parameters.
-///
-/// # Examples
-///
-/// ```
-/// use llm_chain_llama::PerExecutor;
-/// let executor = PerExecutor::new().with_model_path("path/to/model");
-/// ```
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct PerExecutor {
-    /// Optional path to the LLAMA model.
-    pub(crate) model_path: Option<String>,
-    /// Optional context parameters for the LLAMA model.
-    pub(crate) context_params: Option<ContextParams>,
+lazy_static! {
+    pub(crate) static ref DEFAULT_OPTIONS: Options = options!(
+        NThreads: 1_usize,
+        MaxTokens: 0_usize,
+        TopK: 40_i32,
+        TopP: 0.95,
+        TfsZ: 1.0,
+        TypicalP: 1.0,
+        Temperature: 0.8,
+        RepeatPenalty: 1.1,
+        RepeatPenaltyLastN: 64_usize,
+        FrequencyPenalty: 1.1,
+        PresencePenalty: 0.0,
+        Mirostat: 0_i32,
+        MirostatTau: 5.0,
+        MirostatEta: 0.1,
+        PenalizeNl: true,
+        StopSequence: vec!["\n\n".to_string()]
+    );
 }
 
-impl PerExecutor {
-    /// Creates a new `PerExecutor` instance with default values.
-    ///
-    /// # Returns
-    ///
-    /// A `PerExecutor` instance with default values for the model path and context parameters.
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Sets the model path for the current `PerExecutor` instance.
-    ///
-    /// # Arguments
-    ///
-    /// * `model_path` - The path to the LLAMA model.
-    ///
-    /// # Returns
-    ///
-    /// A new `PerExecutor` instance with the updated model path.
-    pub fn with_model_path(mut self, model_path: &str) -> Self {
-        self.model_path = Some(model_path.to_string());
-        self
-    }
-
-    /// Sets the context_params for the current `PerExecutor` instance.
-    ///
-    /// # Arguments
-    ///
-    /// * `context_params` - LLama Context Params  
-    ///
-    /// # Returns
-    ///
-    /// A new `PerExecutor` instance with the updated context_params
-    pub fn with_context_params(mut self, context_params: ContextParams) -> Self {
-        self.context_params = Some(context_params);
-        self
-    }
+pub(crate) fn get_executor_initial_opts(opt: &OptionsCascade) -> Option<(String, ContextParams)> {
+    opt_extract!(opt, model, Model);
+    opt_extract!(opt, max_context_size, MaxContextSize);
+    let mut cp = ContextParams::new();
+    cp.n_ctx = *max_context_size as i32;
+    Some((model.to_path(), cp))
 }
-impl Options for PerExecutor {}

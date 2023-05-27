@@ -1,5 +1,4 @@
 use llm_chain::executor;
-use llm_chain::output::Output;
 use llm_chain::prompt::{ChatMessageCollection, StringTemplate};
 use llm_chain::step::Step;
 use llm_chain::traits::VectorStore;
@@ -169,7 +168,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("{}", result);
     match tool_collection
-        .process_chat_input(&result.primary_textual_output().await.unwrap())
+        .process_chat_input(
+            &result
+                .to_immediate()
+                .await?
+                .primary_textual_output()
+                .unwrap(),
+        )
         .await
     {
         Ok(output) => println!("{}", output),

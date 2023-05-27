@@ -12,14 +12,13 @@
 use std::{error::Error, fmt::Debug};
 
 use crate::{
+    options::Options,
     output::Output,
     prompt::Prompt,
     schema::{Document, EmptyMetadata},
     tokens::{PromptTokensError, TokenCount, Tokenizer, TokenizerError},
-    TextSplitter,
 };
 use async_trait::async_trait;
-use serde::{de::DeserializeOwned, Serialize};
 
 #[derive(thiserror::Error, Debug)]
 #[error("unable to create executor")]
@@ -30,56 +29,40 @@ pub enum ExecutorCreationError {
     FieldRequiredError(String),
 }
 
-/// Marker trait for errors in `Executor` method. It is needed so the concrete Errors can have a derived `From<ExecutorError>`
-pub trait ExecutorError {}
-
-/// The `Options` trait represents an options type that is used to customize the behavior of a step or executor.
-pub trait Options: Clone + Send + Sync + Serialize + DeserializeOwned + Debug {}
+#[derive(thiserror::Error, Debug)]
+/// An error indicating that the model was not succesfully run.
+pub enum ExecutorError {
+    #[error("Unable to run model: {0}")]
+    /// An error occuring in the underlying executor code that doesn't fit any other category.
+    InnerError(#[from] Box<dyn Error + Send + Sync>),
+    #[error("Invalid options when calling the executor")]
+    /// An error indicating that the model was invoked with invalid options
+    InvalidOptions,
+    #[error(transparent)]
+    /// An error tokenizing the prompt.
+    PromptTokens(PromptTokensError),
+    #[error("the context was to small to fit your input")]
+    ContextTooSmall,
+}
 
 #[async_trait]
 /// The `Executor` trait represents an executor that performs a single step in a chain. It takes a
 /// step, executes it, and returns the output.
 pub trait Executor: Sized {
-    /// The per-invocation options type used by this executor. These are the options you can send to each step.
-    type PerInvocationOptions: Options;
-    /// The per-executor options type used by this executor. These are the options you can send to the executor and can't be set per step.
-    type PerExecutorOptions: Options;
-
-    /// The output type produced by this executor.
-    type Output: Output;
-    /// The error type produced by this executor.
-    type Error: ExecutorError + Debug + Error;
-
-    /// The token type used by this executor.
-    type Token: Clone;
-
-    type StepTokenizer<'a>: Tokenizer<Self::Token>
+    type StepTokenizer<'a>: Tokenizer
     where
         Self: 'a;
 
-    type TextSplitter<'a>: TextSplitter<Self::Token>
-    where
-        Self: 'a;
-
-    /// Create a new executor with the given executor options and invocation options. If you don't need to set any options, you can use the `new` method instead.
+    /// Create a new executor with the given options. If you don't need to set any options, you can use the `new` method instead.
     /// # Parameters
-    /// * `executor_options`: The options to set for the executor.
-    /// * `invocation_options`: The default options to set for each invocation.
-    fn new_with_options(
-        executor_options: Option<Self::PerExecutorOptions>,
-        invocation_options: Option<Self::PerInvocationOptions>,
-    ) -> Result<Self, ExecutorCreationError>;
+    /// * `executor_options`: The options to set.
+    fn new_with_options(options: Options) -> Result<Self, ExecutorCreationError>;
 
     fn new() -> Result<Self, ExecutorCreationError> {
-        Self::new_with_options(None, None)
+        Self::new_with_options(Options::empty().clone())
     }
 
-    async fn execute(
-        &self,
-        options: Option<&Self::PerInvocationOptions>,
-        prompt: &Prompt,
-        is_streaming: Option<bool>,
-    ) -> Result<Self::Output, Self::Error>;
+    async fn execute(&self, options: &Options, prompt: &Prompt) -> Result<Output, ExecutorError>;
 
     /// Calculates the number of tokens used by the step given a set of parameters.
     ///
@@ -96,7 +79,7 @@ pub trait Executor: Sized {
     /// A `Result` containing the token count, or an error if there was a problem.
     fn tokens_used(
         &self,
-        options: Option<&Self::PerInvocationOptions>,
+        options: &Options,
         prompt: &Prompt,
     ) -> Result<TokenCount, PromptTokensError>;
 
@@ -108,7 +91,7 @@ pub trait Executor: Sized {
     ///
     /// # Returns
     /// The max token count for the step
-    fn max_tokens_allowed(&self, options: Option<&Self::PerInvocationOptions>) -> i32;
+    fn max_tokens_allowed(&self, options: &Options) -> i32;
 
     /// Returns a possible answer prefix inserted by the model, during a certain prompt mode
     ///
@@ -130,23 +113,7 @@ pub trait Executor: Sized {
     /// # Returns
     ///
     /// A `Result` containing a tokenizer, or an error if there was a problem.
-    fn get_tokenizer(
-        &self,
-        options: Option<&Self::PerInvocationOptions>,
-    ) -> Result<Self::StepTokenizer<'_>, TokenizerError>;
-
-    /// Creates a text splitter, depending on the model used by 'step'
-    ///
-    /// # Parameters
-    ///
-    /// * `step` The step to get an associated text splitter for.
-    ///
-    /// # Returns
-    /// A `Result` containing a text splitter, or an error if there was a problem.
-    fn get_text_splitter(
-        &self,
-        options: Option<&Self::PerInvocationOptions>,
-    ) -> Result<Self::TextSplitter<'_>, Self::Error>;
+    fn get_tokenizer(&self, options: &Options) -> Result<Self::StepTokenizer<'_>, TokenizerError>;
 }
 
 /// This marker trait is needed so the concrete VectorStore::Error can have a derived From<Embeddings::Error>

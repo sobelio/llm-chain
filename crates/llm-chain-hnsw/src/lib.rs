@@ -72,7 +72,7 @@ where
     ) -> Result<i32, HnswVectorStoreError<E::Error, D::Error>> {
         self.hnsw
             .file_dump(&filename)
-            .map_err(|e| HnswVectorStoreError::FileDumpError(e))
+            .map_err(HnswVectorStoreError::FileDumpError)
     }
 
     pub fn load_from_file(
@@ -80,7 +80,7 @@ where
         embeddings: Arc<E>,
         document_store: Arc<Mutex<D>>,
     ) -> Result<Self, HnswVectorStoreError<E::Error, D::Error>> {
-        let graph_fn = String::from(format!("{}.hnsw.graph", &filename));
+        let graph_fn = format!("{}.hnsw.graph", &filename);
         let graph_path = PathBuf::from(graph_fn);
         let graph_file_res = OpenOptions::new().read(true).open(&graph_path);
         if graph_file_res.is_err() {
@@ -90,7 +90,7 @@ where
             )));
         }
         let graph_file = graph_file_res.unwrap();
-        let data_fn = String::from(format!("{}.hnsw.data", &filename));
+        let data_fn = format!("{}.hnsw.data", &filename);
         let data_path = PathBuf::from(data_fn);
         let data_file_res = OpenOptions::new().read(true).open(&data_path);
         if data_file_res.is_err() {
@@ -160,7 +160,7 @@ where
         let next_id = document_store
             .next_id()
             .await
-            .map_err(|e| HnswVectorStoreError::DocumentStoreError(e))?;
+            .map_err(HnswVectorStoreError::DocumentStoreError)?;
         let ids = (0..embedding_vecs.len())
             .map(|i| next_id + i)
             .collect::<Vec<usize>>();
@@ -174,7 +174,7 @@ where
             document_store
                 .insert(&HashMap::from([(id.to_owned(), Document::new(text))]))
                 .await
-                .map_err(|e| HnswVectorStoreError::DocumentStoreError(e))?;
+                .map_err(HnswVectorStoreError::DocumentStoreError)?;
             self.hnsw.insert((&vec, id.to_owned()));
         }
 
@@ -195,7 +195,7 @@ where
         let next_id = document_store
             .next_id()
             .await
-            .map_err(|e| HnswVectorStoreError::DocumentStoreError(e))?;
+            .map_err(HnswVectorStoreError::DocumentStoreError)?;
         let ids = (0..embedding_vecs.len())
             .map(|i| next_id + i)
             .collect::<Vec<usize>>();
@@ -209,7 +209,7 @@ where
             document_store
                 .insert(&HashMap::from([(id.to_owned(), document)]))
                 .await
-                .map_err(|e| HnswVectorStoreError::DocumentStoreError(e))?;
+                .map_err(HnswVectorStoreError::DocumentStoreError)?;
             self.hnsw.insert((&vec, id.to_owned()));
         }
 
@@ -239,7 +239,7 @@ where
             let doc = document_store
                 .get(&id)
                 .await
-                .map_err(|e| HnswVectorStoreError::DocumentStoreError(e))?
+                .map_err(HnswVectorStoreError::DocumentStoreError)?
                 .ok_or_else(|| HnswVectorStoreError::RelatedDocumentNotFound(r.d_id))?;
             out.push(doc);
         }

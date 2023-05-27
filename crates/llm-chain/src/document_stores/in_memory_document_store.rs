@@ -16,12 +16,12 @@ where
     metadata: Option<M>,
 }
 
-impl<M> Into<Document<M>> for &InMemoryDocument<M>
+impl<M> From<&InMemoryDocument<M>> for Document<M>
 where
     M: serde::Serialize + serde::de::DeserializeOwned,
 {
-    fn into(self) -> Document<M> {
-        let metadata = if let Some(m) = &self.metadata {
+    fn from(val: &InMemoryDocument<M>) -> Self {
+        let metadata = if let Some(m) = &val.metadata {
             let str = serde_json::to_string(&m).unwrap();
             let cloned = serde_json::from_str::<M>(&str).unwrap();
             Some(cloned)
@@ -30,18 +30,18 @@ where
         };
 
         Document {
-            page_content: self.page_content.clone(),
+            page_content: val.page_content.clone(),
             metadata,
         }
     }
 }
 
-impl<M> Into<InMemoryDocument<M>> for &Document<M>
+impl<M> From<&Document<M>> for InMemoryDocument<M>
 where
     M: serde::Serialize + serde::de::DeserializeOwned,
 {
-    fn into(self) -> InMemoryDocument<M> {
-        let metadata = if let Some(m) = &self.metadata {
+    fn from(val: &Document<M>) -> Self {
+        let metadata = if let Some(m) = &val.metadata {
             let str = serde_json::to_string(&m).unwrap();
             let cloned = serde_json::from_str::<M>(&str).unwrap();
             Some(cloned)
@@ -50,7 +50,7 @@ where
         };
 
         InMemoryDocument {
-            page_content: self.page_content.clone(),
+            page_content: val.page_content.clone(),
             metadata,
         }
     }
@@ -81,6 +81,15 @@ where
         InMemoryDocumentStore {
             map: HashMap::new(),
         }
+    }
+}
+
+impl<M> Default for InMemoryDocumentStore<M>
+where
+    M: Serialize + DeserializeOwned + Send + Sync,
+{
+    fn default() -> Self {
+        Self::new()
     }
 }
 

@@ -13,6 +13,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let article = include_str!("article_to_summarize.md");
     let docs = vec![Parameters::new_with_text(article)];
     let res = chain.run(docs, Parameters::new(), &exec).await.unwrap();
-    println!("{:?}", res);
+    println!("{:?}", res.to_immediate().await?.get_content());
     Ok(())
 }

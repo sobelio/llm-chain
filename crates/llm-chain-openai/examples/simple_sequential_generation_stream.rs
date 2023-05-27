@@ -1,4 +1,4 @@
-use llm_chain::{chains::sequential::Chain, executor, output::Output, prompt, step::Step};
+use llm_chain::{chains::sequential::Chain, executor, prompt, step::Step};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -31,7 +31,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Print the result to the console
     // Call `res.primary_textual_output()` explictly to get the streamed response.
-    println!("{:?}", res.primary_textual_output().await);
+    println!("{:?}", res.to_immediate().await?.as_content());
 
     // Call `res.as_stream()` to access the Stream without polling.
     Ok(())

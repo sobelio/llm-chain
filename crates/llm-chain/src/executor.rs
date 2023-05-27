@@ -54,14 +54,7 @@ macro_rules! executor {
     }};
     (chatgpt, $options:expr) => {{
         use llm_chain::traits::Executor;
-        llm_chain_openai::chatgpt::Executor::new_with_options(Some($options), None)
-    }};
-    (chatgpt, $per_executor_options:expr, $per_invocation_options:expr) => {{
-        use $crate::traits::Executor;
-        llm_chain_openai::chatgpt::Executor::new_with_options(
-            Some($per_executor_options),
-            Some($per_invocation_options),
-        )
+        llm_chain_openai::chatgpt::Executor::new_with_options($options)
     }};
     (llama) => {{
         use llm_chain::traits::Executor;
@@ -69,13 +62,10 @@ macro_rules! executor {
     }};
     (llama, $options:expr) => {{
         use llm_chain::traits::Executor;
-        llm_chain_llama::Executor::new_with_options(Some($options), None)
+        llm_chain_llama::Executor::new_with_options($options)
     }};
-    (llama, $per_executor_options:expr, $per_invocation_options:expr) => {{
+    (local, $options:expr) => {{
         use llm_chain::traits::Executor;
-        llm_chain_llama::Executor::new_with_options(
-            Some($per_executor_options),
-            Some($per_invocation_options),
-        )
+        llm_chain_local::Executor::new_with_options($options)
     }};
 }

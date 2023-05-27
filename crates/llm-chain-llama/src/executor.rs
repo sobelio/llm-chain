@@ -1,207 +1,221 @@
-use crate::context::{ContextParams, LLamaContext};
-use crate::options::PerInvocation;
-use crate::options::{LlamaInvocation, PerExecutor};
-use crate::tokenizer::{embedding_to_output, llama_token_eos, llama_tokenize_helper, tokenize};
-use crate::LLamaTextSplitter;
+use std::marker::PhantomData;
+use std::sync::Arc;
 
-use crate::output::Output;
+use crate::context::{ContextParams, LLamaContext};
+use crate::options::{get_executor_initial_opts, LlamaInvocation, DEFAULT_OPTIONS};
+use crate::tokenizer::{embedding_to_output, llama_token_eos, tokenize, tokens_to_string};
+
 use async_trait::async_trait;
 
+use llm_chain::options::{Options, OptionsCascade};
+use llm_chain::output::{Output, StreamSegment};
 use llm_chain::prompt::{ChatRole, Prompt};
 
-use llm_chain::tokens::{PromptTokensError, TokenCount};
+use llm_chain::tokens::{PromptTokensError, TokenCollection, TokenCount};
 use llm_chain::tokens::{Tokenizer, TokenizerError};
 use llm_chain::traits::{Executor as ExecutorTrait, ExecutorCreationError, ExecutorError};
+use tokio::sync::Mutex;
 
-use llm_chain_llama_sys::llama_context_params;
+macro_rules! bail {
+    ($val:expr, $sender:expr) => {
+        match $val {
+            Ok(value) => value,
+            Err(err) => {
+                must_send!($sender, StreamSegment::Err(err.into()));
+                return;
+            }
+        }
+    };
+}
+
+macro_rules! must_send {
+    ($sender:expr, $val:expr) => {
+        if $sender.send($val).await.is_err() {
+            panic!("unable to send message");
+        }
+    };
+}
+
 /// Executor is responsible for running the LLAMA model and managing its context.
 pub struct Executor {
-    context: LLamaContext,
-    options: Option<PerExecutor>,
-    callback: Option<fn(&Output)>,
-    invocation_options: Option<PerInvocation>,
+    context: Arc<Mutex<LLamaContext>>,
+    options: Options,
+    context_params: ContextParams,
 }
 
 impl Executor {
-    pub fn with_callback(mut self, callback: fn(&Output)) -> Self {
-        self.callback = Some(callback);
-        self
-    }
-    fn context_params(&self) -> llama_context_params {
-        let cp = self
-            .options
-            .as_ref()
-            .and_then(|p| p.context_params.as_ref());
-        ContextParams::or_default(cp)
+    fn get_cascade<'a>(&'a self, options: &'a Options) -> OptionsCascade<'a> {
+        let v: Vec<&'a Options> = vec![&DEFAULT_OPTIONS, &self.options, options];
+        OptionsCascade::from_vec(v)
     }
 
-    pub(crate) fn get_context(&self) -> &LLamaContext {
-        &self.context
-    }
-}
-
-impl Executor {
     // Run the LLAMA model with the provided input and generate output.
     // Executes the model with the provided input and context parameters.
     fn run_model(&self, input: LlamaInvocation) -> Output {
+        let (sender, output) = Output::new_stream();
         // Tokenize the stop sequence and input prompt.
-        let context_params = self.context_params();
+        let context = self.context.clone();
+        let context_params = self.context_params.clone();
+        let context_size = context_params.n_ctx as usize;
+        let answer_prefix = self.answer_prefix(&input.prompt);
+        tokio::task::spawn_blocking(move || {
+            async move {
+                let context_size = context_size;
+                let context = context.lock().await;
 
-        let tokenized_stop_prompt = tokenize(
-            &self.context,
-            input.stop_sequence.as_str(),
-            context_params.n_ctx as usize,
-            false,
-        )
-        .unwrap();
+                let tokenized_stop_prompt = tokenize(
+                    &context,
+                    input
+                        .stop_sequence
+                        .first() // XXX: Handle multiple stop seqs
+                        .map(|x| x.as_str())
+                        .unwrap_or("\n\n"),
+                    false,
+                );
 
-        let prompt_text = input.prompt.to_text();
-        let tokenized_input = tokenize(
-            &self.context,
-            prompt_text.as_str(),
-            context_params.n_ctx as usize,
-            true,
-        )
-        .unwrap();
-        // Embd contains the prompt and the completion. The longer the prompt, the shorter the completion.
-        let mut embd = tokenized_input.clone();
-
-        // Evaluate the prompt in full.
-        self.context
-            .llama_eval(
-                tokenized_input.as_slice(),
-                tokenized_input.len() as i32,
-                0,
-                &input,
-            )
-            .unwrap();
-
-        let mut n_remaining = self.context_params().n_ctx - tokenized_input.len() as i32;
-        let mut n_used = tokenized_input.len() - 1;
-        if let Some(prefix) = self.answer_prefix(&input.prompt) {
-            let tokenized_answer_prefix = tokenize(
-                &self.context,
-                prefix.as_str(),
-                context_params.n_ctx as usize,
-                false,
-            )
-            .unwrap();
-            // Evaluate the answer prefix (the role -- should be Assistant: )
-            self.context
-                .llama_eval(
-                    tokenized_answer_prefix.as_slice(),
-                    tokenized_answer_prefix.len() as i32,
-                    n_used as i32,
-                    &input,
-                )
-                .unwrap();
-            n_remaining -= tokenized_answer_prefix.len() as i32;
-            n_used += tokenized_answer_prefix.len();
-            embd.extend(tokenized_answer_prefix);
-        }
-        embd.resize(context_params.n_ctx as usize, 0);
-        let token_eos = llama_token_eos();
-        let mut stop_sequence_i = 0;
-        // Generate remaining tokens.
-        while n_remaining > 0 {
-            let tok = self.context.llama_sample(
-                context_params.n_ctx,
-                embd.as_slice(),
-                n_used as i32,
-                &input,
-            );
-            n_used += 1;
-            n_remaining -= 1;
-            embd[n_used] = tok;
-            if tok == token_eos {
-                break;
-            }
-            if input.n_tok_predict != 0 && n_used > input.n_tok_predict + tokenized_input.len() - 1
-            {
-                break;
-            }
-            if tok == tokenized_stop_prompt[stop_sequence_i] {
-                stop_sequence_i += 1;
-                if stop_sequence_i >= tokenized_stop_prompt.len() {
-                    break;
+                if tokenized_stop_prompt.len() > context_size {
+                    must_send!(sender, StreamSegment::Err(ExecutorError::ContextTooSmall));
+                    return;
                 }
-            } else {
-                stop_sequence_i = 0;
-            }
-            self.context
-                .llama_eval(&embd[n_used..], 1, n_used as i32, &input)
-                .unwrap();
 
-            if let Some(callback) = self.callback {
-                let output = self.context.llama_token_to_str(&embd[n_used]);
-                callback(&output.into());
+                let prompt_text = input.prompt.to_text();
+                let tokenized_input = tokenize(&context, prompt_text.as_str(), true);
+                if tokenized_input.len() > context_size {
+                    must_send!(sender, StreamSegment::Err(ExecutorError::ContextTooSmall));
+                    return;
+                }
+
+                // Embd contains the prompt and the completion. The longer the prompt, the shorter the completion.
+                let mut embd = tokenized_input.clone();
+
+                // Evaluate the prompt in full.
+                bail!(
+                    context
+                        .llama_eval(
+                            tokenized_input.as_slice(),
+                            tokenized_input.len() as i32,
+                            0,
+                            &input,
+                        )
+                        .map_err(|e| ExecutorError::InnerError(e.into())),
+                    sender
+                );
+
+                let mut n_remaining = context_size - tokenized_input.len();
+                let mut n_used = tokenized_input.len() - 1;
+                if let Some(prefix) = answer_prefix {
+                    let tokenized_answer_prefix = tokenize(&context, prefix.as_str(), false);
+                    if tokenized_answer_prefix.len() > context_size {
+                        must_send!(sender, StreamSegment::Err(ExecutorError::ContextTooSmall));
+                        return;
+                    }
+
+                    // Evaluate the answer prefix (the role -- should be Assistant: )
+                    bail!(
+                        context
+                            .llama_eval(
+                                tokenized_answer_prefix.as_slice(),
+                                tokenized_answer_prefix.len() as i32,
+                                n_used as i32,
+                                &input,
+                            )
+                            .map_err(|e| ExecutorError::InnerError(e.into())),
+                        sender
+                    );
+                    n_remaining -= tokenized_answer_prefix.len();
+                    n_used += tokenized_answer_prefix.len();
+                    embd.extend(tokenized_answer_prefix);
+                }
+                embd.resize(context_size, 0);
+                let token_eos = llama_token_eos();
+                let mut stop_sequence_i = 0;
+                // Generate remaining tokens.
+                while n_remaining > 0 {
+                    let tok = context.llama_sample(
+                        context_size as i32,
+                        embd.as_slice(),
+                        n_used as i32,
+                        &input,
+                    );
+                    n_used += 1;
+                    n_remaining -= 1;
+                    embd[n_used] = tok;
+                    if tok == token_eos {
+                        break;
+                    }
+                    if input.n_tok_predict != 0
+                        && n_used > input.n_tok_predict + tokenized_input.len() - 1
+                    {
+                        break;
+                    }
+                    if tok == tokenized_stop_prompt[stop_sequence_i] {
+                        stop_sequence_i += 1;
+                        if stop_sequence_i >= tokenized_stop_prompt.len() {
+                            break;
+                        }
+                    } else {
+                        let str_output =
+                            tokens_to_string(&context, &embd[n_used - stop_sequence_i..n_used]);
+                        // XXX: make into chat if chat
+                        must_send!(sender, StreamSegment::Content(str_output));
+                        stop_sequence_i = 0;
+                    }
+                    bail!(
+                        context
+                            .llama_eval(&embd[n_used..], 1, n_used as i32, &input)
+                            .map_err(|e| ExecutorError::InnerError(e.into())),
+                        sender
+                    );
+
+                    if n_used >= tokenized_input.len() && stop_sequence_i == 0 {
+                        let str_output = context.llama_token_to_str(&embd[n_used]);
+                        // XXX: make into chat if chat
+                        if sender
+                            .send(StreamSegment::Content(str_output))
+                            .await
+                            .is_err()
+                        {
+                            panic!("Failed to send");
+                        }
+                    }
+                }
             }
-        }
-        embedding_to_output(
-            &self.context,
-            &embd[tokenized_input.len()..n_used + 1 - stop_sequence_i],
-        )
+        });
+
+        output
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("unable to tokenize prompt")]
-    PromptTokensError(PromptTokensError),
-}
-
-impl ExecutorError for Error {}
-
-// Implement the ExecutorTrait for the Executor, defining methods for handling input and output.
+/// Implement the ExecutorTrait for the Executor, defining methods for handling input and output.
 #[async_trait]
 impl ExecutorTrait for Executor {
-    type Output = Output;
-    type Token = i32;
     type StepTokenizer<'a> = LLamaTokenizer<'a>;
-    type TextSplitter<'a> = LLamaTextSplitter<'a>;
-    type Error = Error;
-    type PerInvocationOptions = PerInvocation;
-    type PerExecutorOptions = PerExecutor;
-    fn new_with_options(
-        executor_options: Option<Self::PerExecutorOptions>,
-        invocation_options: Option<Self::PerInvocationOptions>,
-    ) -> Result<Executor, ExecutorCreationError> {
-        let context_params = match executor_options.as_ref() {
-            Some(options) => options.context_params.clone(),
-            None => None,
-        };
-        let model_path = executor_options
-            .as_ref()
-            .and_then(|x| x.model_path.clone())
-            .or_else(|| std::env::var("LLAMA_MODEL_PATH").ok())
-            .ok_or(ExecutorCreationError::FieldRequiredError(
-                "model_path, ensure to provide the parameter or set `LLAMA_MODEL_PATH` environment variable ".to_string(),
-            ))?;
+    fn new_with_options(options: Options) -> Result<Executor, ExecutorCreationError> {
+        let cas = OptionsCascade::new()
+            .with_options(&DEFAULT_OPTIONS)
+            .with_options(&options);
+        let (model_path, context_params) = get_executor_initial_opts(&cas).ok_or(
+            ExecutorCreationError::FieldRequiredError("generic".to_string()),
+        )?;
         Ok(Self {
-            context: LLamaContext::from_file_and_params(&model_path, context_params.as_ref()),
-            options: executor_options,
-            callback: None,
-            invocation_options,
+            context: Arc::new(Mutex::new(LLamaContext::from_file_and_params(
+                &model_path,
+                Some(&context_params),
+            ))),
+            options,
+            context_params,
         })
     }
     // Executes the model asynchronously and returns the output.
-    async fn execute(
-        &self,
-        options: Option<&Self::PerInvocationOptions>,
-        prompt: &Prompt,
-        _is_streaming: Option<bool>,
-    ) -> Result<Self::Output, Self::Error> {
-        let config = match options {
-            Some(options) => options.clone(),
-            None => self.invocation_options.clone().unwrap_or_default(),
-        };
-        let invocation = config.to_invocation(prompt);
+    async fn execute(&self, options: &Options, prompt: &Prompt) -> Result<Output, ExecutorError> {
+        let invocation = LlamaInvocation::new(self.get_cascade(options), prompt)
+            .ok_or(ExecutorError::InvalidOptions)?;
         Ok(self.run_model(invocation))
     }
 
     fn tokens_used(
         &self,
-        options: Option<&Self::PerInvocationOptions>,
+        options: &Options,
         prompt: &Prompt,
     ) -> Result<TokenCount, PromptTokensError> {
         let tokenizer = self.get_tokenizer(options)?;
@@ -238,45 +252,39 @@ impl ExecutorTrait for Executor {
         }
     }
 
-    fn max_tokens_allowed(&self, _step: Option<&PerInvocation>) -> i32 {
-        self.context_params().n_ctx
+    fn max_tokens_allowed(&self, _step: &Options) -> i32 {
+        self.context_params.n_ctx
     }
 
-    fn get_tokenizer(
-        &self,
-        _step: Option<&Self::PerInvocationOptions>,
-    ) -> Result<LLamaTokenizer, TokenizerError> {
+    fn get_tokenizer(&self, _step: &Options) -> Result<LLamaTokenizer, TokenizerError> {
         Ok(LLamaTokenizer::new(self))
-    }
-
-    fn get_text_splitter(
-        &self,
-        _step: Option<&Self::PerInvocationOptions>,
-    ) -> Result<Self::TextSplitter<'_>, Self::Error> {
-        Ok(LLamaTextSplitter::new(self))
     }
 }
 
 pub struct LLamaTokenizer<'a> {
-    context: &'a LLamaContext,
+    _lifetime: PhantomData<&'a ()>,
+    context: Arc<Mutex<LLamaContext>>,
 }
 
 impl<'a> LLamaTokenizer<'a> {
     pub fn new(executor: &'a Executor) -> Self {
         LLamaTokenizer {
-            context: &executor.context,
+            context: executor.context.clone(),
+            _lifetime: PhantomData::default(),
         }
     }
 }
 
-impl Tokenizer<i32> for LLamaTokenizer<'_> {
-    fn tokenize_str(&self, doc: &str) -> Result<Vec<i32>, TokenizerError> {
-        let tokenized = llama_tokenize_helper(self.context, doc, true);
-        Ok(tokenized)
+impl Tokenizer for LLamaTokenizer<'_> {
+    fn tokenize_str(&self, doc: &str) -> Result<TokenCollection, TokenizerError> {
+        let context = self.context.blocking_lock();
+        let tokenized = tokenize(&context, doc, true);
+        Ok(tokenized.into())
     }
 
-    fn to_string(&self, tokens: Vec<i32>) -> Result<String, TokenizerError> {
-        let output = embedding_to_output(self.context, &tokens);
+    fn to_string(&self, tokens: TokenCollection) -> Result<String, TokenizerError> {
+        let context = self.context.blocking_lock();
+        let output = embedding_to_output(&context, &tokens.as_i32()?);
         Ok(output.to_string())
     }
 }

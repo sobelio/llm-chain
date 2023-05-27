@@ -27,6 +27,7 @@ pub mod chains;
 pub mod document_stores;
 pub mod executor;
 pub mod frame;
+pub mod options;
 pub mod output;
 pub mod parameters;
 pub mod parsing;
@@ -34,7 +35,6 @@ pub mod prompt;
 pub mod schema;
 pub mod serialization;
 pub mod step;
-pub mod text_splitter;
 pub mod tokens;
 pub mod tools;
 pub mod traits;
@@ -44,4 +44,3 @@ pub mod summarization;
 
 // Re-exports for convenient usage
 pub use parameters::Parameters;
-pub use text_splitter::{NaiveWhitespaceSplitter, TextSplitter};

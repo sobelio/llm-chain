@@ -7,6 +7,7 @@
 //! The `Frame` struct is generic over the `Step` and `Executor` types, ensuring that it can work with any
 //! combination of types that implement the required traits.
 
+use crate::output::Output;
 use crate::step::Step;
 use crate::traits;
 use crate::traits::ExecutorError;
@@ -21,7 +22,7 @@ where
     E: traits::Executor,
 {
     executor: &'l E,
-    step: &'l Step<E>,
+    step: &'l Step,
 }
 
 impl<'l, E> Frame<'l, E>
@@ -32,7 +33,7 @@ where
     ///
     /// The `new` function takes two references to an `Executor` and a `Step`, respectively, and returns
     /// a new `Frame` instance.
-    pub fn new(executor: &'l E, step: &'l Step<E>) -> Self {
+    pub fn new(executor: &'l E, step: &'l Step) -> Self {
         Self { executor, step }
     }
 
@@ -43,20 +44,17 @@ where
     pub async fn format_and_execute(
         &self,
         parameters: &Parameters,
-    ) -> Result<E::Output, FormatAndExecuteError<E::Error>> {
+    ) -> Result<Output, FormatAndExecuteError> {
         let prompt = self.step.format(parameters)?;
-        Ok(self
-            .executor
-            .execute(self.step.options(), &prompt, self.step.is_streaming())
-            .await?)
+        Ok(self.executor.execute(self.step.options(), &prompt).await?)
     }
 }
 
 #[derive(Debug, thiserror::Error)]
 /// An error that occurs when formatting and prompt template for an LLM
-pub enum FormatAndExecuteError<E: ExecutorError> {
+pub enum FormatAndExecuteError {
     #[error("Error formatting: {0}")]
     Format(#[from] crate::prompt::StringTemplateError),
     #[error("Error executing: {0}")]
-    Execute(#[from] E),
+    Execute(#[from] ExecutorError),
 }

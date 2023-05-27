@@ -249,6 +249,11 @@ impl<Body> ChatMessageCollection<Body> {
         self.messages.len()
     }
 
+    /// Gets the body of the last message in the collection
+    pub(crate) fn extract_last_body(&self) -> Option<&Body> {
+        self.messages.back().map(|x| &x.body)
+    }
+
     /// Returns `true` if the collection contains no messages.
     pub fn is_empty(&self) -> bool {
         self.messages.is_empty()
@@ -347,13 +352,13 @@ impl ChatMessageCollection<String> {
     /// # Returns
     ///
     /// A `Result<(), TokenizerError>` indicating success or failure.
-    pub fn trim_context<Tok, TT: Clone>(
+    pub fn trim_context<Tok>(
         &mut self,
         tokenizer: &Tok,
         max_tokens: i32,
     ) -> Result<(), TokenizerError>
     where
-        Tok: Tokenizer<TT>,
+        Tok: Tokenizer,
     {
         let mut total_tokens: i32 = 0;
 

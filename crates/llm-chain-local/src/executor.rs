@@ -1,112 +1,103 @@
-use std::convert::Infallible;
-use std::env::var;
-use std::path::{Path, PathBuf};
-use std::str::FromStr;
-
-use crate::options::{PerExecutor, PerInvocation};
-use crate::output::Output;
-use crate::LocalLlmTextSplitter;
-
 use async_trait::async_trait;
+use lazy_static::lazy_static;
 use llm::{
-    load_progress_callback_stdout, InferenceParameters, InferenceRequest, Model, ModelArchitecture,
-    TokenBias, TokenId, TokenUtf8Buffer,
+    load_progress_callback_stdout, InferenceError, InferenceParameters, InferenceRequest, Model,
+    ModelArchitecture, ModelParameters, TokenUtf8Buffer,
 };
+use llm_chain::options;
+use llm_chain::options::{options_from_env, Opt, OptDiscriminants, Options, OptionsCascade};
+use llm_chain::output::Output;
 use llm_chain::prompt::Prompt;
-use llm_chain::tokens::{PromptTokensError, TokenCount, Tokenizer, TokenizerError};
+use llm_chain::tokens::{
+    PromptTokensError, TokenCollection, TokenCount, Tokenizer, TokenizerError,
+};
 use llm_chain::traits::{ExecutorCreationError, ExecutorError};
+use std::convert::Infallible;
+use std::path::Path;
 use thiserror::Error;
 
+lazy_static! {
+    static ref DEFAULT_OPTIONS: Options = options!(
+        NThreads: 4_usize,
+        NBatch: 8_usize,
+        TopK: 40_i32,
+        TopP: 0.95,
+        RepeatPenalty: 1.3,
+        RepeatPenaltyLastN: 512_usize,
+        Temperature: 0.8
+    );
+}
 /// Executor is responsible for running the LLM and managing its context.
 pub struct Executor {
     llm: Box<dyn Model>,
-}
-
-impl Executor {
-    pub(crate) fn get_llm(&self) -> &dyn Model {
-        self.llm.as_ref()
-    }
+    options: Options,
 }
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("unable to tokenize prompt")]
-    PromptTokensError(PromptTokensError),
-    #[error("unable to create executor: {0}")]
-    InnerError(#[from] Box<dyn std::error::Error>),
+    #[error("an invalid token was encountered during tokenization")]
+    /// During tokenization, one of the produced tokens was invalid / zero.
+    TokenizationFailed,
+    #[error("the context window is full")]
+    /// The context window for the model is full.
+    ContextFull,
+    #[error("reached end of text")]
+    /// The model has produced an end of text token, signalling that it thinks that the text should end here.
+    ///
+    /// Note that this error *can* be ignored and inference can continue, but the results are not guaranteed to be sensical.
+    EndOfText,
 }
-
-impl ExecutorError for Error {}
 
 #[async_trait]
 impl llm_chain::traits::Executor for Executor {
-    type PerInvocationOptions = PerInvocation;
-    type PerExecutorOptions = PerExecutor;
-    type Output = Output;
-    type Error = Error;
-    type Token = i32;
     type StepTokenizer<'a> = LocalLlmTokenizer<'a>;
-    type TextSplitter<'a> = LocalLlmTextSplitter<'a>;
 
-    fn new_with_options(
-        options: Option<Self::PerExecutorOptions>,
-        invocation_options: Option<Self::PerInvocationOptions>,
-    ) -> Result<Self, ExecutorCreationError> {
-        let model_type = options
-            .as_ref()
-            .and_then(|x| x.model_type.clone())
-            .or_else(|| var("LLM_MODEL_TYPE").ok())
+    fn new_with_options(options: Options) -> Result<Self, ExecutorCreationError> {
+        let opts_from_env = options_from_env().unwrap();
+        let opts_cas = OptionsCascade::new()
+            .with_options(&opts_from_env)
+            .with_options(&options);
+
+        let model_type = opts_cas
+            .get(OptDiscriminants::ModelType)
+            .and_then(|x| match x {
+                Opt::ModelType(mt) => Some(mt),
+                _ => None,
+            })
             .ok_or(ExecutorCreationError::FieldRequiredError(
-                "model_type, ensure to provide the parameter or set `LLM_MODEL_TYPE` environment variable ".to_string(),
+                "model_type".to_string(),
             ))?;
-        let model_path = options
-                .as_ref()
-                .and_then(|x| x.model_path.clone())
-                .or_else(|| var("LLM_MODEL_PATH").ok().map(|s| PathBuf::from(s)))
-                .ok_or(ExecutorCreationError::FieldRequiredError(
-                    "model_path, ensure to provide the parameter or set `LLM_MODEL_PATH` environment variable ".to_string(),
-                ))?;
+        let model_path = opts_cas
+            .get(OptDiscriminants::Model)
+            .and_then(|x| match x {
+                Opt::Model(m) => Some(m),
+                _ => None,
+            })
+            .ok_or(ExecutorCreationError::FieldRequiredError(
+                "model_path".to_string(),
+            ))?;
 
         let model_arch = model_type
             .parse::<ModelArchitecture>()
             .map_err(|e| ExecutorCreationError::InnerError(Box::new(e)))?;
-        let params = invocation_options.unwrap_or_default().into();
         let llm: Box<dyn Model> = llm::load_dynamic(
             model_arch,
-            Path::new(&model_path),
-            params,
+            Path::new(&model_path.to_path()),
+            model_params_from_options(opts_cas).map_err(|_| {
+                ExecutorCreationError::FieldRequiredError("Default field missing".to_string())
+            })?,
             load_progress_callback_stdout,
         )
         .map_err(|e| ExecutorCreationError::InnerError(Box::new(e)))?;
 
-        Ok(Executor { llm })
+        Ok(Executor { llm, options })
     }
 
-    async fn execute(
-        &self,
-        options: Option<&Self::PerInvocationOptions>,
-        prompt: &Prompt,
-        _is_streaming: Option<bool>,
-    ) -> Result<Self::Output, Self::Error> {
-        let parameters = match options {
-            None => Default::default(),
-            Some(opts) => InferenceParameters {
-                n_threads: opts.n_threads.unwrap_or(4),
-                n_batch: opts.n_batch.unwrap_or(8),
-                top_k: opts.top_k.unwrap_or(40),
-                top_p: opts.top_p.unwrap_or(0.95),
-                temperature: opts.temp.unwrap_or(0.8),
-                bias_tokens: {
-                    match &opts.bias_tokens {
-                        None => Default::default(),
-                        Some(str) => TokenBias::from_str(str.as_str())
-                            .map_err(|e| Error::InnerError(e.into()))?,
-                    }
-                },
-                repeat_penalty: opts.repeat_penalty.unwrap_or(1.3),
-                repetition_penalty_last_n: opts.repeat_penalty_last_n.unwrap_or(512),
-            },
-        };
+    async fn execute(&self, options: &Options, prompt: &Prompt) -> Result<Output, ExecutorError> {
+        let opts = OptionsCascade::new()
+            .with_options(&DEFAULT_OPTIONS)
+            .with_options(&self.options)
+            .with_options(options);
         let session = &mut self.llm.start_session(Default::default());
         let mut output = String::new();
         session
@@ -115,7 +106,10 @@ impl llm_chain::traits::Executor for Executor {
                 &mut rand::thread_rng(),
                 &InferenceRequest {
                     prompt: prompt.to_text().as_str(),
-                    parameters: Some(&parameters),
+                    parameters: Some(
+                        &inference_params_from_options(opts)
+                            .map_err(|_| ExecutorError::InvalidOptions)?,
+                    ),
                     // playback_previous_tokens
                     // maximum_token_count
                     ..Default::default()
@@ -128,14 +122,21 @@ impl llm_chain::traits::Executor for Executor {
                     Ok(())
                 },
             )
-            .map_err(|e| Error::InnerError(Box::new(e)))?;
-
-        Ok(output.into())
+            .map_err(|e| match e {
+                InferenceError::ContextFull => Error::ContextFull,
+                InferenceError::EndOfText => Error::EndOfText,
+                InferenceError::TokenizationFailed => Error::TokenizationFailed,
+                InferenceError::UserCallback(_) => {
+                    panic!("user callback error should not be possible")
+                }
+            })
+            .map_err(|e| ExecutorError::InnerError(e.into()))?;
+        Ok(Output::new_immediate(Prompt::text(output)))
     }
 
     fn tokens_used(
         &self,
-        options: Option<&Self::PerInvocationOptions>,
+        options: &Options,
         prompt: &Prompt,
     ) -> Result<TokenCount, PromptTokensError> {
         let tokenizer = self.get_tokenizer(options)?;
@@ -149,7 +150,7 @@ impl llm_chain::traits::Executor for Executor {
         Ok(TokenCount::new(max_tokens, tokens_used))
     }
 
-    fn max_tokens_allowed(&self, _: Option<&Self::PerInvocationOptions>) -> i32 {
+    fn max_tokens_allowed(&self, _: &Options) -> i32 {
         self.llm.n_context_tokens().try_into().unwrap_or(2048)
     }
 
@@ -157,18 +158,8 @@ impl llm_chain::traits::Executor for Executor {
         None
     }
 
-    fn get_tokenizer(
-        &self,
-        _: Option<&Self::PerInvocationOptions>,
-    ) -> Result<Self::StepTokenizer<'_>, TokenizerError> {
+    fn get_tokenizer(&self, _: &Options) -> Result<Self::StepTokenizer<'_>, TokenizerError> {
         Ok(LocalLlmTokenizer::new(self))
-    }
-
-    fn get_text_splitter(
-        &self,
-        _: Option<&Self::PerInvocationOptions>,
-    ) -> Result<Self::TextSplitter<'_>, Self::Error> {
-        Ok(LocalLlmTextSplitter::new(self))
     }
 }
 
@@ -184,18 +175,18 @@ impl<'a> LocalLlmTokenizer<'a> {
     }
 }
 
-impl Tokenizer<llm::TokenId> for LocalLlmTokenizer<'_> {
-    fn tokenize_str(&self, doc: &str) -> Result<Vec<llm::TokenId>, TokenizerError> {
+impl Tokenizer for LocalLlmTokenizer<'_> {
+    fn tokenize_str(&self, doc: &str) -> Result<TokenCollection, TokenizerError> {
         match &self.llm.vocabulary().tokenize(doc, false) {
-            Ok(tokens) => Ok(tokens.into_iter().map(|t| t.1).collect()),
+            Ok(tokens) => Ok(tokens.iter().map(|t| t.1).collect::<Vec<_>>().into()),
             Err(_) => Err(TokenizerError::TokenizationError),
         }
     }
 
-    fn to_string(&self, tokens: Vec<TokenId>) -> Result<String, TokenizerError> {
+    fn to_string(&self, tokens: TokenCollection) -> Result<String, TokenizerError> {
         let mut res = String::new();
         let mut token_utf8_buf = TokenUtf8Buffer::new();
-        for token_id in tokens {
+        for token_id in tokens.as_i32()? {
             // Buffer the token until it's valid UTF-8, then call the callback.
             if let Some(tokens) =
                 token_utf8_buf.push(self.llm.vocabulary().token(token_id as usize))
@@ -206,4 +197,50 @@ impl Tokenizer<llm::TokenId> for LocalLlmTokenizer<'_> {
 
         Ok(res)
     }
+}
+
+fn model_params_from_options(opts: OptionsCascade) -> Result<ModelParameters, ()> {
+    Ok(ModelParameters {
+        prefer_mmap: true,
+        n_context_tokens: 2048,
+        inference_parameters: inference_params_from_options(opts)?,
+    })
+}
+
+fn inference_params_from_options(opts: OptionsCascade) -> Result<InferenceParameters, ()> {
+    let Some(Opt::NThreads(n_threads)) = opts.get(OptDiscriminants::NThreads) else {
+        return Err(())
+    };
+    let Some(Opt::NBatch(n_batch)) = opts.get(OptDiscriminants::NBatch) else {
+        return Err(())
+    };
+    let Some(Opt::TopK(top_k)) = opts.get(OptDiscriminants::TopK) else {
+        return Err(())
+    };
+    let Some(Opt::TopP(top_p)) = opts.get(OptDiscriminants::TopP) else {
+        return Err(());
+    };
+    let Some(Opt::RepeatPenalty(repeat_penalty)) = opts.get(OptDiscriminants::RepeatPenalty) else {
+        return Err(());
+    };
+
+    let Some(Opt::RepeatPenaltyLastN(repetition_penalty_last_n)) = opts.get(OptDiscriminants::RepeatPenaltyLastN) else {
+        return Err(());
+    };
+
+    let Some(Opt::Temperature(temperature)) = opts.get(OptDiscriminants::Temperature) else {
+        return Err(());
+    };
+
+    let inference_parameters = InferenceParameters {
+        n_threads: *n_threads,
+        n_batch: *n_batch,
+        top_k: *top_k as usize,
+        top_p: *top_p,
+        repeat_penalty: *repeat_penalty,
+        repetition_penalty_last_n: *repetition_penalty_last_n,
+        temperature: *temperature,
+        bias_tokens: Default::default(),
+    };
+    Ok(inference_parameters)
 }

@@ -1,5 +1,5 @@
 use crate::{
-    output::Output,
+    options::Options,
     parameters,
     prompt::{PromptTemplate, StringTemplateError},
     tools::{Tool, ToolError},
@@ -88,17 +88,16 @@ pub trait AgentOutputParser {
 }
 
 #[derive(Debug, Error)]
-pub enum SelfAskWithSearchAgentError<T, E>
+pub enum SelfAskWithSearchAgentError<T>
 where
     T: std::fmt::Debug + std::error::Error + ToolError,
-    E: std::fmt::Debug + std::error::Error + ExecutorError,
 {
     #[error("Search tool input yaml was not of type string: {0:?}")]
     ToolInputNotString(serde_yaml::Value),
     #[error(transparent)]
     SearchToolError(T),
     #[error(transparent)]
-    ExecutorError(E),
+    ExecutorError(ExecutorError),
     #[error(transparent)]
     ParserError(#[from] ParserError),
     #[error(transparent)]
@@ -277,10 +276,7 @@ where
         &self,
         intermediate_steps: &Vec<AgentIntermediateStep>,
         query: &str,
-    ) -> Result<
-        AgentIntermediateStepOutput,
-        SelfAskWithSearchAgentError<<T as Tool>::Error, <E as Executor>::Error>,
-    > {
+    ) -> Result<AgentIntermediateStepOutput, SelfAskWithSearchAgentError<<T as Tool>::Error>> {
         let output = self.plan(intermediate_steps, query).await?;
 
         let decision = self.output_parser.parse(output)?;
@@ -335,18 +331,21 @@ where
         &self,
         intermediate_steps: &Vec<AgentIntermediateStep>,
         query: &str,
-    ) -> Result<String, SelfAskWithSearchAgentError<<T as Tool>::Error, <E as Executor>::Error>>
-    {
+    ) -> Result<String, SelfAskWithSearchAgentError<<T as Tool>::Error>> {
         let scratchpad = self.build_agent_scratchpad(intermediate_steps);
         let template_parameters = parameters!("input" => query, "agent_scratchpad" => scratchpad);
         let prompt = PromptTemplate::Text(PROMPT.into()).format(&template_parameters)?;
         let plan = self
             .executor
-            .execute(None, &prompt, None)
+            .execute(Options::empty(), &prompt)
             .await
             .map_err(SelfAskWithSearchAgentError::ExecutorError)?;
-        plan.primary_textual_output()
+        plan.to_immediate()
             .await
+            .map_err(SelfAskWithSearchAgentError::ExecutorError)?
+            .as_content()
+            .extract_last_body()
+            .cloned()
             .ok_or(SelfAskWithSearchAgentError::NoChoicesReturned)
     }
 
@@ -355,7 +354,7 @@ where
         query: &str,
     ) -> Result<
         (AgentFinish, Vec<AgentIntermediateStep>),
-        SelfAskWithSearchAgentError<<T as Tool>::Error, <E as Executor>::Error>,
+        SelfAskWithSearchAgentError<<T as Tool>::Error>,
     > {
         let mut intermediate_steps = vec![];
 
@@ -384,18 +383,18 @@ where
 mod tests {
 
     use async_trait::async_trait;
-    use serde::{Deserialize, Serialize};
+
     use thiserror::Error;
 
     use crate::{
         agents::self_ask_with_search::{AgentIntermediateStep, EarlyStoppingConfig},
+        options::Options,
         output::Output,
         parameters,
         prompt::Prompt,
-        tokens::Tokenizer,
+        tokens::{TokenCollection, Tokenizer},
         tools::{Tool, ToolError},
-        traits::{Executor, ExecutorError, Options},
-        TextSplitter,
+        traits::{Executor, ExecutorError},
     };
 
     use super::{
@@ -494,26 +493,12 @@ mod tests {
 
     #[test]
     fn test_builds_agent_sratchpad() {
-        #[derive(Debug, Serialize, Deserialize, Clone)]
-        struct MockOptions;
-
-        impl Options for MockOptions {}
-
         #[derive(Clone)]
         struct MockOutput;
-
-        #[async_trait]
-        impl Output for MockOutput {
-            async fn primary_textual_output_choices(&self) -> Vec<String> {
-                todo!()
-            }
-        }
 
         #[derive(Debug, Error)]
         #[error("Mocked executor error")]
         struct MockError;
-
-        impl ExecutorError for MockError {}
 
         impl ToolError for MockError {}
 
@@ -523,25 +508,20 @@ mod tests {
             }
         }
 
-        struct MockTextSplitter;
+        struct MockTokenizer;
 
-        impl<T: Clone> Tokenizer<T> for MockTextSplitter {
-            fn tokenize_str(&self, _: &str) -> Result<Vec<T>, crate::tokens::TokenizerError> {
-                todo!()
-            }
-
-            fn to_string(&self, _: Vec<T>) -> Result<String, crate::tokens::TokenizerError> {
-                todo!()
-            }
-        }
-
-        impl<T: Clone> TextSplitter<T> for MockTextSplitter {
-            fn split_text(
+        impl Tokenizer for MockTokenizer {
+            fn tokenize_str(
                 &self,
                 _: &str,
-                _: usize,
-                _: usize,
-            ) -> Result<Vec<String>, crate::tokens::TokenizerError> {
+            ) -> Result<TokenCollection, crate::tokens::TokenizerError> {
+                todo!()
+            }
+
+            fn to_string(
+                &self,
+                _: TokenCollection,
+            ) -> Result<String, crate::tokens::TokenizerError> {
                 todo!()
             }
         }
@@ -550,39 +530,23 @@ mod tests {
 
         #[async_trait]
         impl Executor for MockExecutor {
-            type PerInvocationOptions = MockOptions;
+            type StepTokenizer<'a> = MockTokenizer;
 
-            type PerExecutorOptions = MockOptions;
-
-            type Output = MockOutput;
-
-            type Error = MockError;
-
-            type Token = ();
-
-            type StepTokenizer<'a> = MockTextSplitter;
-
-            type TextSplitter<'a> = MockTextSplitter;
-
-            fn new_with_options(
-                _: Option<Self::PerExecutorOptions>,
-                _: Option<Self::PerInvocationOptions>,
-            ) -> Result<Self, crate::traits::ExecutorCreationError> {
+            fn new_with_options(_: Options) -> Result<Self, crate::traits::ExecutorCreationError> {
                 todo!()
             }
 
             async fn execute(
                 &self,
-                _: Option<&Self::PerInvocationOptions>,
+                _: &Options,
                 _: &crate::prompt::Prompt,
-                _: Option<bool>,
-            ) -> Result<Self::Output, Self::Error> {
+            ) -> Result<Output, ExecutorError> {
                 todo!()
             }
 
             fn tokens_used(
                 &self,
-                _: Option<&Self::PerInvocationOptions>,
+                _: &Options,
                 _: &crate::prompt::Prompt,
             ) -> Result<crate::tokens::TokenCount, crate::tokens::PromptTokensError> {
                 todo!()
@@ -592,26 +556,15 @@ mod tests {
                 todo!()
             }
 
-            fn max_tokens_allowed(&self, _: Option<&Self::PerInvocationOptions>) -> i32 {
+            fn max_tokens_allowed(&self, _: &Options) -> i32 {
                 todo!()
             }
 
             fn get_tokenizer(
                 &self,
-                _: Option<&Self::PerInvocationOptions>,
-            ) -> Result<Self::StepTokenizer<'_>, crate::tokens::TokenizerError> {
+                _: &Options,
+            ) -> Result<MockTokenizer, crate::tokens::TokenizerError> {
                 todo!()
-            }
-
-            fn get_text_splitter(
-                &self,
-                _: Option<&Self::PerInvocationOptions>,
-            ) -> Result<Self::TextSplitter<'_>, Self::Error> {
-                todo!()
-            }
-
-            fn new() -> Result<Self, crate::traits::ExecutorCreationError> {
-                Self::new_with_options(None, None)
             }
         }
         struct MockSearch;

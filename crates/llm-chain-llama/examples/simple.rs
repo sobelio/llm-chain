@@ -14,6 +14,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let res = prompt!("The Colors of the Rainbow are (in order): ")
         .run(&parameters!(), &exec)
         .await?;
-    println!("{}", res);
+    println!("{}", res.to_immediate().await?);
     Ok(())
 }
