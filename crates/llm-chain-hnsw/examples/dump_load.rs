@@ -16,7 +16,11 @@ async fn main() {
     let hnsw_index_fn = "hnsw_index".to_string();
     let mut embeddings = llm_chain_openai::embeddings::Embeddings::default();
     let document_store = Arc::new(Mutex::new(InMemoryDocumentStore::<EmptyMetadata>::new()));
-    let mut hnsw_vs = HnswVectorStore::new(HnswArgs::default(), embeddings, document_store.clone());
+    let mut hnsw_vs = HnswVectorStore::new(
+        HnswArgs::default(),
+        Arc::new(embeddings),
+        document_store.clone(),
+    );
 
     // Storing documents
 
@@ -52,8 +56,12 @@ async fn main() {
     // Load
     println!("Loading hnsw index from file");
     embeddings = llm_chain_openai::embeddings::Embeddings::default();
-    hnsw_vs =
-        HnswVectorStore::load_from_file(hnsw_index_fn, embeddings, document_store.clone()).unwrap();
+    hnsw_vs = HnswVectorStore::load_from_file(
+        hnsw_index_fn,
+        Arc::new(embeddings),
+        document_store.clone(),
+    )
+    .unwrap();
     println!("Loaded!");
 
     let response = hnsw_vs
