@@ -1,6 +1,6 @@
 [package]
 name = "llm-chain-llama"
-version = "0.11.1"
+version = "0.11.2"
 edition = "2021"
 description = "A library implementing `llm-chains` for LLamA. Chains can be use to apply the model series to complete complex tasks, such as agents."
 license = "MIT"
@@ -17,7 +17,7 @@ repository = "https://github.com/sobelio/llm-chain/"
 anyhow = "1.0.71"
 async-trait = "0.1.68"
 llm-chain-llama-sys = { path = "../llm-chain-llama-sys", version = "0.11" }
-llm-chain = { path = "../llm-chain", version = "0.11.1" }
+llm-chain = { path = "../llm-chain", version = "0.11.2" }
 serde = { version = "1.0.163", features = ["derive"] }
 thiserror = "1.0.40"
 

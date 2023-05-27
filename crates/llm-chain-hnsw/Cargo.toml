@@ -1,6 +1,6 @@
 [package]
 name = "llm-chain-hnsw"
-version = "0.11.1"
+version = "0.11.2"
 edition = "2021"
 description = "For using hnsw with llm-chain"
 license = "MIT"
@@ -15,7 +15,7 @@ repository = "https://github.com/sobelio/llm-chain/"
 [dependencies]
 async-trait = "0.1.68"
 hnsw_rs = "0.1.19"
-llm-chain = { path = "../llm-chain", version = "0.11.1", default-features = false }
+llm-chain = { path = "../llm-chain", version = "0.11.2", default-features = false }
 serde = "1.0.163"
 serde_json = "1.0.96"
 thiserror = "1.0.40"
