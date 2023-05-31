@@ -30,7 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // A greeting for you
     let res = step.run(&parameters!("Your Name Here"), &exec).await?;
 
-    println!("{}", res);
+    println!("{}", res.to_immediate().await?.as_content());
 
     Ok(())
 }

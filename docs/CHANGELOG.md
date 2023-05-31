@@ -6,6 +6,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.13.0] 2023-06-01
+
+### Added
+
+- Add support for hnsw embedded vector store.
+
+### Changed
+
+- Completely revamped all of the systems
+- Executors are now concrete as are options
+- New output format based on native support for streaming
+
 ## [0.9.1] 2023-05-07
 
 ### Added
