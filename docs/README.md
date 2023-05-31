@@ -53,7 +53,7 @@ The examples for `llm-chain-openai` require you to set the `OPENAI_API_KEY` envi
 export OPENAI_API_KEY="sk-YOUR_OPEN_AI_KEY_HERE"
 ```
 
-Then, refer to the [documentation](https://docs.rs/llm-chain) and [examples](/llm-chain-openai/examples) to learn how to create prompt templates, chains, and more.
+Then, refer to the [documentation](https://docs.rs/llm-chain) and [examples](/crates/llm-chain-openai/examples) to learn how to create prompt templates, chains, and more.
 
 ## Contributing 🤝
 
