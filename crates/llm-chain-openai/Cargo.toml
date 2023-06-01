@@ -22,10 +22,10 @@ strum = "0.24"
 strum_macros = "0.24"
 thiserror = "1.0.40"
 tiktoken-rs = { version = "0.4.2", features = ["async-openai"] }
-tokio = "1.28.1"
+tokio = "1.28.2"
 
 [dev-dependencies]
-tokio = "1.28.1"
+tokio = "1.28.2"
 qdrant-client = "1.1.1"
 llm-chain = { path = "../llm-chain" }
 anyhow = "1.0.70"

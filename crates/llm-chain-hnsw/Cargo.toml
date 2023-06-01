@@ -19,7 +19,7 @@ llm-chain = { path = "../llm-chain", version = "0.12.0", default-features = fals
 serde = "1.0.163"
 serde_json = "1.0.96"
 thiserror = "1.0.40"
-tokio = "1.28.0"
+tokio = "1.28.2"
 
 [dev-dependencies]
 llm-chain-openai = { path = "../llm-chain-openai" }
