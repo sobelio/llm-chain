@@ -26,7 +26,7 @@ impl fmt::Display for StreamSegment {
 }
 
 pub struct OutputStream {
-    pub receiver: Receiver<StreamSegment>,
+    receiver: Receiver<StreamSegment>,
 }
 
 impl OutputStream {
