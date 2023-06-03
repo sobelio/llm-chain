@@ -1,4 +1,4 @@
-use llm_chain::{chains::sequential::Chain, executor, prompt, step::Step, output::StreamExt};
+use llm_chain::{chains::sequential::Chain, executor, output::StreamExt, prompt, step::Step};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
