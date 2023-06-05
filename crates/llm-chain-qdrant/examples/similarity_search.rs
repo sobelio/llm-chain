@@ -17,7 +17,7 @@ use qdrant_client::{
 async fn main() {
     // Qdrant prep
     let config = QdrantClientConfig::from_url("http://localhost:6334");
-    let client = Arc::new(QdrantClient::new(Some(config)).await.unwrap());
+    let client = Arc::new(QdrantClient::new(Some(config)).unwrap());
     let collection_name = "my-collection".to_string();
     let embedding_size = 1536;
 
@@ -36,6 +36,7 @@ async fn main() {
                             distance: Distance::Cosine.into(),
                             hnsw_config: None,
                             quantization_config: None,
+                            on_disk: None,
                         },
                     )),
                 }),
