@@ -21,6 +21,7 @@ allow = [
     "Unicode-DFS-2016",
     "BSD-3-Clause",
     "OpenSSL",
+    "MPL-2.0"
 ]
 copyleft = "deny"
 allow-osi-fsf-free = "neither"
