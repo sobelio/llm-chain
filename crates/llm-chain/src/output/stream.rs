@@ -1,16 +1,28 @@
 use crate::prompt::{ChatRole, Data};
 use crate::traits::ExecutorError;
 use futures::StreamExt;
+use std::fmt;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use tokio::sync::mpsc::{self, Receiver};
 use tokio_stream::Stream;
 
 use crate::prompt::{ChatMessage, ChatMessageCollection};
+#[derive(Debug)]
 pub enum StreamSegment {
     Role(ChatRole),
     Content(String),
     Err(ExecutorError),
+}
+
+impl fmt::Display for StreamSegment {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            StreamSegment::Role(chat_role) => write!(f, "{}", chat_role),
+            StreamSegment::Content(content) => write!(f, "{}", content),
+            StreamSegment::Err(executor_error) => write!(f, "{}", executor_error),
+        }
+    }
 }
 
 pub struct OutputStream {
@@ -85,6 +97,6 @@ impl Stream for OutputStream {
     type Item = StreamSegment;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        Pin::new(&mut self.receiver).poll_recv(cx)
+        self.receiver.poll_recv(cx)
     }
 }
