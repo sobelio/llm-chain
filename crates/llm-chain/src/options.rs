@@ -138,7 +138,7 @@ macro_rules! options {
         {
             let mut _opts = $crate::options::Options::builder();
             $(
-                $crate::options::Opt::$opt_name($opt_value.into());
+                _opts.add_option($crate::options::Opt::$opt_name($opt_value.into()));
             )*
             _opts.build()
         }

@@ -1,6 +1,6 @@
 [package]
 name = "llm-chain-local"
-version = "0.12.0"
+version = "0.12.1"
 edition = "2021"
 description = "Use `llm-chain` with a local [`llm`](https://github.com/rustformers/llm) backend."
 license = "MIT"
@@ -15,7 +15,7 @@ repository = "https://github.com/sobelio/llm-chain/"
 async-trait = "0.1.68"
 lazy_static = "1.4.0"
 llm = "0.1.1"
-llm-chain = { path = "../llm-chain", version = "0.12.0", default-features = false }
+llm-chain = { path = "../llm-chain", version = "0.12.1", default-features = false }
 rand = "0.8.5"
 serde = { version = "1.0.163", features = ["derive"] }
 thiserror = "1.0.40"
