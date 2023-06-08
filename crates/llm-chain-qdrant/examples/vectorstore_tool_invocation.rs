@@ -47,7 +47,7 @@ multitool!(
 async fn build_local_qdrant() -> Qdrant<Embeddings, EmptyMetadata> {
     // Qdrant prep
     let config = QdrantClientConfig::from_url("http://localhost:6334");
-    let client = Arc::new(QdrantClient::new(Some(config)).await.unwrap());
+    let client = Arc::new(QdrantClient::new(Some(config)).unwrap());
     let collection_name = "my-collection".to_string();
     let embedding_size = 1536;
 
@@ -66,6 +66,7 @@ async fn build_local_qdrant() -> Qdrant<Embeddings, EmptyMetadata> {
                             distance: Distance::Cosine.into(),
                             hnsw_config: None,
                             quantization_config: None,
+                            on_disk: None,
                         },
                     )),
                 }),
