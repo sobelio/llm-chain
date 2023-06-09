@@ -7,57 +7,9 @@ object-assign
 /* NProgress, (c) 2013, 2014 Rico Sta. Cruz - http://ricostacruz.com/nprogress
  * @license MIT */
 
-/*!
-   * Adapted from jQuery UI core
-   *
-   * http://jqueryui.com
-   *
-   * Copyright 2014 jQuery Foundation and other contributors
-   * Released under the MIT license.
-   * http://jquery.org/license
-   *
-   * http://api.jqueryui.com/category/ui-core/
-   */
-
-/*!
-  Copyright (c) 2015 Jed Watson.
-  Based on code that is Copyright 2013-2015, Facebook, Inc.
-  All rights reserved.
-*/
-
-/**
- * @license React
- * react-dom.production.min.js
- *
- * Copyright (c) Facebook, Inc. and its affiliates.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- */
-
 /**
  * @license React
  * react-jsx-runtime.production.min.js
- *
- * Copyright (c) Facebook, Inc. and its affiliates.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- */
-
-/**
- * @license React
- * scheduler.development.js
- *
- * Copyright (c) Facebook, Inc. and its affiliates.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- */
-
-/**
- * @license React
- * scheduler.production.min.js
  *
  * Copyright (c) Facebook, Inc. and its affiliates.
  *
@@ -86,15 +38,6 @@ object-assign
 
 /** @license React v0.20.2
  * scheduler.production.min.js
- *
- * Copyright (c) Facebook, Inc. and its affiliates.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- */
-
-/** @license React v16.13.1
- * react-is.development.js
  *
  * Copyright (c) Facebook, Inc. and its affiliates.
  *
