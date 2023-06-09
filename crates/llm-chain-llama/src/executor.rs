@@ -51,7 +51,7 @@ impl Executor {
 
     // Run the LLAMA model with the provided input and generate output.
     // Executes the model with the provided input and context parameters.
-    fn run_model(&self, input: LlamaInvocation) -> Output {
+    async fn run_model(&self, input: LlamaInvocation) -> Output {
         let (sender, output) = Output::new_stream();
         // Tokenize the stop sequence and input prompt.
         let context = self.context.clone();
@@ -62,7 +62,6 @@ impl Executor {
             async move {
                 let context_size = context_size;
                 let context = context.lock().await;
-
                 let tokenized_stop_prompt = tokenize(
                     &context,
                     input
@@ -87,7 +86,7 @@ impl Executor {
 
                 // Embd contains the prompt and the completion. The longer the prompt, the shorter the completion.
                 let mut embd = tokenized_input.clone();
-
+                
                 // Evaluate the prompt in full.
                 bail!(
                     context
@@ -180,7 +179,7 @@ impl Executor {
                     }
                 }
             }
-        });
+        }).await.unwrap().await;
 
         output
     }
@@ -210,7 +209,7 @@ impl ExecutorTrait for Executor {
     async fn execute(&self, options: &Options, prompt: &Prompt) -> Result<Output, ExecutorError> {
         let invocation = LlamaInvocation::new(self.get_cascade(options), prompt)
             .ok_or(ExecutorError::InvalidOptions)?;
-        Ok(self.run_model(invocation))
+        Ok(self.run_model(invocation).await)
     }
 
     fn tokens_used(

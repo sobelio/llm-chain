@@ -43,7 +43,8 @@ impl LlamaInvocation {
     pub(crate) fn new(opt: OptionsCascade, prompt: &Prompt) -> Option<LlamaInvocation> {
         opt_extract!(opt, n_threads, NThreads);
         opt_extract!(opt, n_tok_predict, MaxTokens);
-        opt_extract!(opt, token_bias, TokenBias);
+        // Skip TokenBias for now
+        //opt_extract!(opt, token_bias, TokenBias);
         opt_extract!(opt, top_k, TopK);
         opt_extract!(opt, top_p, TopP);
         opt_extract!(opt, tfs_z, TfsZ);
@@ -59,8 +60,8 @@ impl LlamaInvocation {
         opt_extract!(opt, penalize_nl, PenalizeNl);
         opt_extract!(opt, stop_sequence, StopSequence);
 
-        let logit_bias = token_bias.as_i32_f32_hashmap()?;
-
+        let logit_bias =  HashMap::<i32,f32>::new();// token_bias.as_i32_f32_hashmap()?;
+        
         Some(LlamaInvocation {
             n_threads: *n_threads as i32,
             n_tok_predict: *n_tok_predict,

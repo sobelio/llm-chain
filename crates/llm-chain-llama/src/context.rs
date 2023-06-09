@@ -20,11 +20,15 @@ use serde::{Deserialize, Serialize};
 #[error("LLAMA.cpp returned error-code {0}")]
 pub struct LLAMACPPErrorCode(i32);
 
+const LLAMA_MAX_DEVICES: usize = 1; // corresponding to constant in llama.h
 // Represents the configuration parameters for a LLamaContext.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContextParams {
     pub n_ctx: i32,
-    pub n_parts: i32,
+    pub n_batch: i32,
+    pub n_gpu_layers: i32,
+    pub main_gpu: i32,
+    pub tensor_split: [f32; LLAMA_MAX_DEVICES],
     pub seed: i32,
     pub f16_kv: bool,
     pub vocab_only: bool,
@@ -56,7 +60,10 @@ impl From<ContextParams> for llama_context_params {
     fn from(params: ContextParams) -> Self {
         llama_context_params {
             n_ctx: params.n_ctx,
-            n_parts: params.n_parts,
+            n_batch: params.n_batch,
+            n_gpu_layers: params.n_gpu_layers,
+            main_gpu: params.main_gpu,
+            tensor_split: params.tensor_split,
             seed: params.seed,
             f16_kv: params.f16_kv,
             logits_all: false,
@@ -74,7 +81,10 @@ impl From<llama_context_params> for ContextParams {
     fn from(params: llama_context_params) -> Self {
         ContextParams {
             n_ctx: params.n_ctx,
-            n_parts: params.n_parts,
+            n_batch: params.n_batch,
+            n_gpu_layers: params.n_gpu_layers,
+            main_gpu: params.main_gpu,
+            tensor_split: params.tensor_split,
             seed: params.seed,
             f16_kv: params.f16_kv,
             vocab_only: params.vocab_only,
