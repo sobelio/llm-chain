@@ -759,14 +759,21 @@ fn bindgen_test_layout_llama_token_data_array() {
         )
     );
 }
+
+const LLAMA_MAX_DEVICES: usize = 1;
 pub type llama_progress_callback =
     ::std::option::Option<unsafe extern "C" fn(progress: f32, ctx: *mut ::std::os::raw::c_void)>;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct llama_context_params {
     pub n_ctx: ::std::os::raw::c_int,
-    pub n_parts: ::std::os::raw::c_int,
+    pub n_batch: ::std::os::raw::c_int,
+    pub n_gpu_layers: ::std::os::raw::c_int,
+    pub main_gpu: ::std::os::raw::c_int,
+    pub tensor_split: [::std::os::raw::c_float; LLAM_MAX_DEVICES],
+    
     pub seed: ::std::os::raw::c_int,
+    
     pub f16_kv: bool,
     pub logits_all: bool,
     pub vocab_only: bool,
@@ -800,16 +807,7 @@ fn bindgen_test_layout_llama_context_params() {
             stringify!(n_ctx)
         )
     );
-    assert_eq!(
-        unsafe { ::std::ptr::addr_of!((*ptr).n_parts) as usize - ptr as usize },
-        4usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(llama_context_params),
-            "::",
-            stringify!(n_parts)
-        )
-    );
+
     assert_eq!(
         unsafe { ::std::ptr::addr_of!((*ptr).seed) as usize - ptr as usize },
         8usize,
