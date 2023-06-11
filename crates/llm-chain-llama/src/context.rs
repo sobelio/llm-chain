@@ -21,7 +21,7 @@ use serde::{Deserialize, Serialize};
 pub struct LLAMACPPErrorCode(i32);
 
 const LLAMA_MAX_DEVICES: usize = 1; // corresponding to constant in llama.h
-// Represents the configuration parameters for a LLamaContext.
+                                    // Represents the configuration parameters for a LLamaContext.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContextParams {
     pub n_ctx: i32,

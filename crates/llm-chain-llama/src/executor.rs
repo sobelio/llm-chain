@@ -86,7 +86,7 @@ impl Executor {
 
                 // Embd contains the prompt and the completion. The longer the prompt, the shorter the completion.
                 let mut embd = tokenized_input.clone();
-                
+
                 // Evaluate the prompt in full.
                 bail!(
                     context
@@ -179,7 +179,10 @@ impl Executor {
                     }
                 }
             }
-        }).await.unwrap().await;
+        })
+        .await
+        .unwrap()
+        .await;
 
         output
     }

@@ -60,8 +60,8 @@ impl LlamaInvocation {
         opt_extract!(opt, penalize_nl, PenalizeNl);
         opt_extract!(opt, stop_sequence, StopSequence);
 
-        let logit_bias =  HashMap::<i32,f32>::new();// token_bias.as_i32_f32_hashmap()?;
-        
+        let logit_bias = HashMap::<i32, f32>::new(); // token_bias.as_i32_f32_hashmap()?;
+
         Some(LlamaInvocation {
             n_threads: *n_threads as i32,
             n_tok_predict: *n_tok_predict,

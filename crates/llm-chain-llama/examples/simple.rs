@@ -1,6 +1,6 @@
-use llm_chain::{executor, parameters, prompt};
 use llm_chain::options;
 use llm_chain::options::{ModelRef, Options};
+use llm_chain::{executor, parameters, prompt};
 use std::{env::args, error::Error};
 /// This example demonstrates how to use the llm-chain-llama crate to generate text using a
 /// LLaMA model.
@@ -13,9 +13,14 @@ use std::{env::args, error::Error};
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let raw_args: Vec<String> = args().collect();
     let args = match &raw_args.len() {
-      2 => (raw_args[1].as_str(), "Rust is a cool programming language because"),
-      3 => (raw_args[1].as_str(), raw_args[2].as_str()),
-      _ => panic!("Usage: cargo run --release --example simple <path to model> <optional prompt>")
+        2 => (
+            raw_args[1].as_str(),
+            "Rust is a cool programming language because",
+        ),
+        3 => (raw_args[1].as_str(), raw_args[2].as_str()),
+        _ => {
+            panic!("Usage: cargo run --release --example simple <path to model> <optional prompt>")
+        }
     };
 
     let model_path = args.0;
@@ -43,10 +48,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     let exec = executor!(llama, opts.clone())?;
 
-    let res = prompt!(prompt)
-        .run(&parameters!(), &exec)
-        .await?;
-    
+    let res = prompt!(prompt).run(&parameters!(), &exec).await?;
+
     println!("{}", res.to_immediate().await?);
     Ok(())
 }
