@@ -69,6 +69,9 @@ fn main() {
     env::set_var("CXXFLAGS", "-fPIC");
     env::set_var("CFLAGS", "-fPIC");
 
+    // Check if CUDA is enabled for cuBlAS
+    let cuda_enabled = env::var("CARGO_FEATURE_CUDA").is_ok();
+
     let code = std::process::Command::new("cmake")
         .arg("..")
         .arg("-DCMAKE_BUILD_TYPE=Release")
@@ -76,8 +79,13 @@ fn main() {
         .arg("-DLLAMA_ALL_WARNINGS=OFF")
         .arg("-DLLAMA_ALL_WARNINGS_3RD_PARTY=OFF")
         .arg("-DLLAMA_BUILD_TESTS=OFF")
-        .arg("-DLLAMA_BUILD_EXAMPLES=OFF")
+        .arg("-DLLAMA_BUILD_EXAMPLES=OFF");
         // .arg("-DLLAMA_STATIC=ON")
+    if cuda_enabled {
+        // If CUDA feature is enabled, build with cuBlAS to enable GPU acceleration
+        code.arg("-DLLAMA_CUBLAS=ON");
+    }
+    code
         .status()
         .expect("Failed to generate build script");
     if code.code() != Some(0) {
