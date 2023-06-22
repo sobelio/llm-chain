@@ -81,14 +81,12 @@ fn main() {
         .arg("-DLLAMA_ALL_WARNINGS_3RD_PARTY=OFF")
         .arg("-DLLAMA_BUILD_TESTS=OFF")
         .arg("-DLLAMA_BUILD_EXAMPLES=OFF");
-        // .arg("-DLLAMA_STATIC=ON")
+    // .arg("-DLLAMA_STATIC=ON")
     if cuda_enabled {
         // If CUDA feature is enabled, build with cuBlAS to enable GPU acceleration
         code.arg("-DLLAMA_CUBLAS=ON");
     }
-    let code = code
-        .status()
-        .expect("Failed to generate build script");
+    let code = code.status().expect("Failed to generate build script");
     if code.code() != Some(0) {
         panic!("Failed to generate build script");
     }
