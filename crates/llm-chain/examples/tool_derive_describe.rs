@@ -1,15 +1,13 @@
 use llm_chain::tools::Describe;
-use llm_chain_macros::Describe;
 use llm_chain::tools::{Format, FormatPart};
-
-
+use llm_chain_macros::Describe;
 
 #[derive(Describe)]
 struct MyToolInput {
     #[purpose("Person's name")]
     name: String,
     #[purpose("Person's age")]
-    age: u8
+    age: u8,
 }
 
 #[tokio::main(flavor = "current_thread")]
