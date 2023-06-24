@@ -2,8 +2,8 @@ extern crate proc_macro;
 
 use proc_macro::TokenStream;
 use syn::{
-     parse_macro_input, DeriveInput,     __private::{quote::quote,  TokenStream2},
-    Ident, LitStr,
+    parse_macro_input, DeriveInput, Ident, LitStr,
+    __private::{quote::quote, TokenStream2},
 };
 
 fn literal_from_ident(ident: Ident) -> LitStr {
@@ -80,4 +80,3 @@ pub fn derive_describe(input: TokenStream) -> TokenStream {
 
     gen
 }
-
