@@ -16,7 +16,7 @@ repository = "https://github.com/sobelio/llm-chain/"
 anyhow = "1.0.71"
 async-trait = "0.1.68"
 futures = "0.3.28"
-serde = { version = "1.0.163", features = ["derive"] }
+serde = { version = "1.0.164", features = ["derive"] }
 serde_yaml = { version = "0.9.21" }
 thiserror = "1.0.40"
 tokio = { version = "1.28.2", features = ["fs", "io-util", "rt", "macros"] }
