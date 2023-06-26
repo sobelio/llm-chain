@@ -110,8 +110,10 @@ impl traits::Executor for Executor {
         let opts_cas = self.cascade(Some(opts));
         let model = self.get_model_from_invocation_options(&opts_cas);
         let messages: Vec<ChatCompletionRequestMessage> = format_chat_messages(prompt.to_chat())?;
-
+        let no_messages: Vec<tiktoken_rs::ChatCompletionRequestMessage> = Vec::new();
         let tokens_used =
+            get_chat_completion_max_tokens(&model, no_messages.as_slice())
+                .map_err(|_| PromptTokensError::NotAvailable)? - 
             get_chat_completion_max_tokens(&model, as_tiktoken_messages(messages).as_slice())
                 .map_err(|_| PromptTokensError::NotAvailable)?;
 
