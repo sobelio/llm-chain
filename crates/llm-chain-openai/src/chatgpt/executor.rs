@@ -8,7 +8,7 @@ use llm_chain::tokens::TokenCollection;
 
 use super::prompt::create_chat_completion_request;
 use super::prompt::format_chat_messages;
-use async_openai::error::OpenAIError;
+use async_openai::{error::OpenAIError, types::ChatCompletionRequestMessage};
 use llm_chain::prompt::Prompt;
 
 use llm_chain::tokens::PromptTokensError;
@@ -19,7 +19,7 @@ use llm_chain::traits::{ExecutorCreationError, ExecutorError};
 use async_trait::async_trait;
 use llm_chain::tokens::TokenCount;
 
-use tiktoken_rs::async_openai::num_tokens_from_messages;
+use tiktoken_rs::get_chat_completion_max_tokens;
 
 use std::sync::Arc;
 
@@ -109,9 +109,11 @@ impl traits::Executor for Executor {
     ) -> Result<TokenCount, PromptTokensError> {
         let opts_cas = self.cascade(Some(opts));
         let model = self.get_model_from_invocation_options(&opts_cas);
-        let messages = format_chat_messages(prompt.to_chat())?;
-        let tokens_used = num_tokens_from_messages(&model, &messages)
-            .map_err(|_| PromptTokensError::NotAvailable)?;
+        let messages: Vec<ChatCompletionRequestMessage> = format_chat_messages(prompt.to_chat())?;
+
+        let tokens_used =
+            get_chat_completion_max_tokens(&model, as_tiktoken_messages(messages).as_slice())
+                .map_err(|_| PromptTokensError::NotAvailable)?;
 
         Ok(TokenCount::new(
             self.max_tokens_allowed(opts),
@@ -134,6 +136,22 @@ impl traits::Executor for Executor {
     fn get_tokenizer(&self, options: &Options) -> Result<OpenAITokenizer, TokenizerError> {
         Ok(OpenAITokenizer::new(self.cascade(Some(options))))
     }
+}
+
+fn as_tiktoken_message(
+    message: &ChatCompletionRequestMessage,
+) -> tiktoken_rs::ChatCompletionRequestMessage {
+    tiktoken_rs::ChatCompletionRequestMessage {
+        role: message.role.to_string(),
+        content: message.content.clone(),
+        name: message.name.clone(),
+    }
+}
+
+fn as_tiktoken_messages(
+    messages: Vec<ChatCompletionRequestMessage>,
+) -> Vec<tiktoken_rs::ChatCompletionRequestMessage> {
+    messages.iter().map(|x| as_tiktoken_message(x)).collect()
 }
 
 pub struct OpenAITokenizer {
