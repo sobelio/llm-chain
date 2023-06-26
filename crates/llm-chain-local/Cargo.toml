@@ -17,7 +17,7 @@ lazy_static = "1.4.0"
 llm = "0.1.1"
 llm-chain = { path = "../llm-chain", version = "0.12.2", default-features = false }
 rand = "0.8.5"
-serde = { version = "1.0.163", features = ["derive"] }
+serde = { version = "1.0.164", features = ["derive"] }
 thiserror = "1.0.40"
 
 [dev-dependencies]
