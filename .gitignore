@@ -5,3 +5,4 @@ build/
 chain
 mydata.yaml
 .idea/
+.DS_Store
