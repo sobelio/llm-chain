@@ -3,6 +3,12 @@ name = "llm-chain-macros"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
+description = "Set of macros for use with llm-chain"
+keywords = ["llm", "langchain", "ggml", "chain"]
+categories = ["science"]
+authors = ["William Rudenmalm <william@sobel.io>"]
+repository = "https://github.com/sobelio/llm-chain/"
+
 
 [lib]
 proc-macro = true
