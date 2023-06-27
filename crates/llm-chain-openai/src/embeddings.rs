@@ -61,7 +61,7 @@ impl traits::Embeddings for Embeddings {
 impl Default for Embeddings {
     fn default() -> Self {
         Self {
-            client: async_openai::Client::default().into(),
+            client: async_openai::Client::with_config(OpenAIConfig::default()).into(),
             model: "text-embedding-ada-002".to_string(),
         }
     }

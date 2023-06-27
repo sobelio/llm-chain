@@ -19,6 +19,7 @@ pub enum ChatRole {
     User,
     Assistant,
     System,
+    Function,
     Other(String),
 }
 
@@ -41,6 +42,7 @@ impl fmt::Display for ChatRole {
             ChatRole::User => write!(f, "User"),
             ChatRole::Assistant => write!(f, "Assistant"),
             ChatRole::System => write!(f, "System"),
+            ChatRole::Function => write!(f, "Function"),
             ChatRole::Other(s) => write!(f, "{}", s),
         }
     }
