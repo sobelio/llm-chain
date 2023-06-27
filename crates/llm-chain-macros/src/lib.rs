@@ -37,7 +37,7 @@ pub fn derive_describe(input: TokenStream) -> TokenStream {
                         attr.path().segments.len() == 1
                             && attr.path().segments[0].ident == "purpose"
                     })
-                    .nth(0)
+                    .next()
                     .expect("All fields on the string must have a purpose annotation")
                     .parse_args::<LitStr>()
                     .expect("Purpose must be a single string literal"),

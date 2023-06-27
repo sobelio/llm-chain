@@ -113,7 +113,7 @@ where
             if self.map.contains_key(key) {
                 return Err(InMemoryDocumentStoreError::KeyConflict(key.to_string()));
             } else {
-                self.map.insert(key.clone(), value.into());
+                self.map.insert(*key, value.into());
             }
         }
 
