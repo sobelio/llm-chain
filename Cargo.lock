@@ -1277,7 +1277,7 @@ dependencies = [
 
 [[package]]
 name = "llm-chain"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1303,7 +1303,7 @@ dependencies = [
 
 [[package]]
 name = "llm-chain-hnsw"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "async-trait",
  "hnsw_rs",
@@ -1317,7 +1317,7 @@ dependencies = [
 
 [[package]]
 name = "llm-chain-llama"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1331,14 +1331,14 @@ dependencies = [
 
 [[package]]
 name = "llm-chain-llama-sys"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "bindgen",
 ]
 
 [[package]]
 name = "llm-chain-local"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "async-trait",
  "lazy_static",
@@ -1352,14 +1352,14 @@ dependencies = [
 
 [[package]]
 name = "llm-chain-macros"
-version = "0.1.0"
+version = "0.12.3"
 dependencies = [
  "syn 2.0.18",
 ]
 
 [[package]]
 name = "llm-chain-openai"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "anyhow",
  "async-openai",
@@ -1378,7 +1378,7 @@ dependencies = [
 
 [[package]]
 name = "llm-chain-qdrant"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "anyhow",
  "async-trait",
