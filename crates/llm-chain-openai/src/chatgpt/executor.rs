@@ -8,6 +8,7 @@ use llm_chain::tokens::TokenCollection;
 
 use super::prompt::create_chat_completion_request;
 use super::prompt::format_chat_messages;
+use async_openai::config::OpenAIConfig;
 use async_openai::error::OpenAIError;
 use llm_chain::prompt::Prompt;
 
@@ -24,17 +25,17 @@ use tiktoken_rs::async_openai::num_tokens_from_messages;
 use std::sync::Arc;
 
 /// The `Executor` struct for the ChatGPT model. This executor uses the `async_openai` crate to communicate with the OpenAI API.
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct Executor {
     /// The client used to communicate with the OpenAI API.
-    client: Arc<async_openai::Client>,
+    client: Arc<async_openai::Client<OpenAIConfig>>,
     /// The per-invocation options for this executor.
     options: Options,
 }
 
 impl Executor {
     /// Creates a new `Executor` with the given client.
-    pub fn for_client(client: async_openai::Client, options: Options) -> Self {
+    pub fn for_client(client: async_openai::Client<OpenAIConfig>, options: Options) -> Self {
         use llm_chain::traits::Executor as _;
         let mut exec = Self::new_with_options(options).unwrap();
         exec.client = Arc::new(client);
@@ -70,17 +71,18 @@ impl traits::Executor for Executor {
     ///
     /// if the `OPENAI_ORG_ID` environment variable is present, it will be used as the org_ig for the OpenAI client.
     fn new_with_options(options: Options) -> Result<Self, ExecutorCreationError> {
-        let mut client = async_openai::Client::new();
+        let mut openai_config = OpenAIConfig::default();
         let opts = OptionsCascade::new().with_options(&options);
 
         if let Some(Opt::ApiKey(api_key)) = opts.get(llm_chain::options::OptDiscriminants::ApiKey) {
-            client = client.with_api_key(api_key)
+            openai_config = openai_config.with_api_key(api_key);
         }
 
         if let Ok(org_id) = std::env::var("OPENAI_ORG_ID") {
-            client = client.with_org_id(org_id);
+            openai_config = openai_config.with_org_id(org_id);
         }
-        let client = Arc::new(client);
+
+        let client = Arc::new(async_openai::Client::with_config(openai_config));
         Ok(Self { client, options })
     }
 

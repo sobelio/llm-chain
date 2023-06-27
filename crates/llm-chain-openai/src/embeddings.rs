@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use async_openai::{
+    config::OpenAIConfig,
     error::OpenAIError,
     types::{CreateEmbeddingRequest, EmbeddingInput},
 };
@@ -9,7 +10,7 @@ use llm_chain::traits::{self, EmbeddingsError};
 use thiserror::Error;
 
 pub struct Embeddings {
-    client: Arc<async_openai::Client>,
+    client: Arc<async_openai::Client<OpenAIConfig>>,
     model: String,
 }
 
@@ -67,7 +68,7 @@ impl Default for Embeddings {
 }
 
 impl Embeddings {
-    pub fn for_client(client: async_openai::Client, model: &str) -> Self {
+    pub fn for_client(client: async_openai::Client<OpenAIConfig>, model: &str) -> Self {
         Self {
             client: client.into(),
             model: model.to_string(),
