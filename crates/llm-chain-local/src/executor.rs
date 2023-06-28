@@ -55,6 +55,7 @@ impl llm_chain::traits::Executor for Executor {
     fn new_with_options(options: Options) -> Result<Self, ExecutorCreationError> {
         let opts_from_env = options_from_env().unwrap();
         let opts_cas = OptionsCascade::new()
+            .with_options(&DEFAULT_OPTIONS)
             .with_options(&opts_from_env)
             .with_options(&options);
 
