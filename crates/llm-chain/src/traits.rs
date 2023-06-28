@@ -14,7 +14,6 @@ use std::{error::Error, fmt::Debug};
 use crate::{
     options::Options,
     output::Output,
-    prompt::Prompt,
     schema::{Document, EmptyMetadata},
     tokens::{PromptTokensError, TokenCount, Tokenizer, TokenizerError},
 };
@@ -49,6 +48,7 @@ pub enum ExecutorError {
 /// The `Executor` trait represents an executor that performs a single step in a chain. It takes a
 /// step, executes it, and returns the output.
 pub trait Executor: Sized {
+    type Prompt;
     type StepTokenizer<'a>: Tokenizer
     where
         Self: 'a;
@@ -62,7 +62,11 @@ pub trait Executor: Sized {
         Self::new_with_options(Options::empty().clone())
     }
 
-    async fn execute(&self, options: &Options, prompt: &Prompt) -> Result<Output, ExecutorError>;
+    async fn execute(
+        &self,
+        options: &Options,
+        prompt: &Self::Prompt,
+    ) -> Result<Output, ExecutorError>;
 
     /// Calculates the number of tokens used by the step given a set of parameters.
     ///
@@ -80,7 +84,7 @@ pub trait Executor: Sized {
     fn tokens_used(
         &self,
         options: &Options,
-        prompt: &Prompt,
+        prompt: &Self::Prompt,
     ) -> Result<TokenCount, PromptTokensError>;
 
     /// Returns the maximum number of input tokens allowed by the model used.
@@ -102,7 +106,7 @@ pub trait Executor: Sized {
     /// # Returns
     ///
     /// A `Option` containing a String if  prefix exists, or none if there is no prefix
-    fn answer_prefix(&self, prompt: &Prompt) -> Option<String>;
+    fn answer_prefix(&self, prompt: &Self::Prompt) -> Option<String>;
 
     /// Creates a tokenizer, depending on the model used by `step`.
     ///

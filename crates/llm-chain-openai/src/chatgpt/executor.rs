@@ -10,6 +10,7 @@ use super::prompt::create_chat_completion_request;
 use super::prompt::format_chat_messages;
 use async_openai::config::OpenAIConfig;
 use async_openai::error::OpenAIError;
+use async_openai::types::ChatCompletionRequestMessage;
 use llm_chain::prompt::Prompt;
 
 use llm_chain::tokens::PromptTokensError;
@@ -148,6 +149,7 @@ fn as_tiktoken_message(
         role: message.role.to_string(),
         content: message.content.clone(),
         name: message.name.clone(),
+        function_call: message.function_call.clone().map(|x| (&x).into()),
     }
 }
 

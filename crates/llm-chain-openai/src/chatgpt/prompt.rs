@@ -11,6 +11,8 @@ use llm_chain::{
 
 use async_openai::types::{ChatCompletionResponseStream, CreateChatCompletionResponse};
 
+pub mod function_call;
+
 fn convert_role(role: &prompt::ChatRole) -> Role {
     match role {
         prompt::ChatRole::User => Role::User,
