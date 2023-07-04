@@ -9,7 +9,7 @@
 
 ## Examples 💡
 
-To help you get started, here is an example demonstrating how to use `llm-chain`. You can find more examples in the [examples folder](/llm-chain-openai/examples) in the repository.
+To help you get started, here is an example demonstrating how to use `llm-chain`. You can find more examples in the [examples folder](/crates/llm-chain-openai/examples) in the repository.
 
 ```rust
 let exec = executor!()?;
