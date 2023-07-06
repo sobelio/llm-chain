@@ -20,8 +20,9 @@ use serde::{Deserialize, Serialize};
 #[error("LLAMA.cpp returned error-code {0}")]
 pub struct LLAMACPPErrorCode(i32);
 
-const LLAMA_MAX_DEVICES: usize = 1; // corresponding to constant in llama.h
-                                    // Represents the configuration parameters for a LLamaContext.
+const LLAMA_MAX_DEVICES: usize = llm_chain_llama_sys::LLAMA_MAX_DEVICES as usize; // corresponding to constant in llama.h
+
+// Represents the configuration parameters for a LLamaContext.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContextParams {
     pub n_ctx: i32,

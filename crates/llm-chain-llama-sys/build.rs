@@ -22,6 +22,9 @@ fn main() {
     println!("cargo:rustc-link-lib=static=llama");
     println!("cargo:rerun-if-changed=wrapper.h");
 
+    // Check if CUDA is enabled for cuBlAS
+    let cuda_enabled = env::var("CARGO_FEATURE_CUDA").is_ok();
+
     if env::var("LLAMA_DONT_GENERATE_BINDINGS").is_ok() {
         let _: u64 = std::fs::copy(
             "src/bindings.rs",
@@ -29,12 +32,17 @@ fn main() {
         )
         .expect("Failed to copy bindings.rs");
     } else {
-        let bindings = bindgen::Builder::default()
+        let bindings_builder = bindgen::Builder::default()
             .header("wrapper.h")
             .clang_args(&["-x", "c++"])
-            .clang_arg("-I./llama.cpp")
-            .parse_callbacks(Box::new(bindgen::CargoCallbacks))
-            .generate();
+            .clang_arg("-I./llama.cpp");
+        let bindings = if cuda_enabled {
+            bindings_builder.clang_arg("-DGGML_USE_CUBLAS")
+        } else {
+            bindings_builder
+        }
+        .parse_callbacks(Box::new(bindgen::CargoCallbacks))
+        .generate();
 
         match bindings {
             Ok(b) => {
@@ -68,9 +76,6 @@ fn main() {
 
     env::set_var("CXXFLAGS", "-fPIC");
     env::set_var("CFLAGS", "-fPIC");
-
-    // Check if CUDA is enabled for cuBlAS
-    let cuda_enabled = env::var("CARGO_FEATURE_CUDA").is_ok();
 
     let mut code = std::process::Command::new("cmake");
     let code = code
