@@ -102,14 +102,17 @@ lazy_static! {
         MirostatTau: 5.0,
         MirostatEta: 0.1,
         PenalizeNl: true,
-        StopSequence: vec!["\n\n".to_string()]
+        StopSequence: vec!["\n\n".to_string()],
+        NumGpuLayers: 0
     );
 }
 
 pub(crate) fn get_executor_initial_opts(opt: &OptionsCascade) -> Option<(String, ContextParams)> {
     opt_extract!(opt, model, Model);
     opt_extract!(opt, max_context_size, MaxContextSize);
+    opt_extract!(opt, num_gpu_layers, NumGpuLayers);
     let mut cp = ContextParams::new();
     cp.n_ctx = *max_context_size as i32;
+    cp.n_gpu_layers = *num_gpu_layers;
     Some((model.to_path(), cp))
 }
