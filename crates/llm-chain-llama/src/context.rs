@@ -30,12 +30,13 @@ pub struct ContextParams {
     pub n_gpu_layers: i32,
     pub main_gpu: i32,
     pub tensor_split: [f32; LLAMA_MAX_DEVICES],
-    pub seed: i32,
+    pub seed: u32,
     pub f16_kv: bool,
     pub vocab_only: bool,
     pub use_mlock: bool,
     pub use_mmap: bool,
     pub embedding: bool,
+    pub low_vram: bool,
 }
 
 impl ContextParams {
@@ -74,6 +75,7 @@ impl From<ContextParams> for llama_context_params {
             embedding: params.embedding,
             progress_callback: None,
             progress_callback_user_data: null_mut(),
+            low_vram: params.low_vram,
         }
     }
 }
@@ -92,6 +94,7 @@ impl From<llama_context_params> for ContextParams {
             use_mlock: params.use_mlock,
             use_mmap: params.use_mmap,
             embedding: params.embedding,
+            low_vram: params.low_vram,
         }
     }
 }
