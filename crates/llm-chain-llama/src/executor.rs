@@ -203,7 +203,7 @@ impl ExecutorTrait for Executor {
             context: Arc::new(Mutex::new(LLamaContext::from_file_and_params(
                 &model_path,
                 Some(&context_params),
-            ))),
+            )?)),
             options,
             context_params,
         })

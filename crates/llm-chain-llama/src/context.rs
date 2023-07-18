@@ -106,11 +106,14 @@ pub(crate) struct LLamaContext {
 
 impl LLamaContext {
     // Creates a new LLamaContext from the specified file and configuration parameters.
-    pub fn from_file_and_params(path: &str, params: Option<&ContextParams>) -> Self {
+    pub fn from_file_and_params(path: &str, params: Option<&ContextParams>) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let path = CString::new(path).expect("could not convert to CString");
         let params = ContextParams::or_default(params);
         let ctx = unsafe { llama_init_from_file(path.into_raw() as *const i8, params) };
-        Self { ctx }
+        if ctx.is_null() {
+            return Err("Initializing llama context returned nullptr".into());
+        }
+        Ok(Self { ctx })
     }
 
     // Token logits obtained from the last call to llama_eval()
