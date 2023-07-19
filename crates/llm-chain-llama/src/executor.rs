@@ -30,7 +30,7 @@ macro_rules! bail {
 
 macro_rules! must_send {
     ($sender:expr, $val:expr) => {
-        if $sender.send($val).await.is_err() {
+        if $sender.send($val).is_err() {
             panic!("unable to send message");
         }
     };
@@ -169,11 +169,7 @@ impl Executor {
                     if n_used >= tokenized_input.len() && stop_sequence_i == 0 {
                         let str_output = context.llama_token_to_str(&embd[n_used]);
                         // XXX: make into chat if chat
-                        if sender
-                            .send(StreamSegment::Content(str_output))
-                            .await
-                            .is_err()
-                        {
+                        if sender.send(StreamSegment::Content(str_output)).is_err() {
                             panic!("Failed to send");
                         }
                     }

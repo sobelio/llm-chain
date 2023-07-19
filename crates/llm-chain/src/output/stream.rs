@@ -4,7 +4,7 @@ use futures::StreamExt;
 use std::fmt;
 use std::pin::Pin;
 use std::task::{Context, Poll};
-use tokio::sync::mpsc::{self, Receiver};
+use tokio::sync::mpsc::{self, UnboundedReceiver};
 use tokio_stream::Stream;
 
 use crate::prompt::{ChatMessage, ChatMessageCollection};
@@ -26,12 +26,12 @@ impl fmt::Display for StreamSegment {
 }
 
 pub struct OutputStream {
-    receiver: Receiver<StreamSegment>,
+    receiver: UnboundedReceiver<StreamSegment>,
 }
 
 impl OutputStream {
-    pub(super) fn new() -> (mpsc::Sender<StreamSegment>, Self) {
-        let (sender, receiver) = mpsc::channel(100);
+    pub(super) fn new() -> (mpsc::UnboundedSender<StreamSegment>, Self) {
+        let (sender, receiver) = mpsc::unbounded_channel();
         (sender, Self { receiver })
     }
 
@@ -39,13 +39,13 @@ impl OutputStream {
     where
         S: Stream<Item = StreamSegment> + Send + 'static,
     {
-        let (sender, receiver) = mpsc::channel(100);
+        let (sender, receiver) = mpsc::unbounded_channel();
         let sender_clone = sender;
         let mut stream = Box::pin(stream);
 
         tokio::spawn(async move {
             while let Some(segment) = stream.next().await {
-                if sender_clone.send(segment).await.is_err() {
+                if sender_clone.send(segment).is_err() {
                     break;
                 }
             }
