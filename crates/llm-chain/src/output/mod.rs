@@ -45,7 +45,7 @@ impl Output {
     }
 
     /// Creates a new `Stream` output along with a sender to produce data.
-    pub fn new_stream() -> (mpsc::Sender<StreamSegment>, Self) {
+    pub fn new_stream() -> (mpsc::UnboundedSender<StreamSegment>, Self) {
         let (sender, stream) = OutputStream::new();
 
         (sender, Output::Stream(stream))

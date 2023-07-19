@@ -30,12 +30,15 @@ pub struct ContextParams {
     pub n_gpu_layers: i32,
     pub main_gpu: i32,
     pub tensor_split: [f32; LLAMA_MAX_DEVICES],
-    pub seed: i32,
+    pub seed: u32,
     pub f16_kv: bool,
     pub vocab_only: bool,
     pub use_mlock: bool,
     pub use_mmap: bool,
     pub embedding: bool,
+    pub low_vram: bool,
+    pub rope_freq_base: f32,
+    pub rope_freq_scale: f32,
 }
 
 impl ContextParams {
@@ -74,6 +77,9 @@ impl From<ContextParams> for llama_context_params {
             embedding: params.embedding,
             progress_callback: None,
             progress_callback_user_data: null_mut(),
+            low_vram: params.low_vram,
+            rope_freq_base: params.rope_freq_base,
+            rope_freq_scale: params.rope_freq_scale,
         }
     }
 }
@@ -92,6 +98,9 @@ impl From<llama_context_params> for ContextParams {
             use_mlock: params.use_mlock,
             use_mmap: params.use_mmap,
             embedding: params.embedding,
+            low_vram: params.low_vram,
+            rope_freq_base: params.rope_freq_base,
+            rope_freq_scale: params.rope_freq_scale,
         }
     }
 }
@@ -103,11 +112,17 @@ pub(crate) struct LLamaContext {
 
 impl LLamaContext {
     // Creates a new LLamaContext from the specified file and configuration parameters.
-    pub fn from_file_and_params(path: &str, params: Option<&ContextParams>) -> Self {
+    pub fn from_file_and_params(
+        path: &str,
+        params: Option<&ContextParams>,
+    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let path = CString::new(path).expect("could not convert to CString");
         let params = ContextParams::or_default(params);
         let ctx = unsafe { llama_init_from_file(path.into_raw() as *const i8, params) };
-        Self { ctx }
+        if ctx.is_null() {
+            return Err("Initializing llama context returned nullptr".into());
+        }
+        Ok(Self { ctx })
     }
 
     // Token logits obtained from the last call to llama_eval()
