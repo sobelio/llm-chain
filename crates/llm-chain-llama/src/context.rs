@@ -37,6 +37,8 @@ pub struct ContextParams {
     pub use_mmap: bool,
     pub embedding: bool,
     pub low_vram: bool,
+    pub rope_freq_base: f32,
+    pub rope_freq_scale: f32,
 }
 
 impl ContextParams {
@@ -76,6 +78,8 @@ impl From<ContextParams> for llama_context_params {
             progress_callback: None,
             progress_callback_user_data: null_mut(),
             low_vram: params.low_vram,
+            rope_freq_base: params.rope_freq_base,
+            rope_freq_scale: params.rope_freq_scale,
         }
     }
 }
@@ -95,6 +99,8 @@ impl From<llama_context_params> for ContextParams {
             use_mmap: params.use_mmap,
             embedding: params.embedding,
             low_vram: params.low_vram,
+            rope_freq_base: params.rope_freq_base,
+            rope_freq_scale: params.rope_freq_scale,
         }
     }
 }
