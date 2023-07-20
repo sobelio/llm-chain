@@ -29,6 +29,11 @@ pub struct LlamaInvocation {
     pub(crate) penalize_nl: bool,
     pub(crate) stop_sequence: Vec<String>,
     pub(crate) prompt: Prompt,
+    pub(crate) low_vram: bool,
+    pub(crate) rope_freq_base: f32,
+    pub(crate) rope_freq_scale: f32,
+    pub(crate) logits_all: bool,
+
 }
 
 macro_rules! opt_extract {
@@ -59,6 +64,10 @@ impl LlamaInvocation {
         opt_extract!(opt, mirostat_eta, MirostatEta);
         opt_extract!(opt, penalize_nl, PenalizeNl);
         opt_extract!(opt, stop_sequence, StopSequence);
+        opt_extract!(opt, low_vram, LowVRAM);
+        opt_extract!(opt, rope_base_freq, RopeFreqBase);
+        opt_extract!(opt, rope_base_scale, RopeFreqScale);
+        opt_extract!(opt, logits_all, LogitsAll);
 
         let logit_bias = HashMap::<i32, f32>::new(); // token_bias.as_i32_f32_hashmap()?;
 
@@ -81,6 +90,10 @@ impl LlamaInvocation {
             penalize_nl: *penalize_nl,
             stop_sequence: stop_sequence.clone(),
             prompt: prompt.clone(),
+            low_vram: *low_vram,
+            rope_freq_base: *rope_base_freq,
+            rope_freq_scale: *rope_base_scale,
+            logits_all: *logits_all,
         })
     }
 }
@@ -103,7 +116,9 @@ lazy_static! {
         MirostatEta: 0.1,
         PenalizeNl: true,
         StopSequence: vec!["\n\n".to_string()],
-        NumGpuLayers: 0
+        NumGpuLayers: 0,
+        LowVRAM: false,
+        LogitsAll: false
     );
 }
 
@@ -111,8 +126,16 @@ pub(crate) fn get_executor_initial_opts(opt: &OptionsCascade) -> Option<(String,
     opt_extract!(opt, model, Model);
     opt_extract!(opt, max_context_size, MaxContextSize);
     opt_extract!(opt, num_gpu_layers, NumGpuLayers);
+    opt_extract!(opt, rope_freq_base, RopeFreqBase);
+    opt_extract!(opt, rope_freq_scale, RopeFreqScale);
+    opt_extract!(opt, low_vram, LowVRAM);
+    opt_extract!(opt, logits_all, LogitsAll);
     let mut cp = ContextParams::new();
     cp.n_ctx = *max_context_size as i32;
     cp.n_gpu_layers = *num_gpu_layers;
+    cp.rope_freq_base = *rope_freq_base;
+    cp.rope_freq_scale = *rope_freq_scale;
+    cp.low_vram = *low_vram;
+    cp.logits_all = *logits_all;
     Some((model.to_path(), cp))
 }

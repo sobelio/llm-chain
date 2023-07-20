@@ -398,6 +398,10 @@ pub enum Opt {
     /// Number of layers to pass to the GPU for llm-chain-llama.
     /// Only makes sense if CUBLAS is enabled.
     NumGpuLayers(i32),
+    LowVRAM(bool),
+    RopeFreqBase(f32),
+    RopeFreqScale(f32),
+    LogitsAll(bool),
 }
 
 // Helper function to extract environment variables

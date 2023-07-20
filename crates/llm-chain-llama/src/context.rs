@@ -39,6 +39,7 @@ pub struct ContextParams {
     pub low_vram: bool,
     pub rope_freq_base: f32,
     pub rope_freq_scale: f32,
+    pub logits_all: bool,
 }
 
 impl ContextParams {
@@ -70,7 +71,7 @@ impl From<ContextParams> for llama_context_params {
             tensor_split: params.tensor_split,
             seed: params.seed,
             f16_kv: params.f16_kv,
-            logits_all: false,
+            logits_all: params.logits_all,
             vocab_only: params.vocab_only,
             use_mlock: params.use_mlock,
             use_mmap: params.use_mmap,
@@ -101,6 +102,7 @@ impl From<llama_context_params> for ContextParams {
             low_vram: params.low_vram,
             rope_freq_base: params.rope_freq_base,
             rope_freq_scale: params.rope_freq_scale,
+            logits_all: params.logits_all,
         }
     }
 }
