@@ -97,7 +97,7 @@ lazy_static! {
         // ModelType: "llama", // not used
         NThreads: 1_usize,
         MaxTokens: 0_usize,
-        MaxContextSize: 2046_usize,
+        MaxContextSize: 2048_usize,
         TopK: 40_i32,
         TopP: 0.95,
         TfsZ: 1.0,
