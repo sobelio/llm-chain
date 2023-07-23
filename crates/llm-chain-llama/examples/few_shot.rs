@@ -7,7 +7,7 @@ use llm_chain::{chains::conversation::Chain, executor, parameters, prompt, step:
 ///
 /// Usage: cargo run --example few-shot
 ///
-/// Make sure to have the env var 'LLAMA_MODEL_PATH' set
+/// Make sure to have the env var 'LLM_CHAIN_MODEL' set
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let opts = options!(
