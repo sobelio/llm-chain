@@ -191,10 +191,6 @@ impl ExecutorTrait for Executor {
     fn new_with_options(options: Options) -> Result<Executor, ExecutorCreationError> {
         let opts_from_env =
             options_from_env().map_err(|err| ExecutorCreationError::InnerError(err.into()))?;
-        println!(
-            "{:?}",
-            opts_from_env.get(llm_chain::options::OptDiscriminants::Model)
-        );
         let cas = OptionsCascade::new()
             .with_options(&opts_from_env)
             .with_options(&DEFAULT_OPTIONS)
