@@ -13,6 +13,8 @@ where
     Embeddings(#[from] E),
     #[error("Milvus Client Error")]
     Client(InnerError),
+    #[error("Milvus payload column doesn't exist")]
+    InvalidColumnName,
     #[error("Milvus insertion Error")]
     InsertionError,
     #[error("Serde Error")]

@@ -62,6 +62,7 @@ async fn main() {
     let client = Arc::new(MilvusClient::new(URL).await.unwrap());
     let embedding_dim: i64 = 256;
     let default_vec_field: &str = "embedding";
+    let default_payload_field: &str = "payload";
 
     let schema = CollectionSchemaBuilder::new(&collection_name, "a test collection ")
         .add_field(FieldSchema::new_primary_int64(
@@ -93,6 +94,9 @@ async fn main() {
         client,
         collection_name.clone(),
         default_vec_field.to_string(),
+        Some(default_payload_field.to_string()),
+        None,
+        None,
         embeddings,
     );
     let doc_ids = milvus
