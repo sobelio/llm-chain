@@ -6,8 +6,10 @@ use llm_chain::{
 };
 use milvus::{
     client::Client as MilvusClient,
+    collection::SearchOption,
     data::FieldColumn,
     proto::{milvus::MutationResult, schema::i_ds::IdField},
+    value::{Value, ValueVec},
 };
 use serde::{de::DeserializeOwned, Serialize};
 use std::{collections::HashMap, marker::PhantomData, sync::Arc};
@@ -59,7 +61,10 @@ where
         }
     }
 
-    fn results_to_ids(&self, res: MutationResult) -> Result<Vec<String>, MilvusError<E::Error>> {
+    fn ids_from_milvus_results(
+        &self,
+        res: MutationResult,
+    ) -> Result<Vec<String>, MilvusError<E::Error>> {
         let ids = res.i_ds.ok_or(errors::MilvusError::InsertionError)?;
         match ids.id_field {
             Some(IdField::IntId(arr)) => Ok(arr
@@ -98,7 +103,11 @@ where
         );
 
         let milvus_results = collection.insert(vec![embed_column], None).await.unwrap();
-        self.results_to_ids(milvus_results)
+        collection
+            .flush()
+            .await
+            .map_err(|_| errors::MilvusError::InsertionError)?;
+        self.ids_from_milvus_results(milvus_results)
     }
 
     async fn add_documents(&self, documents: Vec<Document<M>>) -> Result<Vec<String>, Self::Error> {
@@ -158,11 +167,16 @@ where
                     .await
                     .unwrap();
 
-                self.results_to_ids(milvus_results)
+                collection
+                    .flush()
+                    .await
+                    .map_err(|_| errors::MilvusError::InsertionError)?;
+
+                self.ids_from_milvus_results(milvus_results)
             }
             None => {
                 let milvus_results = collection.insert(vec![embed_column], None).await.unwrap();
-                self.results_to_ids(milvus_results)
+                self.ids_from_milvus_results(milvus_results)
             }
         }
     }
@@ -172,6 +186,72 @@ where
         query: String,
         limit: u32,
     ) -> Result<Vec<Document<M>>, Self::Error> {
-        todo!()
+        let collection = self
+            .client
+            .get_collection(&self.collection_name)
+            .await
+            .map_err(errors::MilvusError::Client)?;
+
+        let embedded_query = self.embeddings.embed_query(query).await?;
+
+        let indexes = collection
+            .describe_index(self.vector_field_name.clone())
+            .await
+            .unwrap();
+
+        // Take the first index for now
+        let index = indexes
+            .first()
+            .ok_or(errors::MilvusError::EmptyIndexError)?;
+
+        match &self.payload_field_name {
+            Some(out_field) => {
+                let results = collection
+                    .search(
+                        vec![embedded_query.into()],
+                        self.vector_field_name.clone(),
+                        limit as i32,
+                        index.params().metric_type(),
+                        vec![out_field],
+                        &SearchOption::default(),
+                    )
+                    .await
+                    .map_err(Self::Error::Client)?;
+
+                // Convert Results to docs
+                let mut docs: Vec<Document<M>> = Vec::new();
+                for res in results {
+                    for field in res.field.iter().filter(|f| &f.name == out_field) {
+                        match &field.value {
+                            ValueVec::String(val) => {
+                                let payload: HashMap<String, Option<String>> =
+                                    serde_json::from_str(&val[0])
+                                        .map_err(errors::MilvusError::Serde)?;
+
+                                let metadata: Option<M> = payload
+                                    .get(&self.metadata_payload_key)
+                                    .unwrap()
+                                    .clone()
+                                    .into();
+
+                                let page_content = payload
+                                    .get(&self.content_payload_key)
+                                    .unwrap()
+                                    .clone()
+                                    .unwrap_or("".to_string());
+
+                                docs.push(Document {
+                                    page_content: page_content,
+                                    metadata: None,
+                                });
+                            }
+                            _ => return Err(errors::MilvusError::QueryError),
+                        }
+                    }
+                }
+                Ok(docs)
+            }
+            None => return Err(errors::MilvusError::QueryError),
+        }
     }
 }

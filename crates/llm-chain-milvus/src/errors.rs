@@ -15,8 +15,12 @@ where
     Client(InnerError),
     #[error("Milvus payload column doesn't exist")]
     InvalidColumnName,
-    #[error("Milvus insertion Error")]
+    #[error("Milvus insertion error")]
     InsertionError,
+    #[error("No indexes on collection vector field")]
+    EmptyIndexError,
+    #[error("Milvus query error")]
+    QueryError,
     #[error("Serde Error")]
     Serde(serde_json::Error),
 }

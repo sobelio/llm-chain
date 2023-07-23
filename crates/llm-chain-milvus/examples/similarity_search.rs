@@ -5,8 +5,10 @@ use llm_chain::{
 };
 use llm_chain_milvus::Milvus;
 use milvus::client::Client as MilvusClient;
+use milvus::index::{IndexParams, IndexType};
 use milvus::schema::CollectionSchemaBuilder;
 use milvus::schema::FieldSchema;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::vec;
 
@@ -87,12 +89,12 @@ async fn main() {
         .add_field(FieldSchema::new_varchar(
             default_payload_field,
             "vector embedding field",
-            200,
+            10_000,
         ))
         .build()
         .unwrap();
 
-    let _ = client
+    let collection = client
         .create_collection(schema.clone(), None)
         .await
         .unwrap();
@@ -134,5 +136,28 @@ async fn main() {
         .unwrap();
 
     println!("{:?} vectors stored in milvus", doc_ids.len());
-    // collection.drop().await.unwrap();
+
+    // Construct the index and load the collection
+    let index_params = IndexParams::new(
+        "embedding_index".to_owned(),
+        IndexType::Flat,
+        milvus::index::MetricType::L2,
+        HashMap::new(),
+    );
+    collection
+        .create_index(default_vec_field, index_params)
+        .await
+        .unwrap();
+    collection.load(1).await.unwrap();
+
+    // Query
+    let response = milvus
+        .similarity_search(
+            "Sound engineering is involved with concerts and music events".to_string(),
+            1,
+        )
+        .await
+        .unwrap();
+
+    println!("Retrieved stored documents: {:?}", response);
 }
