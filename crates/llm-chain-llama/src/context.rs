@@ -248,13 +248,9 @@ impl LLamaContext {
         }
     }
 
-    pub fn llama_token_to_str(&self, token: &i32) -> String {
+    pub fn llama_token_to_bytes(&self, token: &i32) -> Vec<u8> {
         let c_ptr = unsafe { llama_token_to_str(self.ctx, *token) };
-        let native_string = unsafe { CStr::from_ptr(c_ptr) }
-            .to_str()
-            .unwrap()
-            .to_owned();
-        native_string
+        unsafe { CStr::from_ptr(c_ptr) }.to_bytes().to_vec()
     }
 
     // Evaluates the given tokens with the specified configuration.
