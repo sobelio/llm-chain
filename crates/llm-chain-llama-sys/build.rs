@@ -69,7 +69,7 @@ fn main() {
     }
 
     // build lib
-    env::set_current_dir("llama.cpp").expect("Unable to change directory to whisper.cpp");
+    env::set_current_dir("llama.cpp").expect("Unable to change directory to llama.cpp");
     _ = std::fs::remove_dir_all("build");
     _ = std::fs::create_dir("build");
     env::set_current_dir("build").expect("Unable to change directory to llama.cpp build");
