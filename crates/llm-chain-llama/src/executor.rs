@@ -192,8 +192,8 @@ impl ExecutorTrait for Executor {
         let opts_from_env =
             options_from_env().map_err(|err| ExecutorCreationError::InnerError(err.into()))?;
         let cas = OptionsCascade::new()
-            .with_options(&opts_from_env)
             .with_options(&DEFAULT_OPTIONS)
+            .with_options(&opts_from_env)
             .with_options(&options);
 
         let (model_path, context_params) = get_executor_initial_opts(&cas)?;
