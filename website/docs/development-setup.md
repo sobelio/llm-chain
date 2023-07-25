@@ -14,7 +14,7 @@ First of all, thank you for considering contributing to our project! 🎉 We are
 1. Make your own fork of [`llm-chain`](https://github.com/sobelio/llm-chain).
 2. `git clone` your fork to your local machine.
 3. Follow the instructions on the [rustup website](https://rustup.rs/) to install Rust.
-4. Fetch the project's submodules with `git submodule update`
+4. Fetch the project's submodules with `git submodule update --init`
 5. Test that everything went well with `cargo test`
 6. Make your changes in a new branch, following the coding guidelines and best practices.
 7. Commit and push your changes to your fork.
