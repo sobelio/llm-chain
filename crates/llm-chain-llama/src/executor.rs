@@ -7,7 +7,7 @@ use crate::tokenizer::{embedding_to_output, llama_token_eos, tokenize, tokens_to
 
 use async_trait::async_trait;
 
-use llm_chain::options::{Options, OptionsCascade};
+use llm_chain::options::{options_from_env, Options, OptionsCascade};
 use llm_chain::output::{Output, StreamSegment};
 use llm_chain::prompt::{ChatRole, Prompt};
 
@@ -189,12 +189,14 @@ impl Executor {
 impl ExecutorTrait for Executor {
     type StepTokenizer<'a> = LLamaTokenizer<'a>;
     fn new_with_options(options: Options) -> Result<Executor, ExecutorCreationError> {
+        let opts_from_env =
+            options_from_env().map_err(|err| ExecutorCreationError::InnerError(err.into()))?;
         let cas = OptionsCascade::new()
             .with_options(&DEFAULT_OPTIONS)
+            .with_options(&opts_from_env)
             .with_options(&options);
-        let (model_path, context_params) = get_executor_initial_opts(&cas).ok_or(
-            ExecutorCreationError::FieldRequiredError("generic".to_string()),
-        )?;
+
+        let (model_path, context_params) = get_executor_initial_opts(&cas)?;
         Ok(Self {
             context: Arc::new(Mutex::new(LLamaContext::from_file_and_params(
                 &model_path,
@@ -207,8 +209,8 @@ impl ExecutorTrait for Executor {
     // Executes the model asynchronously and returns the output.
     async fn execute(&self, options: &Options, prompt: &Prompt) -> Result<Output, ExecutorError> {
         let invocation = LlamaInvocation::new(self.get_cascade(options), prompt)
-            .ok_or(ExecutorError::InvalidOptions)?;
-        Ok(self.run_model(invocation).await)
+            .map_err(|_| ExecutorError::InvalidOptions);
+        Ok(self.run_model(invocation?).await)
     }
 
     fn tokens_used(
