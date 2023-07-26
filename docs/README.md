@@ -39,7 +39,7 @@ println!("{}", res);
 
 ## Getting Started 🚀
 
-To start using `llm-chain`, add it as a dependency in your `Cargo.toml`:
+To start using `llm-chain`, add it as a dependency in your `Cargo.toml` (you need Rust 1.65.0 or newer):
 
 ```toml
 [dependencies]
