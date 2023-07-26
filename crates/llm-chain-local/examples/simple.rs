@@ -21,7 +21,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let args = match &raw_args.len() {
       3 => (raw_args[1].as_str(), raw_args[2].as_str(), "Rust is a cool programming language because"),
       4 => (raw_args[1].as_str(), raw_args[2].as_str(), raw_args[3].as_str()),
-      _ => panic!("Usage: cargo run --release --example inference <model type> <path to model> <optional prompt>")
+      _ => panic!("Usage: cargo run --release --example simple <model type> <path to model> <optional prompt>")
     };
 
     let model_type = args.0;
