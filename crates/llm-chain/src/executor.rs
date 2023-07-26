@@ -68,4 +68,8 @@ macro_rules! executor {
         use llm_chain::traits::Executor;
         llm_chain_local::Executor::new_with_options($options)
     }};
+    (mock) => {{
+        use llm_chain::traits::Executor;
+        llm_chain_mock::Executor::new()
+    }};
 }
