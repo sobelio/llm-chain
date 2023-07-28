@@ -10,7 +10,6 @@
 //!
 
 use std::{error::Error, fmt::Debug};
-
 use crate::{
     options::Options,
     output::Output,

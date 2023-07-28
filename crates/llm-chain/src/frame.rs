@@ -12,6 +12,8 @@ use crate::step::Step;
 use crate::traits;
 use crate::traits::ExecutorError;
 use crate::Parameters;
+use crate::prompt;
+
 
 /// The `Frame` struct represents a combination of a `Step` and an `Executor`.
 ///
@@ -45,8 +47,19 @@ where
         &self,
         parameters: &Parameters,
     ) -> Result<Output, FormatAndExecuteError> {
+        if let Some(before) = self.step.before.as_ref(){
+            if let Err(e) = before(parameters){
+                panic!("Error: In before hook, {}", e);
+            }
+        }
         let prompt = self.step.format(parameters)?;
-        Ok(self.executor.execute(self.step.options(), &prompt).await?)
+        let output = self.executor.execute(self.step.options(), &prompt).await?;
+        if let Some(after) = self.step.after.as_ref(){
+            if let Err(e) = after(&output){
+                panic!("Error: In after hook, {}", e);
+            }
+        }
+        Ok(output)
     }
 }
 
@@ -57,4 +70,25 @@ pub enum FormatAndExecuteError {
     Format(#[from] crate::prompt::StringTemplateError),
     #[error("Error executing: {0}")]
     Execute(#[from] ExecutorError),
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    // Tests for step
+    #[test]
+    fn test_step() {
+        let mut step = Step::for_prompt_template(prompt!("Hello, world!"));
+        fn spy_fn(_: &Parameters)->Result<(), String> {
+            Ok(())
+        }
+        step.add_before_hook(spy_fn);
+
+        fn dummy_fn_with_error(_: &Output)->Result<(), String> {
+            Err("Exit with error".to_string())
+        }
+        step.add_after_hook(dummy_fn_with_error);
+    }
+
 }
