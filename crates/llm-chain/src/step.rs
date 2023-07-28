@@ -27,7 +27,6 @@ pub struct Step {
     pub(crate) after: Option<AfterStepHook>,
 }
 
-
 impl Step {
     pub fn for_prompt_template(prompt: prompt::PromptTemplate) -> Self {
         Self {
@@ -41,10 +40,20 @@ impl Step {
         let mut options = Options::builder();
         options.add_option(Opt::Stream(true));
         let options = options.build();
-        Self { prompt, options, before: None, after: None}
+        Self {
+            prompt,
+            options,
+            before: None,
+            after: None,
+        }
     }
     pub fn for_prompt_and_options(prompt: prompt::PromptTemplate, options: Options) -> Self {
-        Self { prompt, options, before: None, after: None }
+        Self {
+            prompt,
+            options,
+            before: None,
+            after: None,
+        }
     }
     pub fn prompt(&self) -> &prompt::PromptTemplate {
         &self.prompt
@@ -77,10 +86,10 @@ impl Step {
     /// * before/after: the hook itself
     /// # Returns
     /// * Ok(()) on success and Err(String) on fail
-    pub fn add_before_hook(& mut self, before: BeforeStepHook){
+    pub fn add_before_hook(&mut self, before: BeforeStepHook) {
         self.before = Some(before);
     }
-    pub fn add_after_hook(& mut self, after: AfterStepHook) {
+    pub fn add_after_hook(&mut self, after: AfterStepHook) {
         self.after = Some(after);
     }
     /// Executes the step with the given parameters and executor.
@@ -104,7 +113,6 @@ impl Step {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -115,17 +123,16 @@ mod tests {
         assert_eq!(step.before, None);
         assert_eq!(step.after, None);
 
-        fn dummy_fn(_: &Parameters)->Result<(), String> {
+        fn dummy_fn(_: &Parameters) -> Result<(), String> {
             Ok(())
         }
         step.add_before_hook(dummy_fn);
 
-        fn dummy_fn_with_error(_: &Output)->Result<(), String> {
+        fn dummy_fn_with_error(_: &Output) -> Result<(), String> {
             Err("Exit with error".to_string())
         }
         step.add_after_hook(dummy_fn_with_error);
         assert_ne!(step.before, None);
         assert_ne!(step.after, None);
     }
-
 }

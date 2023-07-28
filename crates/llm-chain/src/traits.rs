@@ -9,7 +9,6 @@
 //! By implementing these traits, you can set up a new model and use it in your application. Your step defines the input to the model, and your executor invokes the model and returns the output. The output of the executor is then passed to the next step in the chain, and so on.
 //!
 
-use std::{error::Error, fmt::Debug};
 use crate::{
     options::Options,
     output::Output,
@@ -18,6 +17,7 @@ use crate::{
     tokens::{PromptTokensError, TokenCount, Tokenizer, TokenizerError},
 };
 use async_trait::async_trait;
+use std::{error::Error, fmt::Debug};
 
 #[derive(thiserror::Error, Debug)]
 #[error("unable to create executor")]
