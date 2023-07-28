@@ -2,16 +2,20 @@ use llm_chain::output::Output;
 use llm_chain::traits::Executor;
 use llm_chain::tokens::{Tokenizer, TokenizerError};
 use llm_chain::prompt::Prompt;
+use llm_chain::prompt;
+use llm_chain::parameters;
+use llm_chain::Parameters;
 use llm_chain::options::Options;
 use llm_chain::traits::{ExecutorCreationError, ExecutorError};
 use llm_chain::tokens::TokenCount;
 use llm_chain::tokens::PromptTokensError;
-
+use llm_chain::step::Step;
 
 use async_trait::async_trait;
 struct MockExecutor{}
 struct MockTokenizer{}
 
+/// Mock Tokenizer implementation only for testing purposes
 impl Tokenizer for MockTokenizer{
   fn split_text(
           &self,
@@ -24,11 +28,12 @@ impl Tokenizer for MockTokenizer{
   fn to_string(&self, _: llm_chain::tokens::TokenCollection) -> Result<String, llm_chain::tokens::TokenizerError> {
       Ok("hello, world".to_string())
   }
-  fn tokenize_str(&self, doc: &str) -> Result<llm_chain::tokens::TokenCollection, llm_chain::tokens::TokenizerError> {
+  fn tokenize_str(&self, _: &str) -> Result<llm_chain::tokens::TokenCollection, llm_chain::tokens::TokenizerError> {
       Ok(vec![1, 2].into())
   }
 }
 
+/// Mock Executor implementation only for testing purposes
 #[async_trait]
 impl Executor for MockExecutor {
   type StepTokenizer<'a> = MockTokenizer;
@@ -54,10 +59,20 @@ impl Executor for MockExecutor {
 
 #[cfg(test)]
 mod tests {
-    // Tests for step
-    #[test]
-    fn test_step_hooks() {
-      
+    // Test for step hooks
+    use super::*;
+    #[tokio::test]
+    async fn test_step_hooks(){
+      let exec = MockExecutor{};
+      let mut step = Step::for_prompt_template(prompt!(
+        "Say something to {{name}}"
+      ));
+      fn before(p: &Parameters)->Result<(), String>{
+        assert_eq!(p, &parameters!("Retep"));
+        assert_ne!(p, &parameters!("Mary"));
+        Ok(())
+      }
+      step.add_before_hook(before);
+      let _ = step.run(&parameters!("Retep"), &exec).await;
     }
-
 }
