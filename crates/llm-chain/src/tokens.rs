@@ -225,6 +225,7 @@ impl Token {
 ///
 /// `TokenCollection` can hold a collection of `i32` or `usize` tokens,
 /// ensuring type safety and efficient storage.
+#[derive(Debug)]
 pub struct TokenCollection(TokenCollectionImpl);
 
 /// The internal enum representation of `TokenCollection`.
@@ -232,6 +233,7 @@ pub struct TokenCollection(TokenCollectionImpl);
 /// This enum holds the actual data for a `TokenCollection` instance,
 /// allowing us to differentiate between the two types of collections
 /// (`i32` and `usize`) in a type-safe manner.
+#[derive(Debug)]
 enum TokenCollectionImpl {
     /// A token collection of `i32`
     I32(Vec<i32>),
