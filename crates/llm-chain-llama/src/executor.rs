@@ -7,7 +7,7 @@ use crate::tokenizer::{embedding_to_output, llama_token_eos, tokenize, tokens_to
 
 use async_trait::async_trait;
 
-use llm_chain::options::{Options, OptionsCascade};
+use llm_chain::options::{options_from_env, Options, OptionsCascade};
 use llm_chain::output::{Output, StreamSegment};
 use llm_chain::prompt::{ChatRole, Prompt};
 
@@ -129,6 +129,7 @@ impl Executor {
                 let token_eos = llama_token_eos();
                 let mut stop_sequence_i = 0;
                 // Generate remaining tokens.
+                let mut leftover_bytes: Vec<u8> = vec![];
                 while n_remaining > 0 {
                     let tok = context.llama_sample(
                         context_size as i32,
@@ -167,12 +168,26 @@ impl Executor {
                     );
 
                     if n_used >= tokenized_input.len() && stop_sequence_i == 0 {
-                        let str_output = context.llama_token_to_str(&embd[n_used]);
+                        let bytes_output: Vec<u8> =
+                            [leftover_bytes, context.llama_token_to_bytes(&embd[n_used])].concat();
+
+                        let (str_output, leftover) = decode_up_to_valid_utf8(&bytes_output);
+                        leftover_bytes = leftover;
                         // XXX: make into chat if chat
                         if sender.send(StreamSegment::Content(str_output)).is_err() {
                             panic!("Failed to send");
                         }
                     }
+                }
+                if sender
+                    .send(StreamSegment::Content(
+                        std::char::REPLACEMENT_CHARACTER
+                            .to_string()
+                            .repeat(leftover_bytes.len()),
+                    ))
+                    .is_err()
+                {
+                    panic!("Failed to send");
                 }
             }
         })
@@ -189,12 +204,14 @@ impl Executor {
 impl ExecutorTrait for Executor {
     type StepTokenizer<'a> = LLamaTokenizer<'a>;
     fn new_with_options(options: Options) -> Result<Executor, ExecutorCreationError> {
+        let opts_from_env =
+            options_from_env().map_err(|err| ExecutorCreationError::InnerError(err.into()))?;
         let cas = OptionsCascade::new()
             .with_options(&DEFAULT_OPTIONS)
+            .with_options(&opts_from_env)
             .with_options(&options);
-        let (model_path, context_params) = get_executor_initial_opts(&cas).ok_or(
-            ExecutorCreationError::FieldRequiredError("generic".to_string()),
-        )?;
+
+        let (model_path, context_params) = get_executor_initial_opts(&cas)?;
         Ok(Self {
             context: Arc::new(Mutex::new(LLamaContext::from_file_and_params(
                 &model_path,
@@ -207,8 +224,8 @@ impl ExecutorTrait for Executor {
     // Executes the model asynchronously and returns the output.
     async fn execute(&self, options: &Options, prompt: &Prompt) -> Result<Output, ExecutorError> {
         let invocation = LlamaInvocation::new(self.get_cascade(options), prompt)
-            .ok_or(ExecutorError::InvalidOptions)?;
-        Ok(self.run_model(invocation).await)
+            .map_err(|_| ExecutorError::InvalidOptions);
+        Ok(self.run_model(invocation?).await)
     }
 
     fn tokens_used(
@@ -285,4 +302,35 @@ impl Tokenizer for LLamaTokenizer<'_> {
         let output = embedding_to_output(&context, &tokens.as_i32()?);
         Ok(output.to_string())
     }
+}
+
+fn decode_up_to_valid_utf8(bytes: &[u8]) -> (String, Vec<u8>) {
+    let (str_output, leftover): (String, Vec<u8>) = match std::str::from_utf8(bytes) {
+        Ok(s) => (s.to_owned(), Vec::new()),
+        Err(unicode_err) => {
+            let index = unicode_err.valid_up_to();
+            let good = &bytes[0..index];
+            match unicode_err.error_len() {
+                None => {
+                    let leftover = bytes[index..].to_vec();
+                    let out = std::str::from_utf8(good).unwrap().to_owned();
+                    (out, leftover)
+                }
+                Some(len) => {
+                    //let bad = &bytes[index..index+len];
+                    //eprintln!("bad utf8: {:?}", bad);
+                    let rest = &bytes[index + len..];
+                    let beggining = std::str::from_utf8(good).unwrap().to_owned();
+                    let (after, leftover) = decode_up_to_valid_utf8(rest);
+
+                    let mut out = beggining;
+                    out.push_str(&std::char::REPLACEMENT_CHARACTER.to_string().repeat(len));
+                    out.push_str(&after);
+
+                    (out, leftover)
+                }
+            }
+        }
+    };
+    (str_output, leftover)
 }

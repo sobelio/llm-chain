@@ -12,6 +12,8 @@ Welcome to llm-chain, a Rust library designed to simplify working with large lan
 
 To begin, you'll need to install Rust on your machine. We recommend using [rustup](https://rustup.rs/) , the official Rust toolchain manager, to ensure you have the latest version and can manage your installations easily.
 
+You need Rust 1.65.0 or higher. If you see errors about unstable feature or dependencies requiring newer Rust version, please update your Rust version.
+
 1. Follow the instructions on the [rustup website](https://rustup.rs/) to install Rust.
 
 ## Creating a New Rust Project
