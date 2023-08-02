@@ -129,6 +129,7 @@ impl Executor {
                 let token_eos = llama_token_eos();
                 let mut stop_sequence_i = 0;
                 // Generate remaining tokens.
+                let mut leftover_bytes: Vec<u8> = vec![];
                 while n_remaining > 0 {
                     let tok = context.llama_sample(
                         context_size as i32,
@@ -167,12 +168,26 @@ impl Executor {
                     );
 
                     if n_used >= tokenized_input.len() && stop_sequence_i == 0 {
-                        let str_output = context.llama_token_to_str(&embd[n_used]);
+                        let bytes_output: Vec<u8> =
+                            [leftover_bytes, context.llama_token_to_bytes(&embd[n_used])].concat();
+
+                        let (str_output, leftover) = decode_up_to_valid_utf8(&bytes_output);
+                        leftover_bytes = leftover;
                         // XXX: make into chat if chat
                         if sender.send(StreamSegment::Content(str_output)).is_err() {
                             panic!("Failed to send");
                         }
                     }
+                }
+                if sender
+                    .send(StreamSegment::Content(
+                        std::char::REPLACEMENT_CHARACTER
+                            .to_string()
+                            .repeat(leftover_bytes.len()),
+                    ))
+                    .is_err()
+                {
+                    panic!("Failed to send");
                 }
             }
         })
@@ -287,4 +302,35 @@ impl Tokenizer for LLamaTokenizer<'_> {
         let output = embedding_to_output(&context, &tokens.as_i32()?);
         Ok(output.to_string())
     }
+}
+
+fn decode_up_to_valid_utf8(bytes: &[u8]) -> (String, Vec<u8>) {
+    let (str_output, leftover): (String, Vec<u8>) = match std::str::from_utf8(bytes) {
+        Ok(s) => (s.to_owned(), Vec::new()),
+        Err(unicode_err) => {
+            let index = unicode_err.valid_up_to();
+            let good = &bytes[0..index];
+            match unicode_err.error_len() {
+                None => {
+                    let leftover = bytes[index..].to_vec();
+                    let out = std::str::from_utf8(good).unwrap().to_owned();
+                    (out, leftover)
+                }
+                Some(len) => {
+                    //let bad = &bytes[index..index+len];
+                    //eprintln!("bad utf8: {:?}", bad);
+                    let rest = &bytes[index + len..];
+                    let beggining = std::str::from_utf8(good).unwrap().to_owned();
+                    let (after, leftover) = decode_up_to_valid_utf8(rest);
+
+                    let mut out = beggining;
+                    out.push_str(&std::char::REPLACEMENT_CHARACTER.to_string().repeat(len));
+                    out.push_str(&after);
+
+                    (out, leftover)
+                }
+            }
+        }
+    };
+    (str_output, leftover)
 }
