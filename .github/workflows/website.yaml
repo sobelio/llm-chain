@@ -42,9 +42,3 @@ jobs:
           # You can swap them out with your own user credentials.
           user_name: github-actions[bot]
           user_email: 41898282+github-actions[bot]@users.noreply.github.com
-
-      - uses: enhancedocs/setup-enhancedocs@v0.1.3
-        with:
-          api-key: ${{ secrets.ENHANCEDOCS_API_KEY }}
-      - name: Update Docs
-        run: enhancedocs alpha sources web --project 64456d414958ccf11d241c33 https://docs.llm-chain.xyz
