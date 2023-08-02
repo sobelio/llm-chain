@@ -1305,7 +1305,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "strum 0.25.0",
- "strum_macros",
+ "strum_macros 0.25.1",
  "tera",
  "thiserror",
  "tokio",
@@ -1388,6 +1388,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "llm-chain-mock"
+version = "0.12.3"
+dependencies = [
+ "async-trait",
+ "llm-chain",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "llm-chain-openai"
 version = "0.12.3"
 dependencies = [
@@ -1400,7 +1410,7 @@ dependencies = [
  "serde",
  "serde_yaml",
  "strum 0.25.0",
- "strum_macros",
+ "strum_macros 0.25.1",
  "thiserror",
  "tiktoken-rs",
  "tokio",
@@ -1536,7 +1546,7 @@ dependencies = [
  "serde",
  "serde_json",
  "strum 0.24.1",
- "strum_macros",
+ "strum_macros 0.24.3",
  "thiserror",
  "tokio",
  "tonic 0.8.3",
@@ -2599,6 +2609,19 @@ dependencies = [
  "quote",
  "rustversion",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "strum_macros"
+version = "0.25.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6069ca09d878a33f883cc06aaa9718ede171841d3832450354410b718b097232"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "quote",
+ "rustversion",
+ "syn 2.0.18",
 ]
 
 [[package]]
