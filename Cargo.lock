@@ -1388,6 +1388,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "llm-chain-mock"
+version = "0.12.3"
+dependencies = [
+ "async-trait",
+ "llm-chain",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "llm-chain-openai"
 version = "0.12.3"
 dependencies = [
