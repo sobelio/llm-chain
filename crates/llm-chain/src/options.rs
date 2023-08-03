@@ -399,9 +399,9 @@ pub enum Opt {
     /// Only makes sense if CUBLAS is enabled.
     NumGpuLayers(i32),
 
-    /// RoPE base frequency
+    /// RoPE frequency base
     /// Only for llm-chain-llama
-    RopeBaseFrequency(f32),
+    RopeFrequencyBase(f32),
 
     /// RoPE frequency scale
     /// Only for llm-chain-llama

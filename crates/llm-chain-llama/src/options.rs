@@ -112,7 +112,9 @@ lazy_static! {
         MirostatEta: 0.1,
         PenalizeNl: true,
         StopSequence: vec!["\n\n".to_string()],
-        NumGpuLayers: 0
+        NumGpuLayers: 0,
+        RopeFrequencyBase: 10000.0,
+        RopeFrequencyScale: 1.0
     );
 }
 
@@ -122,7 +124,7 @@ pub(crate) fn get_executor_initial_opts(
     let model = opt_extract!(opt, model, Model)?;
     let max_context_size = opt_extract!(opt, max_context_size, MaxContextSize)?;
     let num_gpu_layers = opt_extract!(opt, num_gpu_layers, NumGpuLayers)?;
-    let rope_freq_base = opt_extract!(opt, rope_freq_base, RopeBaseFrequency)?;
+    let rope_freq_base = opt_extract!(opt, rope_freq_base, RopeFrequencyBase)?;
     let rope_freq_scale = opt_extract!(opt, rope_freq_scale, RopeFrequencyScale)?;
 
     let mut cp = ContextParams::new();
