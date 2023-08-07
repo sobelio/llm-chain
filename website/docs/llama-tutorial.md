@@ -44,7 +44,7 @@ To add these dependencies, run the following commands in your terminal:
 
 ```
 cargo add llm-chain
-cargo add tokio --features all
+cargo add tokio --features full
 ```
 ## Step 3: Update Rust
 
