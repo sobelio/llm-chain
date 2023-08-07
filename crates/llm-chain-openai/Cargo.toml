@@ -28,6 +28,6 @@ tokio = "1.28.2"
 tokio = "1.28.2"
 qdrant-client = "1.3.0"
 llm-chain = { path = "../llm-chain" }
-anyhow = "1.0.70"
+anyhow = "1.0.72"
 serde_yaml = "0.9.21"
 
