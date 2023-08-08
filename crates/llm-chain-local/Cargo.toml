@@ -12,7 +12,7 @@ repository = "https://github.com/sobelio/llm-chain/"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-async-trait = "0.1.68"
+async-trait = "0.1.72"
 lazy_static = "1.4.0"
 llm = "0.1.1"
 llm-chain = { path = "../llm-chain", version = "0.12.3", default-features = false }
