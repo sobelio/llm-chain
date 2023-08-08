@@ -228,7 +228,8 @@ where
                                     serde_json::from_str(&val[0])
                                         .map_err(errors::MilvusError::Serde)?;
 
-                                let metadata: Option<M> = payload
+                                let _metadata: Option<String> = payload // XXX: temp fix since the
+                                                                       // var is not used rn
                                     .get(&self.metadata_payload_key)
                                     .unwrap()
                                     .clone()
