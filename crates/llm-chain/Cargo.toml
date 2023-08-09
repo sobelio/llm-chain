@@ -13,7 +13,7 @@ repository = "https://github.com/sobelio/llm-chain/"
 
 
 [dependencies]
-anyhow = "1.0.71"
+anyhow = "1.0.72"
 async-trait = "0.1.68"
 futures = "0.3.28"
 serde = { version = "1.0.164", features = ["derive"] }
