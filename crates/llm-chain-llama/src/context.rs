@@ -14,22 +14,19 @@ use llm_chain_llama_sys::{
     llama_sample_top_k, llama_sample_top_p, llama_sample_typical, llama_token_data,
     llama_token_data_array, llama_token_nl, llama_token_to_str,
 };
-use serde::{Deserialize, Serialize};
 
 #[derive(Debug, thiserror::Error)]
 #[error("LLAMA.cpp returned error-code {0}")]
 pub struct LLAMACPPErrorCode(i32);
 
-const LLAMA_MAX_DEVICES: usize = llm_chain_llama_sys::LLAMA_MAX_DEVICES as usize; // corresponding to constant in llama.h
-
 // Represents the configuration parameters for a LLamaContext.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct ContextParams {
     pub n_ctx: i32,
     pub n_batch: i32,
     pub n_gpu_layers: i32,
     pub main_gpu: i32,
-    pub tensor_split: [f32; LLAMA_MAX_DEVICES],
+    pub tensor_split: *const f32,
     pub seed: u32,
     pub f16_kv: bool,
     pub vocab_only: bool,
@@ -39,7 +36,13 @@ pub struct ContextParams {
     pub low_vram: bool,
     pub rope_freq_base: f32,
     pub rope_freq_scale: f32,
+    pub mul_mat_q: bool,
+    pub n_gqa: i32,
+    pub rms_norm_eps: f32,
 }
+
+unsafe impl Sync for ContextParams {}
+unsafe impl Send for ContextParams {}
 
 impl ContextParams {
     pub fn new() -> ContextParams {
@@ -80,6 +83,9 @@ impl From<ContextParams> for llama_context_params {
             low_vram: params.low_vram,
             rope_freq_base: params.rope_freq_base,
             rope_freq_scale: params.rope_freq_scale,
+            mul_mat_q: params.mul_mat_q,
+            n_gqa: params.n_gqa,
+            rms_norm_eps: params.rms_norm_eps,
         }
     }
 }
@@ -101,6 +107,9 @@ impl From<llama_context_params> for ContextParams {
             low_vram: params.low_vram,
             rope_freq_base: params.rope_freq_base,
             rope_freq_scale: params.rope_freq_scale,
+            mul_mat_q: params.mul_mat_q,
+            n_gqa: params.n_gqa,
+            rms_norm_eps: params.rms_norm_eps,
         }
     }
 }
