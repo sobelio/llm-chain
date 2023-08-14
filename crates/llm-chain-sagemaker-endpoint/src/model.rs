@@ -1,9 +1,10 @@
 use aws_sdk_sagemakerruntime::operation::invoke_endpoint::InvokeEndpointOutput;
 use aws_sdk_sagemakerruntime::primitives::Blob;
-use llm_chain::options::{ModelRef, Opt, Options, OptionsCascade};
+use llm_chain::options::{ModelRef, Opt, OptDiscriminants, Options, OptionsCascade};
 use llm_chain::prompt::Prompt;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use serde_with::skip_serializing_none;
 use strum_macros::EnumString;
 
 /// The `Model` enum represents the available SageMaker Endpoint models.
@@ -45,17 +46,64 @@ impl Formatter for Model {
     fn format_request(&self, prompt: &Prompt, options: &OptionsCascade) -> Blob {
         match self {
             Model::Falcon7BInstruct | Model::Falcon40BInstruct => {
-                let max_tokens = match options.get(llm_chain::options::OptDiscriminants::MaxTokens)
-                {
-                    Some(Opt::MaxTokens(max_tokens)) => max_tokens,
-                    _ => &100,
+                #[skip_serializing_none]
+                #[derive(Serialize)]
+                struct Parameters {
+                    max_new_tokens: Option<usize>,
+                    max_length: Option<usize>,
+                    temperature: Option<f32>,
+                    top_k: Option<i32>,
+                    top_p: Option<f32>,
+                    stop: Option<Vec<String>>,
+                    // TODO: num_beams, no_repeat_ngram_size, early_stopping, do_sample, return_full_text
+                }
+
+                let parameters = Parameters {
+                    max_new_tokens: if let Some(Opt::MaxTokens(i)) =
+                        options.get(OptDiscriminants::MaxTokens)
+                    {
+                        Some(*i)
+                    } else {
+                        None
+                    },
+                    max_length: if let Some(Opt::MaxContextSize(i)) =
+                        options.get(OptDiscriminants::MaxContextSize)
+                    {
+                        Some(*i)
+                    } else {
+                        None
+                    },
+                    temperature: if let Some(Opt::Temperature(i)) =
+                        options.get(OptDiscriminants::Temperature)
+                    {
+                        Some(*i)
+                    } else {
+                        None
+                    },
+                    top_k: if let Some(Opt::TopK(i)) = options.get(OptDiscriminants::TopK) {
+                        Some(*i)
+                    } else {
+                        None
+                    },
+                    top_p: if let Some(Opt::TopP(i)) = options.get(OptDiscriminants::TopP) {
+                        Some(*i)
+                    } else {
+                        None
+                    },
+                    stop: if let Some(Opt::StopSequence(i)) =
+                        options.get(OptDiscriminants::StopSequence)
+                    {
+                        Some(i.clone())
+                    } else {
+                        None
+                    },
                 };
+
                 let body_json = json!({
                     "inputs": prompt.to_string(),
-                    "parameters": {
-                        "max_new_tokens": max_tokens
-                    }
+                    "parameters": parameters
                 });
+
                 let body_string = body_json.to_string();
                 let body_blob = Blob::new(body_string.as_bytes().to_vec());
                 body_blob
