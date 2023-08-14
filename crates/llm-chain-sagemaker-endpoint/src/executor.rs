@@ -10,11 +10,13 @@ use aws_config;
 use aws_sdk_sagemakerruntime;
 use aws_sdk_sagemakerruntime::primitives::Blob;
 use serde_json;
+use futures;
 
 /// Executor is responsible for running the LLM and managing its context.
 pub struct Executor {
     #[allow(dead_code)]
     options: Options,
+    sagemaker_client: aws_sdk_sagemakerruntime::Client,
 }
 
 #[async_trait]
@@ -22,18 +24,21 @@ impl llm_chain::traits::Executor for Executor {
     type StepTokenizer<'a> = SageMakerEndpointTokenizer;
     
     fn new_with_options(options: Options) -> Result<Self, ExecutorCreationError> {
-        Ok(Executor { options: options })
+        let config = futures::executor::block_on(aws_config::load_from_env());
+        let client = aws_sdk_sagemakerruntime::Client::new(&config);
+        Ok(Executor { 
+            options: options, 
+            sagemaker_client: client
+        })
     }
 
     async fn execute(&self, options: &Options, prompt: &Prompt) -> Result<Output, ExecutorError> {
-        let config = aws_config::load_from_env().await;
-        let client = aws_sdk_sagemakerruntime::Client::new(&config);
         
         let body_string = format!("{{\"inputs\": \"{}\"}}", prompt);
         let body_blob = Blob::new(body_string.as_bytes().to_vec());
         
         
-        let result = client.invoke_endpoint()
+        let result = self.sagemaker_client.invoke_endpoint()
             .endpoint_name("falcon-7b") // TODO: make this an option
             .content_type("application/json")
             .body(body_blob.into())
