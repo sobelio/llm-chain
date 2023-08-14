@@ -21,9 +21,13 @@ pub enum Model {
     #[default]
     #[strum(
         serialize = "falcon-7b-instruct",
-        serialize = "falcon-7b"
     )]
     Falcon7BInstruct,
+    
+    #[strum(
+        serialize = "falcon-40b-instruct",
+    )]
+    Falcon40BInstruct,
 
     /// A variant that allows you to specify a custom model name as a string, in case new models
     /// are introduced or you have access to specialized models.
@@ -33,23 +37,36 @@ pub enum Model {
 
 pub trait Formatter {
     fn format_request(&self, prompt: &Prompt) -> Blob;
+    fn request_content_type(&self) -> String;
     fn parse_response(&self, response: InvokeEndpointOutput) -> String;
 }
 
 impl Formatter for Model {
     fn format_request(&self, prompt: &Prompt) -> Blob {
         match self {
-            Model::Falcon7BInstruct => {
+            Model::Falcon7BInstruct |
+            Model::Falcon40BInstruct => {
                 let body_string = format!("{{\"inputs\": \"{}\"}}", prompt);
                 let body_blob = Blob::new(body_string.as_bytes().to_vec());
                 body_blob
             }
             _ => {
-                // TODO: allow user to pass custom parsers
-                unimplemented!();
+                unimplemented!("This model does not have a default formatter. Please format the request with your own code.");
             }
         }
     }
+    
+    fn request_content_type(&self) -> String {
+        match self {
+            Model::Falcon7BInstruct |
+            Model::Falcon40BInstruct => "application/json".to_string(),
+            _ => {
+                unimplemented!("This model does not have a default formatter. Please format the request with your own code.");
+            }
+        }
+    }
+                
+    
     fn parse_response(&self, response: InvokeEndpointOutput) -> String {
         match self {
             Model::Falcon7BInstruct => {
@@ -59,9 +76,19 @@ impl Formatter for Model {
                 generated_text
             }
             _ => {
-                // TODO: allow user to pass custom parsers
-                unimplemented!();
+                unimplemented!("This model does not have a default formatter. Please format the response with your own code.");
             }
+        }
+    }
+}
+
+impl Model {
+    /// Convert the model to its SageMaker JumpStart default endpoint name
+    pub fn to_jumpstart_endpoint_name(&self) -> String { 
+        match &self {
+            Model::Falcon7BInstruct => "jumpstart-dft-hf-llm-falcon-7b-instruct-bf16".to_string(),
+            Model::Falcon40BInstruct => "jumpstart-dft-hf-llm-falcon-40b-instruct-bf16".to_string(),
+            _ => self.to_string()
         }
     }
 }
@@ -70,7 +97,9 @@ impl Formatter for Model {
 impl ToString for Model {
     fn to_string(&self) -> String {
         match &self {
-            Model::Falcon7BInstruct => "falcon-7b".to_string(),
+            Model::Falcon7BInstruct => "falcon-7b-instruct".to_string(),
+            Model::Falcon40BInstruct => "falcon-40b-instruct".to_string(),
+            //jumpstart-dft-hf-llm-falcon-7b-instruct-bf16
             Model::Other(model) => model.to_string(),
         }
     }

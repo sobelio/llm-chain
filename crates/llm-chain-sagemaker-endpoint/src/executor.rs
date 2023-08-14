@@ -27,6 +27,7 @@ pub struct Executor {
 impl Executor {
     fn get_model_from_invocation_options(&self, opts: &OptionsCascade) -> Model {
         let Some(Opt::Model(model)) = opts.get(llm_chain::options::OptDiscriminants::Model) else {
+            // TODO: fail gracefully
             panic!("The Model option must not be empty. This option does not have a default.");
         };
         Model::from_str(&model.to_name()).unwrap()
@@ -60,16 +61,14 @@ impl llm_chain::traits::Executor for Executor {
         
         let body_blob = model.format_request(prompt);
         
+        // TODO: pass model parameters like max tokens
         let result = self.sagemaker_client.invoke_endpoint()
-            .endpoint_name(model.to_string())
-            .content_type("application/json")
+            .endpoint_name(model.to_jumpstart_endpoint_name())
+            .content_type(model.request_content_type())
             .body(body_blob.into())
             .send()
             .await;
-        // TODO: error handling if the response is not valid
-        let Ok(response) = result else {
-            panic!("Failed") // TODO: make this fail gracefully
-        };
+        let response = result.map_err(|e| ExecutorError::InnerError(e.into()))?; 
         let generated_text = model.parse_response(response);
         
         Ok(Output::new_immediate(Prompt::text(generated_text)))
