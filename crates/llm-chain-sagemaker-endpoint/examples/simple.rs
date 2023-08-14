@@ -22,7 +22,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     };
 
     let opts = options!(
-        Model: Model::Falcon7BInstruct // You need to deploy the Falcon 7B Instruct model using SageMaker JumpStart
+        Model: Model::Falcon7BInstruct, // You need to deploy the Falcon 7B Instruct model using SageMaker JumpStart
+        MaxTokens: 50usize
     );
     let exec = executor!(sagemaker_endpoint, opts)?;
     let res = exec

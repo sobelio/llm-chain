@@ -59,7 +59,7 @@ impl llm_chain::traits::Executor for Executor {
         let opts = self.cascade(Some(options));
         let model = self.get_model_from_invocation_options(&opts);
         
-        let body_blob = model.format_request(prompt);
+        let body_blob = model.format_request(prompt, &opts);
         
         // TODO: pass model parameters like max tokens
         let result = self.sagemaker_client.invoke_endpoint()

@@ -1,11 +1,16 @@
-use llm_chain::options::{ModelRef, Opt};
+use llm_chain::options::{ModelRef, Opt, Options, OptionsCascade};
 use serde::{Deserialize, Serialize};
 use strum_macros::EnumString;
 use aws_sdk_sagemakerruntime::primitives::Blob;
 use llm_chain::prompt::Prompt;
 use aws_sdk_sagemakerruntime::operation::invoke_endpoint::InvokeEndpointOutput;
+use serde_json::json;
+
 
 /// The `Model` enum represents the available SageMaker Endpoint models.
+/// Use SageMaker JumpStart to deploy the model listed here. Or use Model::Other
+/// to reference your custom models. For Model::Other, you need to write your own
+/// formatting logic for the request and response.
 ///
 /// # Example
 ///
@@ -36,17 +41,27 @@ pub enum Model {
 }
 
 pub trait Formatter {
-    fn format_request(&self, prompt: &Prompt) -> Blob;
+    fn format_request(&self, prompt: &Prompt, options: &OptionsCascade) -> Blob;
     fn request_content_type(&self) -> String;
     fn parse_response(&self, response: InvokeEndpointOutput) -> String;
 }
 
 impl Formatter for Model {
-    fn format_request(&self, prompt: &Prompt) -> Blob {
+    fn format_request(&self, prompt: &Prompt, options: &OptionsCascade) -> Blob {
         match self {
             Model::Falcon7BInstruct |
             Model::Falcon40BInstruct => {
-                let body_string = format!("{{\"inputs\": \"{}\"}}", prompt);
+                let max_tokens = match options.get(llm_chain::options::OptDiscriminants::MaxTokens) {
+                    Some(Opt::MaxTokens(max_tokens)) => max_tokens,
+                    _ => &100
+                };
+                let body_json = json!({
+                    "inputs": prompt.to_string(),
+                    "parameters": {
+                        "max_new_tokens": max_tokens
+                    }
+                });
+                let body_string = body_json.to_string();
                 let body_blob = Blob::new(body_string.as_bytes().to_vec());
                 body_blob
             }
@@ -86,7 +101,7 @@ impl Model {
     /// Convert the model to its SageMaker JumpStart default endpoint name
     pub fn to_jumpstart_endpoint_name(&self) -> String { 
         match &self {
-            Model::Falcon7BInstruct => "jumpstart-dft-hf-llm-falcon-7b-instruct-bf16".to_string(),
+            Model::Falcon7BInstruct  => "jumpstart-dft-hf-llm-falcon-7b-instruct-bf16".to_string(),
             Model::Falcon40BInstruct => "jumpstart-dft-hf-llm-falcon-40b-instruct-bf16".to_string(),
             _ => self.to_string()
         }
