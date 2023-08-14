@@ -1,6 +1,6 @@
 use aws_sdk_sagemakerruntime::operation::invoke_endpoint::InvokeEndpointOutput;
 use aws_sdk_sagemakerruntime::primitives::Blob;
-use llm_chain::options::{ModelRef, Opt, OptDiscriminants, Options, OptionsCascade};
+use llm_chain::options::{ModelRef, Opt, OptDiscriminants, OptionsCascade};
 use llm_chain::prompt::Prompt;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -128,8 +128,8 @@ impl Formatter for Model {
             Model::Falcon7BInstruct => {
                 let output = String::from_utf8(response.body.unwrap().into_inner()).unwrap();
                 let output_json: serde_json::Value = serde_json::from_str(&output).unwrap();
-                let generated_text = output_json[0]["generated_text"].to_string();
-                generated_text
+                
+                output_json[0]["generated_text"].to_string()
             }
             _ => {
                 unimplemented!("This model does not have a default formatter. Please format the response with your own code.");

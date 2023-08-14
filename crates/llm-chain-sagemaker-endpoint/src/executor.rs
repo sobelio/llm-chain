@@ -1,10 +1,10 @@
 use crate::model::Formatter;
 use crate::model::Model;
 use async_trait::async_trait;
-use aws_config;
-use aws_sdk_sagemakerruntime;
-use aws_sdk_sagemakerruntime::primitives::Blob;
-use futures;
+
+
+
+
 use llm_chain::options::Opt;
 use llm_chain::options::Options;
 use llm_chain::options::OptionsCascade;
@@ -14,7 +14,7 @@ use llm_chain::tokens::{
     PromptTokensError, TokenCollection, TokenCount, Tokenizer, TokenizerError,
 };
 use llm_chain::traits::{ExecutorCreationError, ExecutorError};
-use serde_json;
+
 use std::str::FromStr;
 
 /// Executor is responsible for running the LLM and managing its context.
@@ -50,7 +50,7 @@ impl llm_chain::traits::Executor for Executor {
         let config = futures::executor::block_on(aws_config::load_from_env());
         let client = aws_sdk_sagemakerruntime::Client::new(&config);
         Ok(Executor {
-            options: options,
+            options,
             sagemaker_client: client,
         })
     }
@@ -67,7 +67,7 @@ impl llm_chain::traits::Executor for Executor {
             .invoke_endpoint()
             .endpoint_name(model.to_jumpstart_endpoint_name())
             .content_type(model.request_content_type())
-            .body(body_blob.into())
+            .body(body_blob)
             .send()
             .await;
         let response = result.map_err(|e| ExecutorError::InnerError(e.into()))?;
@@ -78,8 +78,8 @@ impl llm_chain::traits::Executor for Executor {
 
     fn tokens_used(
         &self,
-        options: &Options,
-        prompt: &Prompt,
+        _options: &Options,
+        _prompt: &Prompt,
     ) -> Result<TokenCount, PromptTokensError> {
         unimplemented!();
     }
@@ -106,11 +106,11 @@ impl SageMakerEndpointTokenizer {
 }
 
 impl Tokenizer for SageMakerEndpointTokenizer {
-    fn tokenize_str(&self, doc: &str) -> Result<TokenCollection, TokenizerError> {
+    fn tokenize_str(&self, _doc: &str) -> Result<TokenCollection, TokenizerError> {
         unimplemented!();
     }
 
-    fn to_string(&self, tokens: TokenCollection) -> Result<String, TokenizerError> {
+    fn to_string(&self, _tokens: TokenCollection) -> Result<String, TokenizerError> {
         unimplemented!();
     }
 }
