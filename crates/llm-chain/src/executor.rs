@@ -72,8 +72,8 @@ macro_rules! executor {
         use llm_chain::traits::Executor;
         llm_chain_mock::Executor::new()
     }};
-    (sagemaker_endpoint) => {{
+    (sagemaker_endpoint, $options:expr) => {{
         use llm_chain::traits::Executor;
-        llm_chain_sagemaker_endpoint::Executor::new()
+        llm_chain_sagemaker_endpoint::Executor::new_with_options($options)
     }};
 }

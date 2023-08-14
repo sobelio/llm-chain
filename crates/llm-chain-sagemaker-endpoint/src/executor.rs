@@ -1,5 +1,7 @@
 use async_trait::async_trait;
 use llm_chain::options::Options;
+use llm_chain::options::OptionsCascade;
+use llm_chain::options::Opt;
 use llm_chain::output::Output;
 use llm_chain::prompt::Prompt;
 use llm_chain::tokens::{
@@ -11,12 +13,32 @@ use aws_sdk_sagemakerruntime;
 use aws_sdk_sagemakerruntime::primitives::Blob;
 use serde_json;
 use futures;
+use crate::model::Model;
+use crate::model::Formatter;
+use std::str::FromStr;
 
 /// Executor is responsible for running the LLM and managing its context.
 pub struct Executor {
     #[allow(dead_code)]
     options: Options,
     sagemaker_client: aws_sdk_sagemakerruntime::Client,
+}
+
+impl Executor {
+    fn get_model_from_invocation_options(&self, opts: &OptionsCascade) -> Model {
+        let Some(Opt::Model(model)) = opts.get(llm_chain::options::OptDiscriminants::Model) else {
+            panic!("The Model option must not be empty. This option does not have a default.");
+        };
+        Model::from_str(&model.to_name()).unwrap()
+    }
+    
+    fn cascade<'a>(&'a self, opts: Option<&'a Options>) -> OptionsCascade<'a> {
+        let mut v: Vec<&'a Options> = vec![&self.options];
+        if let Some(o) = opts {
+            v.push(o);
+        }
+        OptionsCascade::from_vec(v)
+    }
 }
 
 #[async_trait]
@@ -33,21 +55,22 @@ impl llm_chain::traits::Executor for Executor {
     }
 
     async fn execute(&self, options: &Options, prompt: &Prompt) -> Result<Output, ExecutorError> {
+        let opts = self.cascade(Some(options));
+        let model = self.get_model_from_invocation_options(&opts);
         
-        let body_string = format!("{{\"inputs\": \"{}\"}}", prompt);
-        let body_blob = Blob::new(body_string.as_bytes().to_vec());
-        
+        let body_blob = model.format_request(prompt);
         
         let result = self.sagemaker_client.invoke_endpoint()
-            .endpoint_name("falcon-7b") // TODO: make this an option
+            .endpoint_name(model.to_string())
             .content_type("application/json")
             .body(body_blob.into())
             .send()
             .await;
         // TODO: error handling if the response is not valid
-        let output = String::from_utf8(result.unwrap().body.unwrap().into_inner()).unwrap();
-        let output_json: serde_json::Value = serde_json::from_str(&output).unwrap();
-        let generated_text = output_json[0]["generated_text"].to_string();
+        let Ok(response) = result else {
+            panic!("Failed") // TODO: make this fail gracefully
+        };
+        let generated_text = model.parse_response(response);
         
         Ok(Output::new_immediate(Prompt::text(generated_text)))
     }
