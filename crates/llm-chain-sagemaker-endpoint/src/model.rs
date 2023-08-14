@@ -1,11 +1,10 @@
-use llm_chain::options::{ModelRef, Opt, Options, OptionsCascade};
-use serde::{Deserialize, Serialize};
-use strum_macros::EnumString;
-use aws_sdk_sagemakerruntime::primitives::Blob;
-use llm_chain::prompt::Prompt;
 use aws_sdk_sagemakerruntime::operation::invoke_endpoint::InvokeEndpointOutput;
+use aws_sdk_sagemakerruntime::primitives::Blob;
+use llm_chain::options::{ModelRef, Opt, Options, OptionsCascade};
+use llm_chain::prompt::Prompt;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
-
+use strum_macros::EnumString;
 
 /// The `Model` enum represents the available SageMaker Endpoint models.
 /// Use SageMaker JumpStart to deploy the model listed here. Or use Model::Other
@@ -24,14 +23,10 @@ use serde_json::json;
 #[non_exhaustive]
 pub enum Model {
     #[default]
-    #[strum(
-        serialize = "falcon-7b-instruct",
-    )]
+    #[strum(serialize = "falcon-7b-instruct")]
     Falcon7BInstruct,
-    
-    #[strum(
-        serialize = "falcon-40b-instruct",
-    )]
+
+    #[strum(serialize = "falcon-40b-instruct")]
     Falcon40BInstruct,
 
     /// A variant that allows you to specify a custom model name as a string, in case new models
@@ -49,11 +44,11 @@ pub trait Formatter {
 impl Formatter for Model {
     fn format_request(&self, prompt: &Prompt, options: &OptionsCascade) -> Blob {
         match self {
-            Model::Falcon7BInstruct |
-            Model::Falcon40BInstruct => {
-                let max_tokens = match options.get(llm_chain::options::OptDiscriminants::MaxTokens) {
+            Model::Falcon7BInstruct | Model::Falcon40BInstruct => {
+                let max_tokens = match options.get(llm_chain::options::OptDiscriminants::MaxTokens)
+                {
                     Some(Opt::MaxTokens(max_tokens)) => max_tokens,
-                    _ => &100
+                    _ => &100,
                 };
                 let body_json = json!({
                     "inputs": prompt.to_string(),
@@ -70,18 +65,16 @@ impl Formatter for Model {
             }
         }
     }
-    
+
     fn request_content_type(&self) -> String {
         match self {
-            Model::Falcon7BInstruct |
-            Model::Falcon40BInstruct => "application/json".to_string(),
+            Model::Falcon7BInstruct | Model::Falcon40BInstruct => "application/json".to_string(),
             _ => {
                 unimplemented!("This model does not have a default formatter. Please format the request with your own code.");
             }
         }
     }
-                
-    
+
     fn parse_response(&self, response: InvokeEndpointOutput) -> String {
         match self {
             Model::Falcon7BInstruct => {
@@ -99,11 +92,11 @@ impl Formatter for Model {
 
 impl Model {
     /// Convert the model to its SageMaker JumpStart default endpoint name
-    pub fn to_jumpstart_endpoint_name(&self) -> String { 
+    pub fn to_jumpstart_endpoint_name(&self) -> String {
         match &self {
-            Model::Falcon7BInstruct  => "jumpstart-dft-hf-llm-falcon-7b-instruct-bf16".to_string(),
+            Model::Falcon7BInstruct => "jumpstart-dft-hf-llm-falcon-7b-instruct-bf16".to_string(),
             Model::Falcon40BInstruct => "jumpstart-dft-hf-llm-falcon-40b-instruct-bf16".to_string(),
-            _ => self.to_string()
+            _ => self.to_string(),
         }
     }
 }

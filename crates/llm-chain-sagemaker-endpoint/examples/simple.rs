@@ -16,9 +16,9 @@ use llm_chain_sagemaker_endpoint::model::Model;
 async fn main() -> Result<(), Box<dyn Error>> {
     let raw_args: Vec<String> = args().collect();
     let prompt = match &raw_args.len() {
-      1 => "Rust is a cool programming language because",
-      2 => raw_args[1].as_str(),
-      _ => panic!("Usage: cargo run --release --example simple <optional prompt>")
+        1 => "Rust is a cool programming language because",
+        2 => raw_args[1].as_str(),
+        _ => panic!("Usage: cargo run --release --example simple <optional prompt>"),
     };
 
     let opts = options!(
