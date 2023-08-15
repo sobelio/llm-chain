@@ -23,10 +23,14 @@ use strum_macros::EnumString;
 #[derive(Debug, Default, Clone, Serialize, Deserialize, EnumString, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Model {
+    /// Falcon 7B Instruct BF16
+    /// https://huggingface.co/tiiuae/falcon-7b-instruct
     #[default]
     #[strum(serialize = "falcon-7b-instruct")]
     Falcon7BInstruct,
 
+    /// Falcon 40B Instruct BF16
+    /// https://huggingface.co/tiiuae/falcon-40b-instruct
     #[strum(serialize = "falcon-40b-instruct")]
     Falcon40BInstruct,
 

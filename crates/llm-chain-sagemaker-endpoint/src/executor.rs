@@ -58,7 +58,6 @@ impl llm_chain::traits::Executor for Executor {
 
         let body_blob = model.format_request(prompt, &opts);
 
-        // TODO: pass model parameters like max tokens
         let result = self
             .sagemaker_client
             .invoke_endpoint()
@@ -78,18 +77,22 @@ impl llm_chain::traits::Executor for Executor {
         _options: &Options,
         _prompt: &Prompt,
     ) -> Result<TokenCount, PromptTokensError> {
+        // Not all models expose this information.
         unimplemented!();
     }
 
     fn max_tokens_allowed(&self, _: &Options) -> i32 {
+        // Not all models expose this information.
         unimplemented!();
     }
 
     fn answer_prefix(&self, _prompt: &Prompt) -> Option<String> {
+        // Not all models expose this information.
         unimplemented!();
     }
 
     fn get_tokenizer(&self, _: &Options) -> Result<Self::StepTokenizer<'_>, TokenizerError> {
+        // Not all models expose this information.
         unimplemented!();
     }
 }
