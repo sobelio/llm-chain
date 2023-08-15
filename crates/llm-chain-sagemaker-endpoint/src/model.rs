@@ -59,44 +59,30 @@ impl Formatter for Model {
                 }
 
                 let parameters = Parameters {
-                    max_new_tokens: if let Some(Opt::MaxTokens(i)) =
-                        options.get(OptDiscriminants::MaxTokens)
-                    {
-                        Some(*i)
-                    } else {
-                        None
-                    },
-                    max_length: if let Some(Opt::MaxContextSize(i)) =
-                        options.get(OptDiscriminants::MaxContextSize)
-                    {
-                        Some(*i)
-                    } else {
-                        None
-                    },
-                    temperature: if let Some(Opt::Temperature(i)) =
-                        options.get(OptDiscriminants::Temperature)
-                    {
-                        Some(*i)
-                    } else {
-                        None
-                    },
-                    top_k: if let Some(Opt::TopK(i)) = options.get(OptDiscriminants::TopK) {
-                        Some(*i)
-                    } else {
-                        None
-                    },
-                    top_p: if let Some(Opt::TopP(i)) = options.get(OptDiscriminants::TopP) {
-                        Some(*i)
-                    } else {
-                        None
-                    },
-                    stop: if let Some(Opt::StopSequence(i)) =
-                        options.get(OptDiscriminants::StopSequence)
-                    {
-                        Some(i.clone())
-                    } else {
-                        None
-                    },
+                    max_new_tokens: options.get(OptDiscriminants::MaxTokens).map(|x| match x {
+                        Opt::MaxTokens(i) => *i,
+                        _ => unreachable!("options.get should restrict the enum variant."),
+                    }),
+                    max_length: options.get(OptDiscriminants::MaxContextSize).map(|x| match x {
+                        Opt::MaxContextSize(i) => *i,
+                        _ => unreachable!("options.get should restrict the enum variant."),
+                    }),
+                    temperature: options.get(OptDiscriminants::Temperature).map(|x| match x {
+                        Opt::Temperature(i) => *i,
+                        _ => unreachable!("options.get should restrict the enum variant."),
+                    }),
+                    top_k: options.get(OptDiscriminants::TopK).map(|x| match x {
+                        Opt::TopK(i) => *i,
+                        _ => unreachable!("options.get should restrict the enum variant."),
+                    }),
+                    top_p: options.get(OptDiscriminants::TopP).map(|x| match x {
+                        Opt::TopP(i) => *i,
+                        _ => unreachable!("options.get should restrict the enum variant."),
+                    }),
+                    stop: options.get(OptDiscriminants::StopSequence).map(|x| match x {
+                        Opt::StopSequence(i) => i.clone(),
+                        _ => unreachable!("options.get should restrict the enum variant."),
+                    }),
                 };
 
                 let body_json = json!({
@@ -128,7 +114,7 @@ impl Formatter for Model {
             Model::Falcon7BInstruct => {
                 let output = String::from_utf8(response.body.unwrap().into_inner()).unwrap();
                 let output_json: serde_json::Value = serde_json::from_str(&output).unwrap();
-                
+
                 output_json[0]["generated_text"].to_string()
             }
             _ => {

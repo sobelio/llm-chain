@@ -2,9 +2,6 @@ use crate::model::Formatter;
 use crate::model::Model;
 use async_trait::async_trait;
 
-
-
-
 use llm_chain::options::Opt;
 use llm_chain::options::Options;
 use llm_chain::options::OptionsCascade;
