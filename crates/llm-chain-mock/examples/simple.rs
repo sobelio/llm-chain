@@ -14,9 +14,9 @@ extern crate llm_chain_mock;
 async fn main() -> Result<(), Box<dyn Error>> {
     let raw_args: Vec<String> = args().collect();
     let prompt = match &raw_args.len() {
-      1 => "Rust is a cool programming language because",
-      2 => raw_args[1].as_str(),
-      _ => panic!("Usage: cargo run --release --example simple")
+        1 => "Rust is a cool programming language because",
+        2 => raw_args[1].as_str(),
+        _ => panic!("Usage: cargo run --release --example simple"),
     };
 
     let exec = executor!(mock)?;
