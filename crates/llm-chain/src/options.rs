@@ -406,7 +406,6 @@ pub enum Opt {
     /// RoPE frequency scale
     /// Only for llm-chain-llama
     RopeFrequencyScale(f32),
-
 }
 
 // Helper function to extract environment variables
