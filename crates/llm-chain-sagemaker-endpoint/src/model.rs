@@ -67,10 +67,12 @@ impl Formatter for Model {
                         Opt::MaxTokens(i) => *i,
                         _ => unreachable!("options.get should restrict the enum variant."),
                     }),
-                    max_length: options.get(OptDiscriminants::MaxContextSize).map(|x| match x {
-                        Opt::MaxContextSize(i) => *i,
-                        _ => unreachable!("options.get should restrict the enum variant."),
-                    }),
+                    max_length: options
+                        .get(OptDiscriminants::MaxContextSize)
+                        .map(|x| match x {
+                            Opt::MaxContextSize(i) => *i,
+                            _ => unreachable!("options.get should restrict the enum variant."),
+                        }),
                     temperature: options.get(OptDiscriminants::Temperature).map(|x| match x {
                         Opt::Temperature(i) => *i,
                         _ => unreachable!("options.get should restrict the enum variant."),
@@ -83,10 +85,12 @@ impl Formatter for Model {
                         Opt::TopP(i) => *i,
                         _ => unreachable!("options.get should restrict the enum variant."),
                     }),
-                    stop: options.get(OptDiscriminants::StopSequence).map(|x| match x {
-                        Opt::StopSequence(i) => i.clone(),
-                        _ => unreachable!("options.get should restrict the enum variant."),
-                    }),
+                    stop: options
+                        .get(OptDiscriminants::StopSequence)
+                        .map(|x| match x {
+                            Opt::StopSequence(i) => i.clone(),
+                            _ => unreachable!("options.get should restrict the enum variant."),
+                        }),
                 };
 
                 let body_json = json!({
