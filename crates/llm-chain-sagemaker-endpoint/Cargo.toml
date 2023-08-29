@@ -23,6 +23,7 @@ serde_with = "3.2.0"
 strum = "0.25.0"
 strum_macros = "0.25.2"
 thiserror = "1.0.40"
+tokenizers ={ version = "0.13.4", features = ["http"]}
 
 [dev-dependencies]
 tokio = { version = "1.28.2", features = ["macros", "rt"] }

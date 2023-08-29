@@ -141,6 +141,14 @@ impl Model {
             _ => self.to_string(),
         }
     }
+    /// Convert the model to its HuggingFace model name
+    pub fn to_huggingface_name(&self) -> String {
+        match &self {
+            Model::Falcon7BInstruct => "tiiuae/falcon-7b-instruct".to_string(),
+            Model::Falcon40BInstruct => "tiiuae/falcon-40b-instruct".to_string(),
+            _ => self.to_string(),
+        }
+    }
 }
 
 /// The `Model` enum implements the `ToString` trait, allowing you to easily convert it to a string.

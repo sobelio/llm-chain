@@ -2,6 +2,7 @@ use crate::model::Formatter;
 use crate::model::Model;
 use async_trait::async_trait;
 
+use llm_chain::options;
 use llm_chain::options::Opt;
 use llm_chain::options::Options;
 use llm_chain::options::OptionsCascade;
@@ -11,6 +12,8 @@ use llm_chain::tokens::{
     PromptTokensError, TokenCollection, TokenCount, Tokenizer, TokenizerError,
 };
 use llm_chain::traits::{ExecutorCreationError, ExecutorError};
+
+use tokenizers::tokenizer::Tokenizer as HuggingFaceTokenizer;
 
 use std::str::FromStr;
 
@@ -91,26 +94,74 @@ impl llm_chain::traits::Executor for Executor {
         unimplemented!();
     }
 
-    fn get_tokenizer(&self, _: &Options) -> Result<Self::StepTokenizer<'_>, TokenizerError> {
-        // Not all models expose this information.
-        unimplemented!();
+    fn get_tokenizer(&self, options: &Options) -> Result<Self::StepTokenizer<'_>, TokenizerError> {
+        Ok(SageMakerEndpointTokenizer::new(self.cascade(Some(options))))
     }
 }
 
-pub struct SageMakerEndpointTokenizer {}
+pub struct SageMakerEndpointTokenizer {
+    tokenizer: Option<HuggingFaceTokenizer>
+}
 
 impl SageMakerEndpointTokenizer {
-    pub fn new(_executor: &Executor) -> Self {
-        SageMakerEndpointTokenizer {}
+    pub fn new(options: OptionsCascade) -> Self {
+        let optional_tokenizer = match options.get(llm_chain::options::OptDiscriminants::Model) {
+            Some(Opt::Model(model)) => {
+               let model_struct = Model::from_str(&model.to_name()).unwrap(); 
+                Some(HuggingFaceTokenizer::from_pretrained(&model_struct.to_huggingface_name(), None).unwrap()) // TODO: no options
+            }
+            _ => None,
+        };
+        
+        SageMakerEndpointTokenizer {
+            tokenizer: optional_tokenizer
+        }
     }
 }
 
 impl Tokenizer for SageMakerEndpointTokenizer {
-    fn tokenize_str(&self, _doc: &str) -> Result<TokenCollection, TokenizerError> {
-        unimplemented!();
+    fn tokenize_str(&self, doc: &str) -> Result<TokenCollection, TokenizerError> {
+        match &self.tokenizer {
+            Some(tokenizer) => {
+                let encoding = tokenizer.encode(doc, false).map_err(|_| TokenizerError::TokenizationError)?;
+                let ids: Vec<i32> = encoding.get_ids().iter().map(|x| *x as i32).collect();
+                Ok(TokenCollection::from(ids))
+            },
+            None => unimplemented!("This model does not have a tokenizer impelmentation.")
+        }
     }
 
-    fn to_string(&self, _tokens: TokenCollection) -> Result<String, TokenizerError> {
-        unimplemented!();
+    fn to_string(&self, tokens: TokenCollection) -> Result<String, TokenizerError> {
+        match &self.tokenizer {
+            Some(tokenizer) => {
+                let ids: Vec<u32> = tokens.as_i32().unwrap().iter().map(|x| *x as u32).collect::<Vec<u32>>();
+                Ok(tokenizer.decode(ids.as_slice(), false).map_err(|_| TokenizerError::TokenizationError)?)
+            },
+            None => unimplemented!("This model does not have a tokenizer impelmentation.")
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::model::Model;
+    use llm_chain::traits::Executor;
+    
+    #[test]
+    fn test_tokenizer() {
+        let opts = options!(
+            Model: Model::Falcon7BInstruct
+        );
+        let executor: super::Executor = Executor::new_with_options(opts.clone()).unwrap();
+        let opts_cascade = executor.cascade(Some(&opts));
+        let tokenizer = SageMakerEndpointTokenizer::new(opts_cascade);
+        let doc = "This is a example string to be tokenized";
+        let tokens = vec![1182, 304, 241, 1945, 3821, 271, 314, 10930, 1190];
+        
+        assert_eq!(tokenizer.tokenize_str(doc).unwrap().len(), 9);
+        assert_eq!(tokenizer.tokenize_str(doc).unwrap().as_i32().unwrap(), tokens);
+        
+        assert_eq!(tokenizer.to_string(TokenCollection::from(tokens)).unwrap(), doc);
     }
 }
