@@ -119,7 +119,7 @@ impl Formatter for Model {
 
     fn parse_response(&self, response: InvokeEndpointOutput) -> String {
         match self {
-            Model::Falcon7BInstruct => {
+            Model::Falcon7BInstruct | Model::Falcon40BInstruct  => {
                 let output = String::from_utf8(response.body.unwrap().into_inner()).unwrap();
                 let output_json: serde_json::Value = serde_json::from_str(&output).unwrap();
 
