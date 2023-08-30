@@ -149,6 +149,14 @@ impl Model {
             _ => self.to_string(),
         }
     }
+    
+    pub fn context_window_size(&self) -> Option<i32> {
+        match &self {
+            Model::Falcon7BInstruct  => Some(2048),
+            Model::Falcon40BInstruct => Some(2048),
+            _ => None
+        }
+    }
 }
 
 /// The `Model` enum implements the `ToString` trait, allowing you to easily convert it to a string.

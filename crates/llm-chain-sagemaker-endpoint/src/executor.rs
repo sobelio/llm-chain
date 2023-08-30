@@ -84,9 +84,10 @@ impl llm_chain::traits::Executor for Executor {
         unimplemented!();
     }
 
-    fn max_tokens_allowed(&self, _: &Options) -> i32 {
-        // Not all models expose this information.
-        unimplemented!();
+    fn max_tokens_allowed(&self, options: &Options) -> i32 {
+        let opts = self.cascade(Some(options));
+        let model = self.get_model_from_invocation_options(&opts);
+        model.context_window_size().unwrap_or_else(|| unimplemented!("This model does not expose max token allowed information."))
     }
 
     fn answer_prefix(&self, _prompt: &Prompt) -> Option<String> {
@@ -163,5 +164,15 @@ mod tests {
         assert_eq!(tokenizer.tokenize_str(doc).unwrap().as_i32().unwrap(), tokens);
         
         assert_eq!(tokenizer.to_string(TokenCollection::from(tokens)).unwrap(), doc);
+    }
+    
+    #[test]
+    fn test_max_token_allowed() {
+        let opts = options!(
+            Model: Model::Falcon7BInstruct
+        );
+        let executor: super::Executor = Executor::new_with_options(opts.clone()).unwrap();
+        
+        assert_eq!(executor.max_tokens_allowed(&opts), 2048);
     }
 }
