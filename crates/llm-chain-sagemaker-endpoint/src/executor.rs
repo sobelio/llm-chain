@@ -91,8 +91,7 @@ impl llm_chain::traits::Executor for Executor {
     }
 
     fn answer_prefix(&self, _prompt: &Prompt) -> Option<String> {
-        // Not all models expose this information.
-        unimplemented!();
+        None
     }
 
     fn get_tokenizer(&self, options: &Options) -> Result<Self::StepTokenizer<'_>, TokenizerError> {
