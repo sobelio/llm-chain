@@ -77,11 +77,18 @@ impl llm_chain::traits::Executor for Executor {
 
     fn tokens_used(
         &self,
-        _options: &Options,
-        _prompt: &Prompt,
+        options: &Options,
+        prompt: &Prompt,
     ) -> Result<TokenCount, PromptTokensError> {
-        // Not all models expose this information.
-        unimplemented!();
+        let tokenizer = self.get_tokenizer(options)?;
+        let input = prompt.to_text();
+
+        let tokens_used = tokenizer
+            .tokenize_str(&input)
+            .map_err(|_e| PromptTokensError::UnableToCompute)?
+            .len() as i32;
+        let max_tokens = self.max_tokens_allowed(options);
+        Ok(TokenCount::new(max_tokens, tokens_used)) 
     }
 
     fn max_tokens_allowed(&self, options: &Options) -> i32 {
@@ -173,5 +180,17 @@ mod tests {
         let executor: super::Executor = Executor::new_with_options(opts.clone()).unwrap();
         
         assert_eq!(executor.max_tokens_allowed(&opts), 2048);
+    }
+    
+    #[test]
+    fn test_token_used() {
+        let opts = options!(
+            Model: Model::Falcon7BInstruct
+        );
+        let executor: super::Executor = Executor::new_with_options(opts.clone()).unwrap();
+        let doc = "This is a example string to be tokenized"; // 9 tokens
+        let prompt = Prompt::text(doc.to_string());
+        
+        assert_eq!(executor.tokens_used(&opts, &prompt).unwrap(), TokenCount::new(2048, 9));
     }
 }

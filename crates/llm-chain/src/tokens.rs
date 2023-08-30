@@ -76,6 +76,7 @@ impl<E: traits::Executor> ExecutorTokenCountExt for E {}
 
 /// Struct representing token count information, including the maximum tokens allowed and the
 /// total number of tokens used.
+#[derive(Debug, PartialEq)]
 pub struct TokenCount {
     /// The maximum number of tokens allowed.
     max_tokens: i32,
