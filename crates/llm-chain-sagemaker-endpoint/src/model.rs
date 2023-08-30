@@ -119,7 +119,7 @@ impl Formatter for Model {
 
     fn parse_response(&self, response: InvokeEndpointOutput) -> String {
         match self {
-            Model::Falcon7BInstruct | Model::Falcon40BInstruct  => {
+            Model::Falcon7BInstruct | Model::Falcon40BInstruct => {
                 let output = String::from_utf8(response.body.unwrap().into_inner()).unwrap();
                 let output_json: serde_json::Value = serde_json::from_str(&output).unwrap();
 
@@ -149,12 +149,12 @@ impl Model {
             _ => self.to_string(),
         }
     }
-    
+
     pub fn context_window_size(&self) -> Option<i32> {
         match &self {
-            Model::Falcon7BInstruct  => Some(2048),
+            Model::Falcon7BInstruct => Some(2048),
             Model::Falcon40BInstruct => Some(2048),
-            _ => None
+            _ => None,
         }
     }
 }

@@ -88,13 +88,15 @@ impl llm_chain::traits::Executor for Executor {
             .map_err(|_e| PromptTokensError::UnableToCompute)?
             .len() as i32;
         let max_tokens = self.max_tokens_allowed(options);
-        Ok(TokenCount::new(max_tokens, tokens_used)) 
+        Ok(TokenCount::new(max_tokens, tokens_used))
     }
 
     fn max_tokens_allowed(&self, options: &Options) -> i32 {
         let opts = self.cascade(Some(options));
         let model = self.get_model_from_invocation_options(&opts);
-        model.context_window_size().unwrap_or_else(|| unimplemented!("This model does not expose max token allowed information."))
+        model.context_window_size().unwrap_or_else(|| {
+            unimplemented!("This model does not expose max token allowed information.")
+        })
     }
 
     fn answer_prefix(&self, _prompt: &Prompt) -> Option<String> {
@@ -107,21 +109,27 @@ impl llm_chain::traits::Executor for Executor {
 }
 
 pub struct SageMakerEndpointTokenizer {
-    tokenizer: Option<HuggingFaceTokenizer>
+    tokenizer: Option<HuggingFaceTokenizer>,
 }
 
 impl SageMakerEndpointTokenizer {
     pub fn new(options: OptionsCascade) -> Self {
         let optional_tokenizer = match options.get(llm_chain::options::OptDiscriminants::Model) {
             Some(Opt::Model(model)) => {
-               let model_struct = Model::from_str(&model.to_name()).unwrap(); 
-                Some(HuggingFaceTokenizer::from_pretrained(&model_struct.to_huggingface_name(), None).unwrap()) // TODO: no options
+                let model_struct = Model::from_str(&model.to_name()).unwrap();
+                Some(
+                    HuggingFaceTokenizer::from_pretrained(
+                        &model_struct.to_huggingface_name(),
+                        None,
+                    )
+                    .unwrap(),
+                ) // TODO: no options
             }
             _ => None,
         };
-        
+
         SageMakerEndpointTokenizer {
-            tokenizer: optional_tokenizer
+            tokenizer: optional_tokenizer,
         }
     }
 }
@@ -130,21 +138,30 @@ impl Tokenizer for SageMakerEndpointTokenizer {
     fn tokenize_str(&self, doc: &str) -> Result<TokenCollection, TokenizerError> {
         match &self.tokenizer {
             Some(tokenizer) => {
-                let encoding = tokenizer.encode(doc, false).map_err(|_| TokenizerError::TokenizationError)?;
+                let encoding = tokenizer
+                    .encode(doc, false)
+                    .map_err(|_| TokenizerError::TokenizationError)?;
                 let ids: Vec<i32> = encoding.get_ids().iter().map(|x| *x as i32).collect();
                 Ok(TokenCollection::from(ids))
-            },
-            None => unimplemented!("This model does not have a tokenizer impelmentation.")
+            }
+            None => unimplemented!("This model does not have a tokenizer impelmentation."),
         }
     }
 
     fn to_string(&self, tokens: TokenCollection) -> Result<String, TokenizerError> {
         match &self.tokenizer {
             Some(tokenizer) => {
-                let ids: Vec<u32> = tokens.as_i32().unwrap().iter().map(|x| *x as u32).collect::<Vec<u32>>();
-                Ok(tokenizer.decode(ids.as_slice(), false).map_err(|_| TokenizerError::TokenizationError)?)
-            },
-            None => unimplemented!("This model does not have a tokenizer impelmentation.")
+                let ids: Vec<u32> = tokens
+                    .as_i32()
+                    .unwrap()
+                    .iter()
+                    .map(|x| *x as u32)
+                    .collect::<Vec<u32>>();
+                Ok(tokenizer
+                    .decode(ids.as_slice(), false)
+                    .map_err(|_| TokenizerError::TokenizationError)?)
+            }
+            None => unimplemented!("This model does not have a tokenizer impelmentation."),
         }
     }
 }
@@ -154,7 +171,7 @@ mod tests {
     use super::*;
     use crate::model::Model;
     use llm_chain::traits::Executor;
-    
+
     #[test]
     fn test_tokenizer() {
         let opts = options!(
@@ -165,23 +182,29 @@ mod tests {
         let tokenizer = SageMakerEndpointTokenizer::new(opts_cascade);
         let doc = "This is a example string to be tokenized";
         let tokens = vec![1182, 304, 241, 1945, 3821, 271, 314, 10930, 1190];
-        
+
         assert_eq!(tokenizer.tokenize_str(doc).unwrap().len(), 9);
-        assert_eq!(tokenizer.tokenize_str(doc).unwrap().as_i32().unwrap(), tokens);
-        
-        assert_eq!(tokenizer.to_string(TokenCollection::from(tokens)).unwrap(), doc);
+        assert_eq!(
+            tokenizer.tokenize_str(doc).unwrap().as_i32().unwrap(),
+            tokens
+        );
+
+        assert_eq!(
+            tokenizer.to_string(TokenCollection::from(tokens)).unwrap(),
+            doc
+        );
     }
-    
+
     #[test]
     fn test_max_token_allowed() {
         let opts = options!(
             Model: Model::Falcon7BInstruct
         );
         let executor: super::Executor = Executor::new_with_options(opts.clone()).unwrap();
-        
+
         assert_eq!(executor.max_tokens_allowed(&opts), 2048);
     }
-    
+
     #[test]
     fn test_token_used() {
         let opts = options!(
@@ -190,7 +213,10 @@ mod tests {
         let executor: super::Executor = Executor::new_with_options(opts.clone()).unwrap();
         let doc = "This is a example string to be tokenized"; // 9 tokens
         let prompt = Prompt::text(doc.to_string());
-        
-        assert_eq!(executor.tokens_used(&opts, &prompt).unwrap(), TokenCount::new(2048, 9));
+
+        assert_eq!(
+            executor.tokens_used(&opts, &prompt).unwrap(),
+            TokenCount::new(2048, 9)
+        );
     }
 }
