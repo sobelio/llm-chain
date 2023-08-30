@@ -2,10 +2,8 @@ use crate::model::Formatter;
 use crate::model::Model;
 use async_trait::async_trait;
 
-use llm_chain::options;
-use llm_chain::options::Opt;
-use llm_chain::options::Options;
-use llm_chain::options::OptionsCascade;
+use llm_chain::options; // for the top-level macro
+use llm_chain::options::{Opt, Options, OptionsCascade};
 use llm_chain::output::Output;
 use llm_chain::prompt::Prompt;
 use llm_chain::tokens::{
@@ -141,7 +139,7 @@ impl Tokenizer for SageMakerEndpointTokenizer {
                 let encoding = tokenizer
                     .encode(doc, false)
                     .map_err(|_| TokenizerError::TokenizationError)?;
-                let ids: Vec<i32> = encoding.get_ids().iter().map(|x| *x as i32).collect();
+                let ids: Vec<_> = encoding.get_ids().iter().map(|x| *x as i32).collect();
                 Ok(TokenCollection::from(ids))
             }
             None => unimplemented!("This model does not have a tokenizer impelmentation."),
@@ -151,12 +149,7 @@ impl Tokenizer for SageMakerEndpointTokenizer {
     fn to_string(&self, tokens: TokenCollection) -> Result<String, TokenizerError> {
         match &self.tokenizer {
             Some(tokenizer) => {
-                let ids: Vec<u32> = tokens
-                    .as_i32()
-                    .unwrap()
-                    .iter()
-                    .map(|x| *x as u32)
-                    .collect::<Vec<u32>>();
+                let ids: Vec<_> = tokens.as_i32().unwrap().iter().map(|x| *x as u32).collect();
                 Ok(tokenizer
                     .decode(ids.as_slice(), false)
                     .map_err(|_| TokenizerError::TokenizationError)?)
@@ -169,7 +162,6 @@ impl Tokenizer for SageMakerEndpointTokenizer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::Model;
     use llm_chain::traits::Executor;
 
     #[test]
