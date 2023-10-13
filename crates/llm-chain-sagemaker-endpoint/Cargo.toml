@@ -1,0 +1,28 @@
+[package]
+name = "llm-chain-sagemaker-endpoint"
+version = "0.12.3"
+edition = "2021"
+description = "Use `llm-chain` with a SageMaker Endpoint backend."
+license = "MIT"
+keywords = ["llm", "langchain", "chain"]
+categories = ["science"]
+authors = ["Shing Lyu <shing.lyu@gmail.com>"]
+repository = "https://github.com/sobelio/llm-chain/"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-trait = "0.1.68"
+aws-config = "0.56.0"
+aws-sdk-sagemakerruntime = "0.29.0"
+futures = "0.3.28"
+llm-chain = { path = "../llm-chain", version = "0.12.3", default-features = false }
+serde = "1.0.183"
+serde_json = "1.0.104"
+serde_with = "3.2.0"
+strum = "0.25.0"
+strum_macros = "0.25.2"
+thiserror = "1.0.40"
+
+[dev-dependencies]
+tokio = { version = "1.28.2", features = ["macros", "rt"] }

@@ -16,7 +16,7 @@ pub struct Executor {
 #[async_trait]
 impl llm_chain::traits::Executor for Executor {
     type StepTokenizer<'a> = MockTokenizer;
-    
+
     fn new_with_options(options: Options) -> Result<Self, ExecutorCreationError> {
         Ok(Executor { options: options })
     }
@@ -31,7 +31,7 @@ impl llm_chain::traits::Executor for Executor {
         options: &Options,
         prompt: &Prompt,
     ) -> Result<TokenCount, PromptTokensError> {
-                let tokenizer = self.get_tokenizer(options)?;
+        let tokenizer = self.get_tokenizer(options)?;
         let input = prompt.to_text();
         let mut tokens_used = tokenizer
             .tokenize_str(&input)
@@ -72,12 +72,22 @@ impl MockTokenizer {
 
 impl Tokenizer for MockTokenizer {
     fn tokenize_str(&self, doc: &str) -> Result<TokenCollection, TokenizerError> {
-        let tokens: Vec<i32> = doc.as_bytes().to_vec().into_iter().map(|c| c as i32).collect();
+        let tokens: Vec<i32> = doc
+            .as_bytes()
+            .to_vec()
+            .into_iter()
+            .map(|c| c as i32)
+            .collect();
         Ok(tokens.into())
     }
 
     fn to_string(&self, tokens: TokenCollection) -> Result<String, TokenizerError> {
-        let bytes : Vec<u8> = tokens.as_i32().unwrap().into_iter().map(|c| c as u8).collect();
+        let bytes: Vec<u8> = tokens
+            .as_i32()
+            .unwrap()
+            .into_iter()
+            .map(|c| c as u8)
+            .collect();
         let doc = String::from_utf8(bytes).unwrap();
         Ok(doc)
     }
@@ -89,14 +99,17 @@ mod tests {
     use llm_chain::traits::Executor;
     #[test]
     fn test_mock_tokenizer() {
-        let executor: crate::Executor = Executor::new_with_options(Options::empty().clone()).unwrap();
+        let executor: crate::Executor =
+            Executor::new_with_options(Options::empty().clone()).unwrap();
         let tokenizer = executor.get_tokenizer(&executor.options).unwrap();
         let tokens = tokenizer
             .tokenize_str("Héllo world") //Notice that the UTF8 character translates to x3 i32s
             .expect("failed to tokenize");
         println!("{:?}", tokens);
         assert_eq!(tokens.len(), 13);
-        let doc = tokenizer.to_string(tokens).expect("failed to convert back to string");
+        let doc = tokenizer
+            .to_string(tokens)
+            .expect("failed to convert back to string");
         assert_eq!(doc, "Héllo world");
     }
 }

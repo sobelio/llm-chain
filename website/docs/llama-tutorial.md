@@ -188,7 +188,7 @@ pip install -r requirements.txt
 With the Python dependencies installed, you need to run the conversion script that will convert the Alpaca model to a binary format that llama.cpp can read. To do that, run the following command in your terminal:
 
 ```
-python convert.py /models/alpaca-native
+python convert.py ./models/alpaca-native
 ```
 
 This will run the `convert.py` script that is located in the `llama.cpp` directory. The script will take the Alpaca model directory as an argument and output a binary file called `ggml-model-f32.bin` in the same directory. 
