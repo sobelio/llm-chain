@@ -15,7 +15,7 @@ repository = "https://github.com/sobelio/llm-chain/"
 [dependencies]
 futures = "0.3.28"
 async-openai = "0.10.3"
-async-trait = "0.1.68"
+async-trait = "0.1.74"
 llm-chain = { path = "../llm-chain", version = "0.12.3", default-features = false }
 serde = { version = "1.0.164" }
 strum = "0.25"
