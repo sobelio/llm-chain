@@ -71,8 +71,8 @@ pub trait Executor: Sized {
     ///
     /// # Parameters
     ///
-    /// * `step`: The step to calculate token usage for.
-    /// * `parameters`: The parameters to plug into the step.
+    /// * `options`: The per-invocation options that affect the token allowance.
+    /// * `prompt`: The prompt passed into step
     ///
     /// # Returns
     ///
