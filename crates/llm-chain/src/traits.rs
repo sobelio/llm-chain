@@ -55,7 +55,7 @@ pub trait Executor: Sized {
 
     /// Create a new executor with the given options. If you don't need to set any options, you can use the `new` method instead.
     /// # Parameters
-    /// * `executor_options`: The options to set.
+    /// * `options`: The options to set.
     fn new_with_options(options: Options) -> Result<Self, ExecutorCreationError>;
 
     fn new() -> Result<Self, ExecutorCreationError> {
