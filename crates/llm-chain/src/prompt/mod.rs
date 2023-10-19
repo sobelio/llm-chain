@@ -27,7 +27,7 @@ pub type Conversation = ChatMessageCollection<String>;
 
 /// A chat conversation of string templates.
 ///
-/// A chat conversation is a collection of chat messages that contian string templates.
+/// A chat conversation is a collection of chat messages that contain string templates.
 pub type ConversationTemplate = ChatMessageCollection<StringTemplate>;
 
 /// Creates a `TextPrompt` or a `ChatPrompt` based on the number of arguments provided.
