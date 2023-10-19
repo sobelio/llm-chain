@@ -160,7 +160,7 @@ impl Chain {
             let mut current_doc = current.extract_last_body().cloned().unwrap_or_default();
             while let Some(next) = v.last() {
                 let Some(next_doc_content) = next.extract_last_body() else {
-                    continue
+                    continue;
                 };
                 let mut new_doc = current_doc.clone();
                 new_doc.push('\n');

@@ -210,13 +210,13 @@ fn model_params_from_options(opts: OptionsCascade) -> Result<ModelParameters, ()
 
 fn inference_params_from_options(opts: OptionsCascade) -> Result<InferenceParameters, ()> {
     let Some(Opt::NThreads(n_threads)) = opts.get(OptDiscriminants::NThreads) else {
-        return Err(())
+        return Err(());
     };
     let Some(Opt::NBatch(n_batch)) = opts.get(OptDiscriminants::NBatch) else {
-        return Err(())
+        return Err(());
     };
     let Some(Opt::TopK(top_k)) = opts.get(OptDiscriminants::TopK) else {
-        return Err(())
+        return Err(());
     };
     let Some(Opt::TopP(top_p)) = opts.get(OptDiscriminants::TopP) else {
         return Err(());
@@ -225,7 +225,9 @@ fn inference_params_from_options(opts: OptionsCascade) -> Result<InferenceParame
         return Err(());
     };
 
-    let Some(Opt::RepeatPenaltyLastN(repetition_penalty_last_n)) = opts.get(OptDiscriminants::RepeatPenaltyLastN) else {
+    let Some(Opt::RepeatPenaltyLastN(repetition_penalty_last_n)) =
+        opts.get(OptDiscriminants::RepeatPenaltyLastN)
+    else {
         return Err(());
     };
 
