@@ -277,7 +277,7 @@ impl<'a> OptionsCascade<'a> {
     /// Returns a boolean indicating if options indicate that requests should be streamed or not.
     pub fn is_streaming(&self) -> bool {
         let Some(Opt::Stream(val)) = self.get(OptDiscriminants::Stream) else {
-            return false
+            return false;
         };
         *val
     }

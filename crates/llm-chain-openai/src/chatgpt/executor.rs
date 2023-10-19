@@ -43,7 +43,7 @@ impl Executor {
 
     fn get_model_from_invocation_options(&self, opts: &OptionsCascade) -> String {
         let Some(Opt::Model(model)) = opts.get(llm_chain::options::OptDiscriminants::Model) else {
-            return "gpt-3.5-turbo".to_string()
+            return "gpt-3.5-turbo".to_string();
         };
         model.to_name()
     }
