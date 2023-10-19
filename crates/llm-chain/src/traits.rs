@@ -55,7 +55,7 @@ pub trait Executor: Sized {
 
     /// Create a new executor with the given options. If you don't need to set any options, you can use the `new` method instead.
     /// # Parameters
-    /// * `executor_options`: The options to set.
+    /// * `options`: The options to set.
     fn new_with_options(options: Options) -> Result<Self, ExecutorCreationError>;
 
     fn new() -> Result<Self, ExecutorCreationError> {
@@ -71,8 +71,8 @@ pub trait Executor: Sized {
     ///
     /// # Parameters
     ///
-    /// * `step`: The step to calculate token usage for.
-    /// * `parameters`: The parameters to plug into the step.
+    /// * `options`: The per-invocation options that affect the token allowance.
+    /// * `prompt`: The prompt passed into step
     ///
     /// # Returns
     ///
