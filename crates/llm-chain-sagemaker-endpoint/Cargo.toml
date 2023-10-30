@@ -14,7 +14,7 @@ repository = "https://github.com/sobelio/llm-chain/"
 [dependencies]
 async-trait = "0.1.68"
 aws-config = "0.56.0"
-aws-sdk-sagemakerruntime = "0.29.0"
+aws-sdk-sagemakerruntime = "0.34.0"
 futures = "0.3.28"
 llm-chain = { path = "../llm-chain", version = "0.12.3", default-features = false }
 serde = "1.0.183"
