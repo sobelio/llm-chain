@@ -25,4 +25,4 @@ uuid = "1.4.1"
 [dev-dependencies]
 llm-chain-openai = { path = "../llm-chain-openai" }
 tokio = "1.28.2"
-serde_yaml = "0.9.21"
+serde_yaml = "0.9.27"
