@@ -59,9 +59,8 @@ impl Executor {
         let context_size = context_params.n_ctx as usize;
         let answer_prefix = self.answer_prefix(&input.prompt);
         tokio::task::spawn_blocking(move || {
-            async move {
                 let context_size = context_size;
-                let context = context.lock().await;
+                let context = context.blocking_lock();
                 let tokenized_stop_prompt = tokenize(
                     &context,
                     input
@@ -189,11 +188,7 @@ impl Executor {
                 {
                     panic!("Failed to send");
                 }
-            }
-        })
-        .await
-        .unwrap()
-        .await;
+        });//JoinHandle is dropped? not sure how this works
 
         output
     }
