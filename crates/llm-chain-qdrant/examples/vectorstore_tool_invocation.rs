@@ -1,23 +1,26 @@
-use llm_chain::executor;
-use llm_chain::prompt::{ChatMessageCollection, StringTemplate};
-use llm_chain::step::Step;
-use llm_chain::traits::VectorStore;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-
-use llm_chain::schema::{Document, EmptyMetadata};
-use llm_chain::tools::tools::{
-    BashTool, VectorStoreTool, VectorStoreToolError, VectorStoreToolInput, VectorStoreToolOutput,
+use llm_chain::{
+    executor, multitool, parameters,
+    prompt::{ChatMessageCollection, StringTemplate},
+    schema::{Document, EmptyMetadata},
+    step::Step,
+    tools::{
+        tools::{
+            BashTool, BashToolError, BashToolInput, BashToolOutput, VectorStoreTool,
+            VectorStoreToolError, VectorStoreToolInput, VectorStoreToolOutput,
+        },
+        Tool, ToolCollection, ToolDescription, ToolError,
+    },
+    traits::VectorStore,
 };
-use llm_chain::tools::tools::{BashToolError, BashToolInput, BashToolOutput};
-use llm_chain::tools::{Tool, ToolCollection, ToolDescription, ToolError};
-use llm_chain::{multitool, parameters};
-use llm_chain_qdrant::{Qdrant, QdrantError};
-
 use llm_chain_openai::embeddings::{Embeddings, OpenAIEmbeddingsError};
-use qdrant_client::prelude::{QdrantClient, QdrantClientConfig};
-use qdrant_client::qdrant::{CreateCollection, Distance, VectorParams, VectorsConfig};
+use llm_chain_qdrant::{Qdrant, QdrantError};
+use qdrant_client::{
+    prelude::{QdrantClient, QdrantClientConfig},
+    qdrant::{CreateCollection, Distance, VectorParams, VectorsConfig},
+};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 // A simple example generating a prompt with some tools.
@@ -82,6 +85,7 @@ async fn build_local_qdrant() -> Qdrant<Embeddings, EmptyMetadata> {
         client,
         collection_name,
         embeddings,
+        None,
         None,
         None,
     );
