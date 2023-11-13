@@ -5,10 +5,10 @@ use llm_chain::{chains::conversation::Chain, executor, parameters, prompt, step:
 ///
 /// This example can be seen as a "chain of thought"
 ///
-/// Usage: cargo run --example few-shot
+/// Usage: cargo run --example few_shot
 ///
 /// Make sure to have the env var 'LLM_CHAIN_MODEL' set
-#[tokio::main(flavor = "current_thread")]
+#[tokio::main(flavor = "multi_thread", worker_threads = 1)]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let opts = options!(
         NThreads: 4_usize,
