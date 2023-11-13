@@ -16,7 +16,7 @@ impl<T> Data<T> {
         Self::Text(text)
     }
 
-    /// Maps the body of the chat messages or the text in the `MessageOrText` enum using the provided function.
+    /// Maps the body of the chat messages or the text in the `Data` enum using the provided function.
     ///
     /// # Arguments
     ///
@@ -24,7 +24,7 @@ impl<T> Data<T> {
     ///
     /// # Returns
     ///
-    /// A new `MessageOrText<U>` with the body of the chat messages or the text mapped by the provided function.
+    /// A new `Data<U>` with the body of the chat messages or the text mapped by the provided function.
     pub fn map<U, F: Fn(&T) -> U>(&self, f: F) -> Data<U> {
         match self {
             Self::Chat(chat) => Data::Chat(chat.map(|msg| msg.map(|body| f(body)))),

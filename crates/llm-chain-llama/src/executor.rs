@@ -59,136 +59,136 @@ impl Executor {
         let context_size = context_params.n_ctx as usize;
         let answer_prefix = self.answer_prefix(&input.prompt);
         tokio::task::spawn_blocking(move || {
-                let context_size = context_size;
-                let context = context.blocking_lock();
-                let tokenized_stop_prompt = tokenize(
-                    &context,
-                    input
-                        .stop_sequence
-                        .first() // XXX: Handle multiple stop seqs
-                        .map(|x| x.as_str())
-                        .unwrap_or("\n\n"),
-                    false,
-                );
+            let context_size = context_size;
+            let context = context.blocking_lock();
+            let tokenized_stop_prompt = tokenize(
+                &context,
+                input
+                    .stop_sequence
+                    .first() // XXX: Handle multiple stop seqs
+                    .map(|x| x.as_str())
+                    .unwrap_or("\n\n"),
+                false,
+            );
 
-                if tokenized_stop_prompt.len() > context_size {
+            if tokenized_stop_prompt.len() > context_size {
+                must_send!(sender, StreamSegment::Err(ExecutorError::ContextTooSmall));
+                return;
+            }
+
+            let prompt_text = input.prompt.to_text();
+            let tokenized_input = tokenize(&context, prompt_text.as_str(), true);
+            if tokenized_input.len() > context_size {
+                must_send!(sender, StreamSegment::Err(ExecutorError::ContextTooSmall));
+                return;
+            }
+
+            // Embd contains the prompt and the completion. The longer the prompt, the shorter the completion.
+            let mut embd = tokenized_input.clone();
+
+            // Evaluate the prompt in full.
+            bail!(
+                context
+                    .llama_eval(
+                        tokenized_input.as_slice(),
+                        tokenized_input.len() as i32,
+                        0,
+                        &input,
+                    )
+                    .map_err(|e| ExecutorError::InnerError(e.into())),
+                sender
+            );
+
+            let mut n_remaining = context_size - tokenized_input.len();
+            let mut n_used = tokenized_input.len() - 1;
+            if let Some(prefix) = answer_prefix {
+                let tokenized_answer_prefix = tokenize(&context, prefix.as_str(), false);
+                if tokenized_answer_prefix.len() > context_size {
                     must_send!(sender, StreamSegment::Err(ExecutorError::ContextTooSmall));
                     return;
                 }
 
-                let prompt_text = input.prompt.to_text();
-                let tokenized_input = tokenize(&context, prompt_text.as_str(), true);
-                if tokenized_input.len() > context_size {
-                    must_send!(sender, StreamSegment::Err(ExecutorError::ContextTooSmall));
-                    return;
-                }
-
-                // Embd contains the prompt and the completion. The longer the prompt, the shorter the completion.
-                let mut embd = tokenized_input.clone();
-
-                // Evaluate the prompt in full.
+                // Evaluate the answer prefix (the role -- should be Assistant: )
                 bail!(
                     context
                         .llama_eval(
-                            tokenized_input.as_slice(),
-                            tokenized_input.len() as i32,
-                            0,
+                            tokenized_answer_prefix.as_slice(),
+                            tokenized_answer_prefix.len() as i32,
+                            n_used as i32,
                             &input,
                         )
                         .map_err(|e| ExecutorError::InnerError(e.into())),
                     sender
                 );
-
-                let mut n_remaining = context_size - tokenized_input.len();
-                let mut n_used = tokenized_input.len() - 1;
-                if let Some(prefix) = answer_prefix {
-                    let tokenized_answer_prefix = tokenize(&context, prefix.as_str(), false);
-                    if tokenized_answer_prefix.len() > context_size {
-                        must_send!(sender, StreamSegment::Err(ExecutorError::ContextTooSmall));
-                        return;
-                    }
-
-                    // Evaluate the answer prefix (the role -- should be Assistant: )
-                    bail!(
-                        context
-                            .llama_eval(
-                                tokenized_answer_prefix.as_slice(),
-                                tokenized_answer_prefix.len() as i32,
-                                n_used as i32,
-                                &input,
-                            )
-                            .map_err(|e| ExecutorError::InnerError(e.into())),
-                        sender
-                    );
-                    n_remaining -= tokenized_answer_prefix.len();
-                    n_used += tokenized_answer_prefix.len();
-                    embd.extend(tokenized_answer_prefix);
+                n_remaining -= tokenized_answer_prefix.len();
+                n_used += tokenized_answer_prefix.len();
+                embd.extend(tokenized_answer_prefix);
+            }
+            embd.resize(context_size, 0);
+            let token_eos = llama_token_eos();
+            let mut stop_sequence_i = 0;
+            // Generate remaining tokens.
+            let mut leftover_bytes: Vec<u8> = vec![];
+            while n_remaining > 0 {
+                let tok = context.llama_sample(
+                    context_size as i32,
+                    embd.as_slice(),
+                    n_used as i32,
+                    &input,
+                );
+                n_used += 1;
+                n_remaining -= 1;
+                embd[n_used] = tok;
+                if tok == token_eos {
+                    break;
                 }
-                embd.resize(context_size, 0);
-                let token_eos = llama_token_eos();
-                let mut stop_sequence_i = 0;
-                // Generate remaining tokens.
-                let mut leftover_bytes: Vec<u8> = vec![];
-                while n_remaining > 0 {
-                    let tok = context.llama_sample(
-                        context_size as i32,
-                        embd.as_slice(),
-                        n_used as i32,
-                        &input,
-                    );
-                    n_used += 1;
-                    n_remaining -= 1;
-                    embd[n_used] = tok;
-                    if tok == token_eos {
-                        break;
-                    }
-                    if input.n_tok_predict != 0
-                        && n_used > input.n_tok_predict + tokenized_input.len() - 1
-                    {
-                        break;
-                    }
-                    if tok == tokenized_stop_prompt[stop_sequence_i] {
-                        stop_sequence_i += 1;
-                        if stop_sequence_i >= tokenized_stop_prompt.len() {
-                            break;
-                        }
-                    } else {
-                        let str_output =
-                            tokens_to_string(&context, &embd[n_used - stop_sequence_i..n_used]);
-                        // XXX: make into chat if chat
-                        must_send!(sender, StreamSegment::Content(str_output));
-                        stop_sequence_i = 0;
-                    }
-                    bail!(
-                        context
-                            .llama_eval(&embd[n_used..], 1, n_used as i32, &input)
-                            .map_err(|e| ExecutorError::InnerError(e.into())),
-                        sender
-                    );
-
-                    if n_used >= tokenized_input.len() && stop_sequence_i == 0 {
-                        let bytes_output: Vec<u8> =
-                            [leftover_bytes, context.llama_token_to_bytes(&embd[n_used])].concat();
-
-                        let (str_output, leftover) = decode_up_to_valid_utf8(&bytes_output);
-                        leftover_bytes = leftover;
-                        // XXX: make into chat if chat
-                        if sender.send(StreamSegment::Content(str_output)).is_err() {
-                            panic!("Failed to send");
-                        }
-                    }
-                }
-                if sender
-                    .send(StreamSegment::Content(
-                        std::char::REPLACEMENT_CHARACTER
-                            .to_string()
-                            .repeat(leftover_bytes.len()),
-                    ))
-                    .is_err()
+                if input.n_tok_predict != 0
+                    && n_used > input.n_tok_predict + tokenized_input.len() - 1
                 {
-                    panic!("Failed to send");
+                    break;
                 }
-        });//JoinHandle is dropped? not sure how this works
+                if tok == tokenized_stop_prompt[stop_sequence_i] {
+                    stop_sequence_i += 1;
+                    if stop_sequence_i >= tokenized_stop_prompt.len() {
+                        break;
+                    }
+                } else {
+                    let str_output =
+                        tokens_to_string(&context, &embd[n_used - stop_sequence_i..n_used]);
+                    // XXX: make into chat if chat
+                    must_send!(sender, StreamSegment::Content(str_output));
+                    stop_sequence_i = 0;
+                }
+                bail!(
+                    context
+                        .llama_eval(&embd[n_used..], 1, n_used as i32, &input)
+                        .map_err(|e| ExecutorError::InnerError(e.into())),
+                    sender
+                );
+
+                if n_used >= tokenized_input.len() && stop_sequence_i == 0 {
+                    let bytes_output: Vec<u8> =
+                        [leftover_bytes, context.llama_token_to_bytes(&embd[n_used])].concat();
+
+                    let (str_output, leftover) = decode_up_to_valid_utf8(&bytes_output);
+                    leftover_bytes = leftover;
+                    // XXX: make into chat if chat
+                    if sender.send(StreamSegment::Content(str_output)).is_err() {
+                        panic!("Failed to send");
+                    }
+                }
+            }
+            if sender
+                .send(StreamSegment::Content(
+                    std::char::REPLACEMENT_CHARACTER
+                        .to_string()
+                        .repeat(leftover_bytes.len()),
+                ))
+                .is_err()
+            {
+                panic!("Failed to send");
+            }
+        }); //JoinHandle is dropped? not sure how this works
 
         output
     }
