@@ -14,20 +14,19 @@ repository = "https://github.com/sobelio/llm-chain/"
 
 [dependencies]
 futures = "0.3.28"
-async-openai = "0.10.3"
-async-trait = "0.1.68"
+async-openai = "0.16.2"
+async-trait.workspace = true
 llm-chain = { path = "../llm-chain", version = "0.12.0", default-features = false }
-serde = { version = "1.0.163" }
+serde.workspace = true
 strum = "0.24"
 strum_macros = "0.24"
-thiserror = "1.0.40"
-tiktoken-rs = { version = "0.4.2", features = ["async-openai"] }
-tokio = "1.28.1"
+thiserror.workspace = true
+tiktoken-rs = { version = "0.5.7", features = ["async-openai"] }
+tokio.workspace = true
 
 [dev-dependencies]
 tokio = "1.28.1"
 qdrant-client = "1.1.1"
 llm-chain = { path = "../llm-chain" }
-anyhow = "1.0.70"
-serde_yaml = "0.9.21"
-
+anyhow.workspace = true
+serde_yaml.workspace = true

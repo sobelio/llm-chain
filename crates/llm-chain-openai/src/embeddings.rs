@@ -1,15 +1,16 @@
 use std::sync::Arc;
 
 use async_openai::{
+    config::OpenAIConfig,
     error::OpenAIError,
-    types::{CreateEmbeddingRequest, EmbeddingInput},
+    types::{CreateEmbeddingRequestArgs, EmbeddingInput},
 };
 use async_trait::async_trait;
 use llm_chain::traits::{self, EmbeddingsError};
 use thiserror::Error;
 
 pub struct Embeddings {
-    client: Arc<async_openai::Client>,
+    client: Arc<async_openai::Client<OpenAIConfig>>,
     model: String,
 }
 
@@ -29,26 +30,26 @@ impl traits::Embeddings for Embeddings {
     type Error = OpenAIEmbeddingsError;
 
     async fn embed_texts(&self, texts: Vec<String>) -> Result<Vec<Vec<f32>>, Self::Error> {
+        let req = CreateEmbeddingRequestArgs::default()
+            .model(self.model.clone())
+            .input(EmbeddingInput::from(texts))
+            .build()?;
         self.client
             .embeddings()
-            .create(CreateEmbeddingRequest {
-                model: self.model.clone(),
-                user: None,
-                input: EmbeddingInput::from(texts),
-            })
+            .create(req)
             .await
             .map(|r| r.data.into_iter().map(|e| e.embedding).collect())
             .map_err(|e| e.into())
     }
 
     async fn embed_query(&self, query: String) -> Result<Vec<f32>, Self::Error> {
+        let req = CreateEmbeddingRequestArgs::default()
+            .model(self.model.clone())
+            .input(EmbeddingInput::from(query))
+            .build()?;
         self.client
             .embeddings()
-            .create(CreateEmbeddingRequest {
-                model: self.model.clone(),
-                user: None,
-                input: EmbeddingInput::from(query),
-            })
+            .create(req)
             .await
             .map(|r| r.data.into_iter())?
             .map(|e| e.embedding)
@@ -59,15 +60,16 @@ impl traits::Embeddings for Embeddings {
 
 impl Default for Embeddings {
     fn default() -> Self {
+        let client = Arc::new(async_openai::Client::<OpenAIConfig>::new());
         Self {
-            client: async_openai::Client::default().into(),
+            client,
             model: "text-embedding-ada-002".to_string(),
         }
     }
 }
 
 impl Embeddings {
-    pub fn for_client(client: async_openai::Client, model: &str) -> Self {
+    pub fn for_client(client: async_openai::Client<OpenAIConfig>, model: &str) -> Self {
         Self {
             client: client.into(),
             model: model.to_string(),

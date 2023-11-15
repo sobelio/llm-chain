@@ -1,15 +1,19 @@
-use async_openai::types::{ChatCompletionRequestMessage, CreateChatCompletionRequest, Role};
+use async_openai::types::{
+    ChatCompletionRequestAssistantMessageArgs,
+    ChatCompletionRequestFunctionMessageArgs, ChatCompletionRequestMessage,
+    ChatCompletionRequestSystemMessageArgs, ChatCompletionRequestToolMessageArgs,
+    ChatCompletionRequestUserMessageArgs, ChatCompletionResponseStream,
+    CreateChatCompletionRequest, CreateChatCompletionRequestArgs, CreateChatCompletionResponse,
+    Role,
+};
 use futures::StreamExt;
+use llm_chain::prompt::{self, Prompt};
 use llm_chain::{
     output::{Output, StreamSegment},
     prompt::{ChatMessage, ChatMessageCollection},
 };
-use llm_chain::{
-    prompt::StringTemplateError,
-    prompt::{self, Prompt},
-};
 
-use async_openai::types::{ChatCompletionResponseStream, CreateChatCompletionResponse};
+use super::error::OpenAIInnerError;
 
 fn convert_role(role: &prompt::ChatRole) -> Role {
     match role {
@@ -25,24 +29,49 @@ fn convert_openai_role(role: &Role) -> prompt::ChatRole {
         Role::User => prompt::ChatRole::User,
         Role::Assistant => prompt::ChatRole::Assistant,
         Role::System => prompt::ChatRole::System,
+        Role::Tool => prompt::ChatRole::Other("Tool".to_string()),
+        Role::Function => prompt::ChatRole::Other("Function".to_string()),
     }
 }
 
 fn format_chat_message(
     message: &prompt::ChatMessage<String>,
-) -> Result<ChatCompletionRequestMessage, StringTemplateError> {
+) -> Result<ChatCompletionRequestMessage, OpenAIInnerError> {
     let role = convert_role(message.role());
     let content = message.body().to_string();
-    Ok(ChatCompletionRequestMessage {
-        role,
-        content,
-        name: None,
-    })
+    let msg = match role {
+        Role::Assistant => ChatCompletionRequestMessage::Assistant(
+            ChatCompletionRequestAssistantMessageArgs::default()
+                .content(content)
+                .build()?,
+        ),
+        Role::System => ChatCompletionRequestMessage::System(
+            ChatCompletionRequestSystemMessageArgs::default()
+                .content(content)
+                .build()?,
+        ),
+        Role::User => ChatCompletionRequestMessage::User(
+            ChatCompletionRequestUserMessageArgs::default()
+                .content(content)
+                .build()?,
+        ),
+        Role::Tool => ChatCompletionRequestMessage::Tool(
+            ChatCompletionRequestToolMessageArgs::default()
+                .content(content)
+                .build()?,
+        ),
+        Role::Function => ChatCompletionRequestMessage::Function(
+            ChatCompletionRequestFunctionMessageArgs::default()
+                .content(content)
+                .build()?,
+        ),
+    };
+    Ok(msg)
 }
 
 pub fn format_chat_messages(
     messages: prompt::ChatMessageCollection<String>,
-) -> Result<Vec<ChatCompletionRequestMessage>, StringTemplateError> {
+) -> Result<Vec<async_openai::types::ChatCompletionRequestMessage>, OpenAIInnerError> {
     messages.iter().map(format_chat_message).collect()
 }
 
@@ -50,22 +79,13 @@ pub fn create_chat_completion_request(
     model: String,
     prompt: &Prompt,
     is_streaming: bool,
-) -> Result<CreateChatCompletionRequest, StringTemplateError> {
+) -> Result<CreateChatCompletionRequest, OpenAIInnerError> {
     let messages = format_chat_messages(prompt.to_chat())?;
-    Ok(CreateChatCompletionRequest {
-        model,
-        messages,
-        temperature: None,
-        top_p: None,
-        n: Some(1),
-        stream: Some(is_streaming),
-        stop: None,
-        max_tokens: None, // We should consider something here
-        presence_penalty: None,
-        frequency_penalty: None,
-        logit_bias: None,
-        user: None,
-    })
+    Ok(CreateChatCompletionRequestArgs::default()
+        .model(model)
+        .stream(is_streaming)
+        .messages(messages)
+        .build()?)
 }
 
 pub fn completion_to_output(resp: CreateChatCompletionResponse) -> Output {
@@ -73,7 +93,7 @@ pub fn completion_to_output(resp: CreateChatCompletionResponse) -> Output {
     let mut col = ChatMessageCollection::new();
     col.add_message(ChatMessage::new(
         convert_openai_role(&msg.role),
-        msg.content,
+        msg.content.unwrap_or_default(), // "" for missing
     ));
     Output::new_immediate(col.into())
 }
