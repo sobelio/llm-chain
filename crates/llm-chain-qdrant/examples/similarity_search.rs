@@ -17,7 +17,7 @@ use qdrant_client::{
 async fn main() {
     // Qdrant prep
     let config = QdrantClientConfig::from_url("http://localhost:6334");
-    let client = Arc::new(QdrantClient::new(Some(config)).await.unwrap());
+    let client = Arc::new(QdrantClient::new(Some(config)).unwrap());
     let collection_name = "my-collection".to_string();
     let embedding_size = 1536;
 
@@ -32,6 +32,7 @@ async fn main() {
                 vectors_config: Some(VectorsConfig {
                     config: Some(qdrant_client::qdrant::vectors_config::Config::Params(
                         VectorParams {
+                            on_disk: None,
                             size: embedding_size,
                             distance: Distance::Cosine.into(),
                             hnsw_config: None,
