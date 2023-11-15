@@ -1,10 +1,9 @@
 use async_openai::types::{
-    ChatCompletionRequestAssistantMessageArgs,
-    ChatCompletionRequestFunctionMessageArgs, ChatCompletionRequestMessage,
-    ChatCompletionRequestSystemMessageArgs, ChatCompletionRequestToolMessageArgs,
-    ChatCompletionRequestUserMessageArgs, ChatCompletionResponseStream,
-    CreateChatCompletionRequest, CreateChatCompletionRequestArgs, CreateChatCompletionResponse,
-    Role,
+    ChatCompletionRequestAssistantMessageArgs, ChatCompletionRequestFunctionMessageArgs,
+    ChatCompletionRequestMessage, ChatCompletionRequestSystemMessageArgs,
+    ChatCompletionRequestToolMessageArgs, ChatCompletionRequestUserMessageArgs,
+    ChatCompletionResponseStream, CreateChatCompletionRequest, CreateChatCompletionRequestArgs,
+    CreateChatCompletionResponse, Role,
 };
 use futures::StreamExt;
 use llm_chain::prompt::{self, Prompt};
