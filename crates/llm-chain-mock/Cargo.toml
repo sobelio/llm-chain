@@ -1,6 +1,6 @@
 [package]
 name = "llm-chain-mock"
-version = "0.12.3"
+version = "0.13.0"
 edition = "2021"
 description = "Use `llm-chain` with a mock backend. Useful for testing."
 license = "MIT"
@@ -13,7 +13,7 @@ repository = "https://github.com/sobelio/llm-chain/"
 
 [dependencies]
 async-trait = "0.1.68"
-llm-chain = { path = "../llm-chain", version = "0.12.3", default-features = false }
+llm-chain = { path = "../llm-chain", version = "0.13.0", default-features = false }
 thiserror = "1.0.40"
 
 [dev-dependencies]

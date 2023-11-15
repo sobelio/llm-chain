@@ -1,6 +1,6 @@
 [package]
 name = "llm-chain-macros"
-version = "0.12.3"
+version = "0.13.0"
 edition = "2021"
 license = "MIT"
 description = "Set of macros for use with llm-chain"

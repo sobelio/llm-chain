@@ -1,6 +1,6 @@
 [package]
 name = "llm-chain-milvus"
-version = "0.12.3"
+version = "0.13.0"
 edition = "2021"
 license = "MIT"
 description = "Driver for the Milvus vector store"
@@ -13,7 +13,7 @@ repository = "https://github.com/sobelio/llm-chain/"
 [dependencies]
 anyhow = "1.0.72"
 async-trait = "0.1.68"
-llm-chain = { path = "../llm-chain", version = "0.12.3", default-features = false }
+llm-chain = { path = "../llm-chain", version = "0.13.0", default-features = false }
 serde = "1.0.164"
 serde_json = "1.0.99"
 thiserror = "1.0.40"
