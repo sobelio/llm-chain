@@ -4,10 +4,8 @@ use llm_chain::{
     schema::{Document, EmptyMetadata},
     traits::VectorStore,
 };
-
-use llm_chain_qdrant::Qdrant;
-
 use llm_chain_openai::embeddings::Embeddings;
+use llm_chain_qdrant::Qdrant;
 use qdrant_client::{
     prelude::{QdrantClient, QdrantClientConfig},
     qdrant::{CreateCollection, Distance, VectorParams, VectorsConfig},
@@ -53,6 +51,7 @@ async fn main() {
         client.clone(),
         collection_name.clone(),
         embeddings,
+        None,
         None,
         None,
     );

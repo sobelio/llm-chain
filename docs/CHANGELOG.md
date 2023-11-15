@@ -6,6 +6,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.12.3] 2023-06-27
+
+### Added
+
+- Macro for deriving tools
+- add CUDA support for llm-chain-llama
+
+### Changed
+
+- Bugfix for tiktoken not counting tokens properly
+- Bugfix for defualt options not set in llm-chain-local
+
+## [0.12.2] 2023-06-06
+
+### Changed
+
+- Fixed issue with options not being set
+
 ## [0.12.0] 2023-06-01
 
 ### Added

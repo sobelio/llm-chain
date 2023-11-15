@@ -1,6 +1,6 @@
 [package]
 name = "llm-chain-hnsw"
-version = "0.12.0"
+version = "0.12.3"
 edition = "2021"
 description = "For using hnsw with llm-chain"
 license = "MIT"

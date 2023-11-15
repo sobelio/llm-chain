@@ -4,8 +4,8 @@ use async_trait::async_trait;
 use qdrant_client::{
     prelude::QdrantClient,
     qdrant::{
-        value::Kind, with_payload_selector::SelectorOptions, PayloadIncludeSelector, PointId,
-        PointStruct, ScoredPoint, SearchPoints, Value, Vectors, WithPayloadSelector,
+        value::Kind, with_payload_selector::SelectorOptions, Filter, PayloadIncludeSelector,
+        PointId, PointStruct, ScoredPoint, SearchPoints, Value, Vectors, WithPayloadSelector,
     },
 };
 use thiserror::Error;
@@ -31,6 +31,7 @@ where
     embeddings: E,
     content_payload_key: String,
     metadata_payload_key: String,
+    filter: Option<Filter>,
     _marker: PhantomData<M>,
 }
 
@@ -45,6 +46,7 @@ where
         embeddings: E,
         content_payload_key: Option<String>,
         metadata_payload_key: Option<String>,
+        filter: Option<Filter>,
     ) -> Self {
         Qdrant {
             client,
@@ -54,6 +56,7 @@ where
                 .unwrap_or(DEFAULT_CONTENT_PAYLOAD_KEY.to_string()),
             metadata_payload_key: metadata_payload_key
                 .unwrap_or(DEFAULT_METADATA_PAYLOAD_KEY.to_string()),
+            filter,
             _marker: Default::default(),
         }
     }
@@ -224,7 +227,7 @@ where
             .search_points(&SearchPoints {
                 collection_name: self.collection_name.clone(),
                 vector: embedded_query,
-                filter: None,
+                filter: self.filter.clone(),
                 limit: limit.into(),
                 with_payload: Some(WithPayloadSelector {
                     selector_options: Some(SelectorOptions::Include(PayloadIncludeSelector {

@@ -55,6 +55,7 @@ impl llm_chain::traits::Executor for Executor {
     fn new_with_options(options: Options) -> Result<Self, ExecutorCreationError> {
         let opts_from_env = options_from_env().unwrap();
         let opts_cas = OptionsCascade::new()
+            .with_options(&DEFAULT_OPTIONS)
             .with_options(&opts_from_env)
             .with_options(&options);
 
@@ -209,13 +210,13 @@ fn model_params_from_options(opts: OptionsCascade) -> Result<ModelParameters, ()
 
 fn inference_params_from_options(opts: OptionsCascade) -> Result<InferenceParameters, ()> {
     let Some(Opt::NThreads(n_threads)) = opts.get(OptDiscriminants::NThreads) else {
-        return Err(())
+        return Err(());
     };
     let Some(Opt::NBatch(n_batch)) = opts.get(OptDiscriminants::NBatch) else {
-        return Err(())
+        return Err(());
     };
     let Some(Opt::TopK(top_k)) = opts.get(OptDiscriminants::TopK) else {
-        return Err(())
+        return Err(());
     };
     let Some(Opt::TopP(top_p)) = opts.get(OptDiscriminants::TopP) else {
         return Err(());
@@ -224,7 +225,9 @@ fn inference_params_from_options(opts: OptionsCascade) -> Result<InferenceParame
         return Err(());
     };
 
-    let Some(Opt::RepeatPenaltyLastN(repetition_penalty_last_n)) = opts.get(OptDiscriminants::RepeatPenaltyLastN) else {
+    let Some(Opt::RepeatPenaltyLastN(repetition_penalty_last_n)) =
+        opts.get(OptDiscriminants::RepeatPenaltyLastN)
+    else {
         return Err(());
     };
 

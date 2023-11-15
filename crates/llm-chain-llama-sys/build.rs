@@ -22,6 +22,9 @@ fn main() {
     println!("cargo:rustc-link-lib=static=llama");
     println!("cargo:rerun-if-changed=wrapper.h");
 
+    // Check if CUDA is enabled for cuBlAS
+    let cuda_enabled = env::var("CARGO_FEATURE_CUDA").is_ok();
+
     if env::var("LLAMA_DONT_GENERATE_BINDINGS").is_ok() {
         let _: u64 = std::fs::copy(
             "src/bindings.rs",
@@ -29,12 +32,17 @@ fn main() {
         )
         .expect("Failed to copy bindings.rs");
     } else {
-        let bindings = bindgen::Builder::default()
+        let bindings_builder = bindgen::Builder::default()
             .header("wrapper.h")
             .clang_args(&["-x", "c++"])
-            .clang_arg("-I./llama.cpp")
-            .parse_callbacks(Box::new(bindgen::CargoCallbacks))
-            .generate();
+            .clang_arg("-I./llama.cpp");
+        let bindings = if cuda_enabled {
+            bindings_builder.clang_arg("-DGGML_USE_CUBLAS")
+        } else {
+            bindings_builder
+        }
+        .parse_callbacks(Box::new(bindgen::CargoCallbacks))
+        .generate();
 
         match bindings {
             Ok(b) => {
@@ -61,7 +69,7 @@ fn main() {
     }
 
     // build lib
-    env::set_current_dir("llama.cpp").expect("Unable to change directory to whisper.cpp");
+    env::set_current_dir("llama.cpp").expect("Unable to change directory to llama.cpp");
     _ = std::fs::remove_dir_all("build");
     _ = std::fs::create_dir("build");
     env::set_current_dir("build").expect("Unable to change directory to llama.cpp build");
@@ -69,17 +77,21 @@ fn main() {
     env::set_var("CXXFLAGS", "-fPIC");
     env::set_var("CFLAGS", "-fPIC");
 
-    let code = std::process::Command::new("cmake")
+    let mut code = std::process::Command::new("cmake");
+    let code = code
         .arg("..")
         .arg("-DCMAKE_BUILD_TYPE=Release")
         .arg("-DBUILD_SHARED_LIBS=OFF")
         .arg("-DLLAMA_ALL_WARNINGS=OFF")
         .arg("-DLLAMA_ALL_WARNINGS_3RD_PARTY=OFF")
         .arg("-DLLAMA_BUILD_TESTS=OFF")
-        .arg("-DLLAMA_BUILD_EXAMPLES=OFF")
-        // .arg("-DLLAMA_STATIC=ON")
-        .status()
-        .expect("Failed to generate build script");
+        .arg("-DLLAMA_BUILD_EXAMPLES=OFF");
+    // .arg("-DLLAMA_STATIC=ON")
+    if cuda_enabled {
+        // If CUDA feature is enabled, build with cuBlAS to enable GPU acceleration
+        code.arg("-DLLAMA_CUBLAS=ON");
+    }
+    let code = code.status().expect("Failed to generate build script");
     if code.code() != Some(0) {
         panic!("Failed to generate build script");
     }

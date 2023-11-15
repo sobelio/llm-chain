@@ -3,6 +3,7 @@ use llm_chain::{
     options,
     options::{Opt, OptDiscriminants, Options, OptionsCascade},
     prompt::Prompt,
+    traits::ExecutorCreationError,
 };
 
 use std::collections::HashMap;
@@ -33,35 +34,42 @@ pub struct LlamaInvocation {
 
 macro_rules! opt_extract {
     ($opt:ident, $var:ident, $discriminant:ident) => {
-        let Some(Opt::$discriminant($var)) = $opt.get(OptDiscriminants::$discriminant) else {
-                                                                                    return None
-                                                                                };
+        if let Some(Opt::$discriminant($var)) = $opt.get(OptDiscriminants::$discriminant) {
+            Ok($var)
+        } else {
+            Err(ExecutorCreationError::FieldRequiredError(
+                stringify!($discriminant).to_string(),
+            ))
+        }
     };
 }
 
 impl LlamaInvocation {
-    pub(crate) fn new(opt: OptionsCascade, prompt: &Prompt) -> Option<LlamaInvocation> {
-        opt_extract!(opt, n_threads, NThreads);
-        opt_extract!(opt, n_tok_predict, MaxTokens);
-        opt_extract!(opt, token_bias, TokenBias);
-        opt_extract!(opt, top_k, TopK);
-        opt_extract!(opt, top_p, TopP);
-        opt_extract!(opt, tfs_z, TfsZ);
-        opt_extract!(opt, typical_p, TypicalP);
-        opt_extract!(opt, temp, Temperature);
-        opt_extract!(opt, repeat_penalty, RepeatPenalty);
-        opt_extract!(opt, repeat_last_n, RepeatPenaltyLastN);
-        opt_extract!(opt, frequency_penalty, FrequencyPenalty);
-        opt_extract!(opt, presence_penalty, PresencePenalty);
-        opt_extract!(opt, mirostat, Mirostat);
-        opt_extract!(opt, mirostat_tau, MirostatTau);
-        opt_extract!(opt, mirostat_eta, MirostatEta);
-        opt_extract!(opt, penalize_nl, PenalizeNl);
-        opt_extract!(opt, stop_sequence, StopSequence);
+    pub(crate) fn new(
+        opt: OptionsCascade,
+        prompt: &Prompt,
+    ) -> Result<LlamaInvocation, ExecutorCreationError> {
+        let n_threads = opt_extract!(opt, n_threads, NThreads)?;
+        let n_tok_predict = opt_extract!(opt, n_tok_predict, MaxTokens)?;
+        let top_k = opt_extract!(opt, top_k, TopK)?;
+        let top_p = opt_extract!(opt, top_p, TopP)?;
+        let tfs_z = opt_extract!(opt, tfs_z, TfsZ)?;
+        let typical_p = opt_extract!(opt, typical_p, TypicalP)?;
+        let temp = opt_extract!(opt, temp, Temperature)?;
+        let repeat_penalty = opt_extract!(opt, repeat_penalty, RepeatPenalty)?;
+        let repeat_last_n = opt_extract!(opt, repeat_last_n, RepeatPenaltyLastN)?;
+        let frequency_penalty = opt_extract!(opt, frequency_penalty, FrequencyPenalty)?;
+        let presence_penalty = opt_extract!(opt, presence_penalty, PresencePenalty)?;
+        let mirostat = opt_extract!(opt, mirostat, Mirostat)?;
+        let mirostat_tau = opt_extract!(opt, mirostat_tau, MirostatTau)?;
+        let mirostat_eta = opt_extract!(opt, mirostat_eta, MirostatEta)?;
+        let penalize_nl = opt_extract!(opt, penalize_nl, PenalizeNl)?;
+        let stop_sequence = opt_extract!(opt, stop_sequence, StopSequence)?;
 
-        let logit_bias = token_bias.as_i32_f32_hashmap()?;
+        // Skip TokenBias for now
+        let logit_bias = HashMap::<i32, f32>::new(); // token_bias.as_i32_f32_hashmap()?;
 
-        Some(LlamaInvocation {
+        Ok(LlamaInvocation {
             n_threads: *n_threads as i32,
             n_tok_predict: *n_tok_predict,
             logit_bias,
@@ -86,8 +94,10 @@ impl LlamaInvocation {
 
 lazy_static! {
     pub(crate) static ref DEFAULT_OPTIONS: Options = options!(
+        // ModelType: "llama", // not used
         NThreads: 1_usize,
         MaxTokens: 0_usize,
+        MaxContextSize: 2048_usize,
         TopK: 40_i32,
         TopP: 0.95,
         TfsZ: 1.0,
@@ -105,10 +115,14 @@ lazy_static! {
     );
 }
 
-pub(crate) fn get_executor_initial_opts(opt: &OptionsCascade) -> Option<(String, ContextParams)> {
-    opt_extract!(opt, model, Model);
-    opt_extract!(opt, max_context_size, MaxContextSize);
+pub(crate) fn get_executor_initial_opts(
+    opt: &OptionsCascade,
+) -> Result<(String, ContextParams), ExecutorCreationError> {
+    let model = opt_extract!(opt, model, Model)?;
+    let max_context_size = opt_extract!(opt, max_context_size, MaxContextSize)?;
+
     let mut cp = ContextParams::new();
     cp.n_ctx = *max_context_size as i32;
-    Some((model.to_path(), cp))
+
+    Ok((model.to_path(), cp))
 }

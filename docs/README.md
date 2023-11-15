@@ -9,7 +9,7 @@
 
 ## Examples 💡
 
-To help you get started, here is an example demonstrating how to use `llm-chain`. You can find more examples in the [examples folder](/llm-chain-openai/examples) in the repository.
+To help you get started, here is an example demonstrating how to use `llm-chain`. You can find more examples in the [examples folder](/crates/llm-chain-openai/examples) in the repository.
 
 ```rust
 let exec = executor!()?;
@@ -39,7 +39,7 @@ println!("{}", res);
 
 ## Getting Started 🚀
 
-To start using `llm-chain`, add it as a dependency in your `Cargo.toml`:
+To start using `llm-chain`, add it as a dependency in your `Cargo.toml` (you need Rust 1.65.0 or newer):
 
 ```toml
 [dependencies]

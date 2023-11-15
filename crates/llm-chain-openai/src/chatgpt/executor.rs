@@ -227,7 +227,7 @@ impl OpenAITokenizer {
     pub fn new(options: OptionsCascade) -> Self {
         let model_name = match options.get(llm_chain::options::OptDiscriminants::Model) {
             Some(Opt::Model(model_name)) => model_name.to_name(),
-            _ => "".to_string(),
+            _ => "gpt-3.5-turbo".to_string(),
         };
         Self::for_model_name(model_name)
     }

@@ -14,17 +14,16 @@ use llm_chain_llama_sys::{
     llama_sample_top_k, llama_sample_top_p, llama_sample_typical, llama_token_data,
     llama_token_data_array, llama_token_nl, llama_token_to_str,
 };
-use serde::{Deserialize, Serialize};
 
 #[derive(Debug, thiserror::Error)]
 #[error("LLAMA.cpp returned error-code {0}")]
 pub struct LLAMACPPErrorCode(i32);
 
 // Represents the configuration parameters for a LLamaContext.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct ContextParams {
-    pub n_ctx: i32,
     pub n_parts: i32,
+    pub n_ctx: i32,
     pub seed: i32,
     pub f16_kv: bool,
     pub vocab_only: bool,
@@ -32,6 +31,9 @@ pub struct ContextParams {
     pub use_mmap: bool,
     pub embedding: bool,
 }
+
+unsafe impl Sync for ContextParams {}
+unsafe impl Send for ContextParams {}
 
 impl ContextParams {
     pub fn new() -> ContextParams {
@@ -55,8 +57,8 @@ impl Default for ContextParams {
 impl From<ContextParams> for llama_context_params {
     fn from(params: ContextParams) -> Self {
         llama_context_params {
-            n_ctx: params.n_ctx,
             n_parts: params.n_parts,
+            n_ctx: params.n_ctx,
             seed: params.seed,
             f16_kv: params.f16_kv,
             logits_all: false,
@@ -92,11 +94,17 @@ pub(crate) struct LLamaContext {
 
 impl LLamaContext {
     // Creates a new LLamaContext from the specified file and configuration parameters.
-    pub fn from_file_and_params(path: &str, params: Option<&ContextParams>) -> Self {
+    pub fn from_file_and_params(
+        path: &str,
+        params: Option<&ContextParams>,
+    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let path = CString::new(path).expect("could not convert to CString");
         let params = ContextParams::or_default(params);
         let ctx = unsafe { llama_init_from_file(path.into_raw() as *const i8, params) };
-        Self { ctx }
+        if ctx.is_null() {
+            return Err("Initializing llama context returned nullptr".into());
+        }
+        Ok(Self { ctx })
     }
 
     // Token logits obtained from the last call to llama_eval()
@@ -222,13 +230,9 @@ impl LLamaContext {
         }
     }
 
-    pub fn llama_token_to_str(&self, token: &i32) -> String {
+    pub fn llama_token_to_bytes(&self, token: &i32) -> Vec<u8> {
         let c_ptr = unsafe { llama_token_to_str(self.ctx, *token) };
-        let native_string = unsafe { CStr::from_ptr(c_ptr) }
-            .to_str()
-            .unwrap()
-            .to_owned();
-        native_string
+        unsafe { CStr::from_ptr(c_ptr) }.to_bytes().to_vec()
     }
 
     // Evaluates the given tokens with the specified configuration.

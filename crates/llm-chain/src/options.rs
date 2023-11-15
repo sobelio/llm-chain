@@ -138,7 +138,7 @@ macro_rules! options {
         {
             let mut _opts = $crate::options::Options::builder();
             $(
-                $crate::options::Opt::$opt_name($opt_value.into());
+                _opts.add_option($crate::options::Opt::$opt_name($opt_value.into()));
             )*
             _opts.build()
         }
@@ -277,7 +277,7 @@ impl<'a> OptionsCascade<'a> {
     /// Returns a boolean indicating if options indicate that requests should be streamed or not.
     pub fn is_streaming(&self) -> bool {
         let Some(Opt::Stream(val)) = self.get(OptDiscriminants::Stream) else {
-            return false
+            return false;
         };
         *val
     }
@@ -455,7 +455,7 @@ macro_rules! opt_from_env {
     ($opt:ident, $v:ident) => {
         paste! {
             option_from_env(&mut $opt, stringify!([<
-                LLM_CHAIN_ $v:upper:snake
+                LLM_CHAIN_ $v:snake:upper
                 >]), [< $v:snake:lower _from_string >])?;
         }
     };
@@ -475,7 +475,6 @@ macro_rules! opts_from_env {
 /// `LLM_CHAIN_API_KEY`
 pub fn options_from_env() -> Result<Options, VarError> {
     let mut opts = OptionsBuilder::new();
-
     opts_from_env!(
         opts,
         Model,
@@ -495,4 +494,45 @@ pub fn options_from_env() -> Result<Options, VarError> {
         NBatch
     );
     Ok(opts.build())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    // Tests for FromStr
+    #[test]
+    fn test_options_from_env() {
+        use std::env;
+        let orig_model = "/123/123.bin";
+        let orig_nbatch = 1_usize;
+        let orig_api_key = "!asd";
+        env::set_var("LLM_CHAIN_MODEL", orig_model);
+        env::set_var("LLM_CHAIN_N_BATCH", orig_nbatch.to_string());
+        env::set_var("LLM_CHAIN_API_KEY", orig_api_key);
+        let opts = options_from_env().unwrap();
+        let model_path = opts
+            .get(OptDiscriminants::Model)
+            .and_then(|x| match x {
+                Opt::Model(m) => Some(m),
+                _ => None,
+            })
+            .unwrap();
+        let nbatch = opts
+            .get(OptDiscriminants::NBatch)
+            .and_then(|x| match x {
+                Opt::NBatch(m) => Some(m),
+                _ => None,
+            })
+            .unwrap();
+        let api_key = opts
+            .get(OptDiscriminants::ApiKey)
+            .and_then(|x| match x {
+                Opt::ApiKey(m) => Some(m),
+                _ => None,
+            })
+            .unwrap();
+        assert_eq!(model_path.to_path(), orig_model);
+        assert_eq!(nbatch.clone(), orig_nbatch);
+        assert_eq!(api_key, orig_api_key);
+    }
 }
