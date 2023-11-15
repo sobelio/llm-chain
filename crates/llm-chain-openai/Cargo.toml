@@ -21,7 +21,7 @@ serde.workspace = true
 strum = "0.24"
 strum_macros = "0.24"
 thiserror.workspace = true
-tiktoken-rs = { version = "0.5.7", features = ["async-openai"] }
+tiktoken-rs = { version = "0.5.7" }
 tokio.workspace = true
 
 [dev-dependencies]
