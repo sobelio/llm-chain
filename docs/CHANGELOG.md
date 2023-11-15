@@ -6,6 +6,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.13.0] 2023-11-15
+
+### Added
+
+- Support for milvus vector store
+- Support for mocking using the llm-chain-mock library
+- Add purposes for tools so that tools can know what their purpose is
+- Add support for google SERPs
+
+### Changed
+
+- Added support for filters in qdrant
+
 ## [0.12.3] 2023-06-27
 
 ### Added
