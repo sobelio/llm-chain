@@ -38,8 +38,8 @@ macro_rules! must_send {
 
 /// Executor is responsible for running the LLAMA model and managing its context.
 pub struct Executor {
-    context: Arc<Mutex<LLamaContext>>,
-    options: Options,
+    pub(crate) context: Arc<Mutex<LLamaContext>>,
+    pub(crate) options: Options,
     context_params: ContextParams,
 }
 

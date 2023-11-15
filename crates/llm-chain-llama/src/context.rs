@@ -6,13 +6,13 @@ use crate::options::LlamaInvocation;
 use anyhow::Result;
 use llm_chain_llama_sys::{
     llama_context, llama_context_default_params, llama_context_params, llama_decode, llama_eval,
-    llama_free, llama_get_logits, llama_get_logits_ith, llama_load_model_from_file, llama_model,
-    llama_n_vocab, llama_new_context_with_model, llama_sample_repetition_penalties,
-    llama_sample_tail_free, llama_sample_temperature, llama_sample_token,
-    llama_sample_token_greedy, llama_sample_token_mirostat, llama_sample_token_mirostat_v2,
-    llama_sample_top_k, llama_sample_top_p, llama_sample_typical, llama_token_data,
-    llama_token_data_array, llama_token_eos, llama_token_get_text, llama_token_nl,
-    llama_token_to_piece,
+    llama_free, llama_get_embeddings, llama_get_logits, llama_get_logits_ith,
+    llama_load_model_from_file, llama_model, llama_n_embd, llama_n_vocab,
+    llama_new_context_with_model, llama_sample_repetition_penalties, llama_sample_tail_free,
+    llama_sample_temperature, llama_sample_token, llama_sample_token_greedy,
+    llama_sample_token_mirostat, llama_sample_token_mirostat_v2, llama_sample_top_k,
+    llama_sample_top_p, llama_sample_typical, llama_token_data, llama_token_data_array,
+    llama_token_eos, llama_token_get_text, llama_token_nl, llama_token_to_piece,
 };
 
 pub use batch::LlamaBatch;
@@ -159,6 +159,15 @@ impl LLamaContext {
     pub fn llama_get_logits_ith(&self, index: usize) -> Vec<f32> {
         let float_ptr = unsafe { llama_get_logits_ith(self.ctx, index as i32) };
         Vec::from(unsafe { std::slice::from_raw_parts(float_ptr, self.llama_n_vocab() as usize) })
+    }
+
+    pub fn llama_get_embeddings(&self) -> Vec<f32> {
+        unsafe {
+            let len = llama_n_embd(self.model);
+            let ptr = llama_get_embeddings(self.ctx);
+            let slice = std::slice::from_raw_parts_mut(ptr, len as usize);
+            slice.to_vec()
+        }
     }
 
     // Executes the LLama sampling process with the specified configuration.

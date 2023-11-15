@@ -5,7 +5,7 @@ use std::ptr::null_mut;
 #[allow(dead_code)]
 pub struct LlamaBatch {
     n_tokens: i32,
-    token: Vec<i32>,
+    tokens: Vec<i32>,
     embd: Vec<f32>,
     pos: Vec<i32>,
     n_seq_id: Vec<i32>,
@@ -29,7 +29,7 @@ impl LlamaBatch {
 
         Self {
             n_tokens: tokens.len() as i32,
-            token: tokens,
+            tokens,
             embd,
             pos,
             n_seq_id,
@@ -44,7 +44,7 @@ impl LlamaBatch {
     pub fn new_with_token(token: i32, pos: i32) -> Self {
         Self {
             n_tokens: 1,
-            token: vec![token],
+            tokens: vec![token],
             embd: vec![],
             pos: vec![pos],
             n_seq_id: vec![1],
@@ -75,22 +75,39 @@ impl Drop for LlamaBatch {
 
 fn convert_llama_batch(batch: &LlamaBatch) -> llama_batch {
     let n_tokens = batch.n_tokens;
-    let token_ptr = Box::leak(batch.token.clone().into_boxed_slice()).as_mut_ptr();
+    let token_ptr = Box::leak(batch.tokens.clone().into_boxed_slice()).as_mut_ptr();
     let embd_ptr = if batch.embd.is_empty() {
         null_mut()
     } else {
         Box::leak(batch.embd.clone().into_boxed_slice()).as_mut_ptr()
     };
-    let pos_ptr = Box::leak(batch.pos.clone().into_boxed_slice()).as_mut_ptr();
-    let n_seq_id_ptr = Box::leak(batch.n_seq_id.clone().into_boxed_slice()).as_mut_ptr();
-    let raw_pointers = batch
-        .seq_id
-        .clone()
-        .into_iter()
-        .map(|inner_vec| Box::leak(inner_vec.into_boxed_slice()).as_mut_ptr())
-        .collect::<Vec<*mut llama_seq_id>>();
-    let seq_id_ptr = Box::leak(raw_pointers.into_boxed_slice()).as_mut_ptr();
-    let logits_ptr = Box::leak(batch.logits.clone().into_boxed_slice()).as_mut_ptr();
+    let pos_ptr = if batch.pos.is_empty() {
+        null_mut()
+    } else {
+        Box::leak(batch.pos.clone().into_boxed_slice()).as_mut_ptr()
+    };
+    let n_seq_id_ptr = if batch.n_seq_id.is_empty() {
+        null_mut()
+    } else {
+        Box::leak(batch.n_seq_id.clone().into_boxed_slice()).as_mut_ptr()
+    };
+
+    let seq_id_ptr = if batch.seq_id.is_empty() {
+        null_mut()
+    } else {
+        let raw_pointers = batch
+            .seq_id
+            .clone()
+            .into_iter()
+            .map(|inner_vec| Box::leak(inner_vec.into_boxed_slice()).as_mut_ptr())
+            .collect::<Vec<*mut llama_seq_id>>();
+        Box::leak(raw_pointers.into_boxed_slice()).as_mut_ptr()
+    };
+    let logits_ptr = if batch.logits.is_empty() {
+        null_mut()
+    } else {
+        Box::leak(batch.logits.clone().into_boxed_slice()).as_mut_ptr()
+    };
     llama_batch {
         n_tokens,
         token: token_ptr,

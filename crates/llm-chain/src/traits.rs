@@ -128,6 +128,15 @@ pub trait Embeddings {
     async fn embed_query(&self, query: String) -> Result<Vec<f32>, Self::Error>;
 }
 
+#[derive(thiserror::Error, Debug)]
+#[error("unable to create embeddings")]
+pub enum EmbeddingsCreationError {
+    #[error("unable to create embeddings: {0}")]
+    InnerError(#[from] Box<dyn Error + Send + Sync>),
+    #[error("Field must be set: {0}")]
+    FieldRequiredError(String),
+}
+
 /// This marker trait is needed so users of VectorStore can derive From<VectorStore::Error>
 pub trait VectorStoreError {}
 

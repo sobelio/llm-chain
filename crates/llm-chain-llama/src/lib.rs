@@ -23,6 +23,7 @@
 
 mod batch;
 mod context;
+pub mod embeddings;
 mod executor;
 mod model;
 mod options;
