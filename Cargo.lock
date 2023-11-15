@@ -1829,7 +1829,7 @@ dependencies = [
 
 [[package]]
 name = "llm-chain-milvus"
-version = "0.1.0"
+version = "0.12.3"
 dependencies = [
  "anyhow",
  "async-trait",
