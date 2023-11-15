@@ -5,8 +5,11 @@ use llm_chain_macros::Describe;
 #[derive(Describe)]
 struct MyToolInput {
     #[purpose("Person's name")]
+    #[allow(dead_code)]
     name: String,
+
     #[purpose("Person's age")]
+    #[allow(dead_code)]
     age: u8,
 }
 

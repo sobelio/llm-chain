@@ -1,7 +1,7 @@
 use llm_chain::options;
-use llm_chain::options::{ModelRef, Options};
+use llm_chain::options::ModelRef;
 use llm_chain::{executor, parameters, prompt};
-use std::{env::args, error::Error};
+use std::env::args;
 /// This example demonstrates how to use the llm-chain-llama crate to generate text using a
 /// LLaMA model.
 ///

@@ -9,7 +9,7 @@ use milvus::{
     collection::SearchOption,
     data::FieldColumn,
     proto::{milvus::MutationResult, schema::i_ds::IdField},
-    value::{Value, ValueVec},
+    value::ValueVec,
 };
 use serde::{de::DeserializeOwned, Serialize};
 use std::{collections::HashMap, marker::PhantomData, sync::Arc};

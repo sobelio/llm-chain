@@ -26,11 +26,11 @@ async fn main() {
                 vectors_config: Some(VectorsConfig {
                     config: Some(qdrant_client::qdrant::vectors_config::Config::Params(
                         VectorParams {
+                            on_disk: None,
                             size: embedding_size,
                             distance: Distance::Cosine.into(),
                             hnsw_config: None,
                             quantization_config: None,
-                            on_disk: None,
                         },
                     )),
                 }),

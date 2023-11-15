@@ -111,10 +111,7 @@ lazy_static! {
         MirostatTau: 5.0,
         MirostatEta: 0.1,
         PenalizeNl: true,
-        StopSequence: vec!["\n\n".to_string()],
-        NumGpuLayers: 0,
-        RopeFrequencyBase: 10000.0,
-        RopeFrequencyScale: 1.0
+        StopSequence: vec!["\n\n".to_string()]
     );
 }
 
@@ -123,15 +120,9 @@ pub(crate) fn get_executor_initial_opts(
 ) -> Result<(String, ContextParams), ExecutorCreationError> {
     let model = opt_extract!(opt, model, Model)?;
     let max_context_size = opt_extract!(opt, max_context_size, MaxContextSize)?;
-    let num_gpu_layers = opt_extract!(opt, num_gpu_layers, NumGpuLayers)?;
-    let rope_freq_base = opt_extract!(opt, rope_freq_base, RopeFrequencyBase)?;
-    let rope_freq_scale = opt_extract!(opt, rope_freq_scale, RopeFrequencyScale)?;
 
     let mut cp = ContextParams::new();
     cp.n_ctx = *max_context_size as i32;
-    cp.n_gpu_layers = *num_gpu_layers;
-    cp.rope_freq_base = *rope_freq_base;
-    cp.rope_freq_scale = *rope_freq_scale;
 
     Ok((model.to_path(), cp))
 }

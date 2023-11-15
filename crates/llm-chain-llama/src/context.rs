@@ -22,23 +22,14 @@ pub struct LLAMACPPErrorCode(i32);
 // Represents the configuration parameters for a LLamaContext.
 #[derive(Debug, Clone)]
 pub struct ContextParams {
+    pub n_parts: i32,
     pub n_ctx: i32,
-    pub n_batch: i32,
-    pub n_gpu_layers: i32,
-    pub main_gpu: i32,
-    pub tensor_split: *const f32,
-    pub seed: u32,
+    pub seed: i32,
     pub f16_kv: bool,
     pub vocab_only: bool,
     pub use_mlock: bool,
     pub use_mmap: bool,
     pub embedding: bool,
-    pub low_vram: bool,
-    pub rope_freq_base: f32,
-    pub rope_freq_scale: f32,
-    pub mul_mat_q: bool,
-    pub n_gqa: i32,
-    pub rms_norm_eps: f32,
 }
 
 unsafe impl Sync for ContextParams {}
@@ -66,11 +57,8 @@ impl Default for ContextParams {
 impl From<ContextParams> for llama_context_params {
     fn from(params: ContextParams) -> Self {
         llama_context_params {
+            n_parts: params.n_parts,
             n_ctx: params.n_ctx,
-            n_batch: params.n_batch,
-            n_gpu_layers: params.n_gpu_layers,
-            main_gpu: params.main_gpu,
-            tensor_split: params.tensor_split,
             seed: params.seed,
             f16_kv: params.f16_kv,
             logits_all: false,
@@ -80,12 +68,6 @@ impl From<ContextParams> for llama_context_params {
             embedding: params.embedding,
             progress_callback: None,
             progress_callback_user_data: null_mut(),
-            low_vram: params.low_vram,
-            rope_freq_base: params.rope_freq_base,
-            rope_freq_scale: params.rope_freq_scale,
-            mul_mat_q: params.mul_mat_q,
-            n_gqa: params.n_gqa,
-            rms_norm_eps: params.rms_norm_eps,
         }
     }
 }
@@ -94,22 +76,13 @@ impl From<llama_context_params> for ContextParams {
     fn from(params: llama_context_params) -> Self {
         ContextParams {
             n_ctx: params.n_ctx,
-            n_batch: params.n_batch,
-            n_gpu_layers: params.n_gpu_layers,
-            main_gpu: params.main_gpu,
-            tensor_split: params.tensor_split,
+            n_parts: params.n_parts,
             seed: params.seed,
             f16_kv: params.f16_kv,
             vocab_only: params.vocab_only,
             use_mlock: params.use_mlock,
             use_mmap: params.use_mmap,
             embedding: params.embedding,
-            low_vram: params.low_vram,
-            rope_freq_base: params.rope_freq_base,
-            rope_freq_scale: params.rope_freq_scale,
-            mul_mat_q: params.mul_mat_q,
-            n_gqa: params.n_gqa,
-            rms_norm_eps: params.rms_norm_eps,
         }
     }
 }
