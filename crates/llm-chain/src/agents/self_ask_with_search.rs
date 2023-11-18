@@ -1,3 +1,14 @@
+/// Agent inspired by [self-ask](https://github.com/ofirpress/self-ask)
+///
+/// The prompt implemented from the paper is designed for GPT-3, therefore it might not work well
+/// with other models.
+///
+/// These are the limitations and inconsistencies of the prompt:
+/// - models do not always format their output correctly, e.x. respond with "So the final answer could be: ..." instead of "So the final answer is: ..."
+/// - some models have safety measures against asking about events which are in the future (from the point of view of the model); they will not even attempt to use the search tool
+/// - models sometimes finish on "Intermediate answer: ..." if it contains the final answer to the question
+/// - models sometimes immediately answer with "Yes, ..." or "No, ..."; they should always structure their final answer with "So the final answer is: ..." (or equivalent)
+
 use crate::{
     options::Options,
     parameters,
@@ -9,12 +20,8 @@ use crate::{
 use std::time::{Duration, Instant};
 use thiserror::Error;
 
-/// TODO: This prompt has some issues:
-///
-/// - models do not always format their output correctly, e.x. respond with "So the final answer could be: ..." instead of "So the final answer is: ..."
-/// - some models have safety measures against asking about events which are in the future (from the point of view of the model); they will not even attempt to use the search tool
-/// - models sometimes finish on "Intermediate answer: ..." if it contains the final answer to the question
-/// - models sometimes immediately answer with "Yes, ..." or "No, ..."; they should always structure their final answer with "So the final answer is: ..." (or equivalent)
+/// This prompt is from the paper and is designed for GPT-3.
+/// See limitations above.
 const PROMPT: &str = "Question: Who lived longer, Muhammad Ali or Alan Turing?
 Are follow up questions needed here: Yes.
 Follow up: How old was Muhammad Ali when he died?
@@ -54,15 +61,34 @@ So the final answer is: No
 Question: {{input}}
 Are followup questions needed here:{{agent_scratchpad}}";
 
+/// A struct representing the action the agent should take
+///
+/// This structure is heavily inspired from LangChain.
 #[derive(Debug, PartialEq, Eq)]
 pub struct AgentAction {
+    /// name of tool
     pub tool: String,
+    /// input to pass to tool
     pub tool_input: serde_yaml::Value,
+    /// Additional information to log about the action.
+    /// This log can be used in a few ways. First, it can be used to audit
+    /// what exactly the LLM predicted to lead to this (tool, tool_input).
+    /// Second, it can be used in future iterations to show the LLMs prior
+    /// thoughts. This is useful when (tool, tool_input) does not contain
+    /// full information about the LLM prediction (for example, any 'thought'
+    /// before the tool/tool_input).
     pub log: String,
 }
+
+/// Final output of the agent
+///
+/// This structure is heavily inspired from LangChain.
 #[derive(Debug, PartialEq)]
 pub struct AgentFinish {
     pub return_values: Parameters,
+
+    /// additional information for observability
+    /// This is used to pass along the full LLM prediction, not just the parsed out return value.
     pub log: String,
 }
 
@@ -157,7 +183,9 @@ pub struct ParserError(String);
 impl AgentOutputParser for SelfAskWithSearchAgentOutputParser {
     type Error = ParserError;
     fn parse(&self, text: String) -> Result<AgentDecision, Self::Error> {
+        // If there is a followup question, we need to extract it
         if let Some(followup_idx) = text.find(&self.followup_prefix) {
+            // If there is an intermediate answer, extract it
             let (followup_question, log) = if let Some(intermediate_answer_idx) =
                 text.find(&self.intermediate_answer_prefix)
             {
@@ -172,6 +200,7 @@ impl AgentOutputParser for SelfAskWithSearchAgentOutputParser {
                 let log = text.chars().take(intermediate_answer_idx).collect();
                 (followup_question, log)
             } else {
+                // If there is no intermediate answer, extract the followup question
                 let followup_question = text
                     .chars()
                     .skip(followup_idx + self.followup_prefix.len())
