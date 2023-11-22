@@ -341,6 +341,9 @@ pub enum Opt {
     MaxTokens(usize),
     /// The maximum context size of the model.
     MaxContextSize(usize),
+    /// The maximum batch size of the model.
+    /// This is used by llama models.
+    MaxBatchSize(usize),
     /// The sequences that, when encountered, will cause the model to stop generating further tokens.
     /// OpenAI models allow up to four stop sequences.
     StopSequence(Vec<String>),
@@ -394,6 +397,19 @@ pub enum Opt {
     User(String),
     /// The type of the model.
     ModelType(String),
+
+    // The number of layers to be stored in GPU VRAM for llm-chain-llama.
+    NGpuLayers(i32),
+    // The GPU that should be used for scratch and small tensors for llm-chain-llama.
+    MainGpu(i32),
+    // How the layers should be split accross the available GPUs for llm-chain-llama.
+    TensorSplit(Vec<f32>),
+    // Only load the vocabulary for llm-chain-llama, no weights will be loaded.
+    VocabOnly(bool),
+    // Use memory mapped files for llm-chain-llama where possible.
+    UseMmap(bool),
+    // Force the system to keep the model in memory for llm-chain-llama.
+    UseMlock(bool),
 }
 
 // Helper function to extract environment variables

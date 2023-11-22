@@ -3,9 +3,7 @@ use llm_chain::prompt::Data;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 
-use llm_chain_llama_sys::{
-    llama_token, llama_token_eos as inner_eos, llama_token_to_str, llama_tokenize,
-};
+use llm_chain_llama_sys::{llama_token, llama_token_get_text, llama_tokenize};
 
 use crate::context::LLamaContext;
 
@@ -25,15 +23,11 @@ fn to_cstring(s: &str) -> CString {
 ///
 /// A Rust String representation of the given llama_token.
 fn to_output(context: &LLamaContext, token: i32) -> String {
-    let c_ptr = unsafe { llama_token_to_str(**context, token) };
+    let c_ptr = unsafe { llama_token_get_text(context.model, token) };
     let native_string = unsafe { CStr::from_ptr(c_ptr) }
         .to_string_lossy()
         .into_owned();
     native_string
-}
-
-pub fn llama_token_eos() -> i32 {
-    unsafe { inner_eos() }
 }
 
 /// Helper function to tokenize text using the provided LLamaContext and add_bos option.
@@ -47,21 +41,42 @@ pub fn llama_token_eos() -> i32 {
 /// # Returns
 ///
 /// A Vec of llama_tokens representing the tokenized input.
-pub(crate) fn tokenize(context: &LLamaContext, text: &str, add_bos: bool) -> Vec<llama_token> {
+pub(crate) fn tokenize(
+    context: &LLamaContext,
+    text: &str,
+    add_bos: bool,
+    special: bool,
+) -> Vec<llama_token> {
     let mut res = Vec::with_capacity(text.len() + add_bos as usize);
     let c_text = to_cstring(text);
-
-    let n = unsafe {
+    let n_tokens = unsafe {
         llama_tokenize(
-            **context,
+            context.model,
             c_text.as_ptr() as *const c_char,
+            c_text.to_bytes().len() as i32,
             res.as_mut_ptr(),
             res.capacity() as i32,
             add_bos,
+            special,
         )
     };
-    assert!(n >= 0);
-    unsafe { res.set_len(n as usize) };
+    if n_tokens < 0 {
+        res.resize(-n_tokens as usize, 0);
+        let new_n_tokens = unsafe {
+            llama_tokenize(
+                context.model,
+                c_text.as_ptr() as *const c_char,
+                c_text.to_bytes().len() as i32,
+                res.as_mut_ptr(),
+                res.capacity() as i32,
+                add_bos,
+                special,
+            )
+        };
+        assert!(new_n_tokens == -n_tokens);
+    } else {
+        unsafe { res.set_len(n_tokens as usize) };
+    }
     res
 }
 

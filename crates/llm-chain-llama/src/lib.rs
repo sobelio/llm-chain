@@ -21,13 +21,16 @@
 //!
 //! Happy coding, and enjoy the amazing world of LLMs with llm-chain-llama! 🥳🚀
 
+mod batch;
 mod context;
 mod executor;
+mod model;
 mod options;
 mod tokenizer;
 
 pub use context::ContextParams;
 pub use executor::Executor;
+pub use model::ModelParams;
 
 #[deprecated(note = "Use llm_chain::step::Step instead", since = "0.7.0")]
 pub use llm_chain::step::Step;

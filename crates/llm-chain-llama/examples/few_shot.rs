@@ -1,4 +1,3 @@
-use llm_chain::options;
 use llm_chain::prompt::Conversation;
 use llm_chain::{chains::conversation::Chain, executor, parameters, prompt, step::Step};
 /// This example demonstrates how to use the llm-chain for few-shot prompting
@@ -10,12 +9,7 @@ use llm_chain::{chains::conversation::Chain, executor, parameters, prompt, step:
 /// Make sure to have the env var 'LLM_CHAIN_MODEL' set
 #[tokio::main(flavor = "multi_thread", worker_threads = 1)]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let opts = options!(
-        NThreads: 4_usize,
-        StopSequence: vec!["\n".to_string()]
-    );
-
-    let exec_1 = executor!(llama, opts.clone())?;
+    let exec_1 = executor!(llama)?;
 
     let user_prompt =
         "Take the last letters of the words in '{{ full_name }}' and concatenate them";
@@ -47,7 +41,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Define the step
     let step = Step::for_prompt_template(prompt!(user: user_prompt));
     // Execute the chain.
-    let exec_2 = executor!(llama, opts)?;
+    let exec_2 = executor!(llama)?;
     let res = chain
         .send_message(step, &parameters!().with("full_name", "Elon Musk"), &exec_2)
         .await?;

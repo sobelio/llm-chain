@@ -85,7 +85,9 @@ fn main() {
         .arg("-DLLAMA_ALL_WARNINGS=OFF")
         .arg("-DLLAMA_ALL_WARNINGS_3RD_PARTY=OFF")
         .arg("-DLLAMA_BUILD_TESTS=OFF")
-        .arg("-DLLAMA_BUILD_EXAMPLES=OFF");
+        .arg("-DLLAMA_BUILD_EXAMPLES=OFF")
+        .arg("-DLLAMA_NO_METAL=ON")
+        .arg("-DLLAMA_METAL=OFF");
     // .arg("-DLLAMA_STATIC=ON")
     if cuda_enabled {
         // If CUDA feature is enabled, build with cuBlAS to enable GPU acceleration
