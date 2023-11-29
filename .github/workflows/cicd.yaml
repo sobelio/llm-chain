@@ -36,6 +36,7 @@ jobs:
 
   build_and_test:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-13, windows-latest]
         rust-version: [stable]
