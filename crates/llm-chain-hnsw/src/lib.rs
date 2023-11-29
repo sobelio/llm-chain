@@ -1,10 +1,7 @@
-use std::{
-    collections::HashMap, fs::OpenOptions, io::BufReader, marker::PhantomData, path::PathBuf,
-    sync::Arc,
-};
+use std::{collections::HashMap, marker::PhantomData, sync::Arc};
 
 use async_trait::async_trait;
-use hnsw_rs::{hnsw::Hnsw, hnswio::*, prelude::*};
+use hnsw_rs::{hnsw::Hnsw, prelude::*};
 use llm_chain::{
     document_stores::document_store::*,
     schema::Document,
@@ -32,19 +29,19 @@ impl Default for HnswArgs {
     }
 }
 
-pub struct HnswVectorStore<E, D, M>
+pub struct HnswVectorStore<'a, E, D, M>
 where
     E: Embeddings,
     D: DocumentStore<usize, M> + Send + Sync,
     M: Serialize + DeserializeOwned + Send + Sync,
 {
-    hnsw: Arc<Hnsw<f32, DistCosine>>,
+    hnsw: Arc<Hnsw<'a, f32, DistCosine>>,
     document_store: Arc<Mutex<D>>,
     embeddings: Arc<E>,
     _marker: PhantomData<M>,
 }
 
-impl<E, D, M> HnswVectorStore<E, D, M>
+impl<'a, E, D, M> HnswVectorStore<'a, E, D, M>
 where
     E: Embeddings,
     D: DocumentStore<usize, M> + Send + Sync,
@@ -69,47 +66,20 @@ where
     pub fn dump_to_file(
         &self,
         filename: String,
-    ) -> Result<i32, HnswVectorStoreError<E::Error, D::Error>> {
+    ) -> Result<String, HnswVectorStoreError<E::Error, D::Error>> {
         self.hnsw
             .file_dump(&filename)
-            .map_err(HnswVectorStoreError::FileDumpError)
+            .map_err(|e| HnswVectorStoreError::FileDumpError(e.to_string()))
     }
 
     pub fn load_from_file(
-        filename: String,
+        hnsw: Hnsw<'a, f32, DistCosine>,
         embeddings: Arc<E>,
         document_store: Arc<Mutex<D>>,
-    ) -> Result<Self, HnswVectorStoreError<E::Error, D::Error>> {
-        let graph_fn = format!("{}.hnsw.graph", &filename);
-        let graph_path = PathBuf::from(graph_fn);
-        let graph_file_res = OpenOptions::new().read(true).open(&graph_path);
-        if graph_file_res.is_err() {
-            return Err(HnswVectorStoreError::FileLoadError(format!(
-                "could not open file {:?}",
-                graph_path.as_os_str()
-            )));
-        }
-        let graph_file = graph_file_res.unwrap();
-        let data_fn = format!("{}.hnsw.data", &filename);
-        let data_path = PathBuf::from(data_fn);
-        let data_file_res = OpenOptions::new().read(true).open(&data_path);
-        if data_file_res.is_err() {
-            return Err(HnswVectorStoreError::FileLoadError(format!(
-                "could not open file {:?}",
-                data_path.as_os_str()
-            )));
-        }
-        let data_file = data_file_res.unwrap();
-
-        let mut graph_in = BufReader::new(graph_file);
-        let mut data_in = BufReader::new(data_file);
-
-        let hnsw_description = load_description(&mut graph_in).unwrap();
-        let hnsw_loaded: Hnsw<f32, DistCosine> =
-            load_hnsw(&mut graph_in, &hnsw_description, &mut data_in).unwrap();
-
+    ) -> Result<Self, HnswVectorStoreError<E::Error, D::Error>>
+where {
         Ok(HnswVectorStore {
-            hnsw: Arc::new(hnsw_loaded),
+            hnsw: Arc::new(hnsw),
             document_store,
             embeddings,
             _marker: Default::default(),
@@ -143,7 +113,7 @@ where
 }
 
 #[async_trait]
-impl<E, D, M> VectorStore<E, M> for HnswVectorStore<E, D, M>
+impl<'a, E, D, M> VectorStore<E, M> for HnswVectorStore<'a, E, D, M>
 where
     E: Embeddings + Send + Sync,
     D: DocumentStore<usize, M> + Send + Sync,

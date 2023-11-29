@@ -1,3 +1,5 @@
+use hnsw_rs::{hnswio::*, prelude::*};
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use llm_chain::{
@@ -16,7 +18,7 @@ async fn main() {
     let hnsw_index_fn = "hnsw_index".to_string();
     let mut embeddings = llm_chain_openai::embeddings::Embeddings::default();
     let document_store = Arc::new(Mutex::new(InMemoryDocumentStore::<EmptyMetadata>::new()));
-    let mut hnsw_vs = HnswVectorStore::new(
+    let hnsw_vs = HnswVectorStore::new(
         HnswArgs::default(),
         Arc::new(embeddings),
         document_store.clone(),
@@ -56,12 +58,13 @@ async fn main() {
     // Load
     println!("Loading hnsw index from file");
     embeddings = llm_chain_openai::embeddings::Embeddings::default();
-    hnsw_vs = HnswVectorStore::load_from_file(
-        hnsw_index_fn,
-        Arc::new(embeddings),
-        document_store.clone(),
-    )
-    .unwrap();
+
+    let mut hnswio = HnswIo::new(PathBuf::from("."), hnsw_index_fn);
+    let hnsw_loaded = hnswio.load_hnsw::<f32, DistCosine>().unwrap();
+    let hnsw_vs =
+        HnswVectorStore::load_from_file(hnsw_loaded, Arc::new(embeddings), document_store.clone())
+            .unwrap();
+
     println!("Loaded!");
 
     let response = hnsw_vs
