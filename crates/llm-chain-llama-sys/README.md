@@ -12,3 +12,10 @@ use llama_sys::\*;
 ```
 
 Note that llama-sys provides a lower-level interface than llm-chain-llama, and may be more difficult to use. However, if you need fine-grained control over llama.cpp, llama-sys is the way to go.
+
+## Updating llama.cpp submodule
+To update the llama.cpp submodule, run the following command:
+
+```console
+$ git submodule update --remote --merge llama.cpp
+```
