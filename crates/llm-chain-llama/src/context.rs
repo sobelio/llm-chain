@@ -6,7 +6,7 @@ use crate::options::LlamaInvocation;
 use anyhow::Result;
 use llm_chain_llama_sys::{
     llama_context, llama_context_default_params, llama_context_params, llama_decode, llama_eval,
-    llama_free, llama_get_embeddings, llama_get_logits, llama_get_logits_ith,
+    llama_free, llama_get_embeddings, llama_get_logits, llama_get_logits_ith, llama_kv_cache_clear,
     llama_load_model_from_file, llama_model, llama_n_embd, llama_n_vocab,
     llama_new_context_with_model, llama_sample_repetition_penalties, llama_sample_tail_free,
     llama_sample_temperature, llama_sample_token, llama_sample_token_greedy,
@@ -308,6 +308,10 @@ impl LLamaContext {
 
     pub fn llama_token_nl(&self) -> i32 {
         unsafe { llama_token_nl(self.model) }
+    }
+
+    pub fn llama_kv_cache_clear(&self) {
+        unsafe { llama_kv_cache_clear(self.ctx) }
     }
 
     pub fn llama_token_to_piece(

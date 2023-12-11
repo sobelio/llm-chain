@@ -62,6 +62,17 @@ impl Executor {
             let context_size = context_size;
             let context = context.blocking_lock();
 
+            // The following clears the Key-Value cache to allow conversational
+            // (chat) applications to be able to call run_model multiple times
+            // using the same context. Without this, and because the same
+            // sequence id is used below, the cache can contain tokens from
+            // a previous interaction which may cause the model to generate
+            // a response that is not appropriate for the current prompt.
+            //
+            // TODO(danbev) Is there a better way to do this, perhaps by using
+            // sequence ids in some way?
+            context.llama_kv_cache_clear();
+
             let tokenized_stop_prompt = tokenize(
                 &context,
                 input
