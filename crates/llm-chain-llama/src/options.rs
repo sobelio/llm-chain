@@ -110,7 +110,7 @@ lazy_static! {
         MirostatTau: 5.0,
         MirostatEta: 0.1,
         PenalizeNl: true,
-        StopSequence: vec!["\\n\\n".to_string()],
+        StopSequence: vec!["\n\n".to_string()],
         NGpuLayers: 0_i32,
         MainGpu: 0_i32,
         TensorSplit: Vec::new(),
