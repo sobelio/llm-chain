@@ -67,30 +67,6 @@ impl Drop for LlamaBatch {
     }
 }
 
-impl From<llama_batch> for LlamaBatch {
-    fn from(batch: llama_batch) -> Self {
-        let n_tokens = batch.n_tokens as usize;
-        unsafe {
-            LlamaBatch {
-                n_tokens: batch.n_tokens,
-                token: Vec::from_raw_parts(batch.token, n_tokens, n_tokens),
-                embd: Vec::from_raw_parts(batch.embd, n_tokens, n_tokens),
-                pos: Vec::from_raw_parts(batch.pos, n_tokens, n_tokens),
-                n_seq_id: Vec::from_raw_parts(batch.n_seq_id, n_tokens, n_tokens),
-                seq_id: (0..*batch.n_seq_id)
-                    .map(|i| {
-                        Vec::from_raw_parts(*batch.seq_id.offset(i as isize), n_tokens, n_tokens)
-                    })
-                    .collect(),
-                logits: Vec::from_raw_parts(batch.logits as *mut bool, n_tokens, n_tokens),
-                all_pos_0: batch.all_pos_0,
-                all_pos_1: batch.all_pos_1,
-                all_seq_id: batch.all_seq_id,
-            }
-        }
-    }
-}
-
 fn convert_llama_batch(batch: &LlamaBatch) -> llama_batch {
     let n_tokens = batch.n_tokens;
     let token_ptr = Box::leak(batch.token.clone().into_boxed_slice()).as_mut_ptr();
