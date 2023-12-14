@@ -132,9 +132,10 @@ impl Executor {
             let token_eos = context.llama_token_eos();
 
             let mut stop_sequence_i = 0;
-            // Generate remaining tokens.
-            let mut n_samples = 0;
             let mut n_batch = batch.token_count();
+            let mut n_samples = 0;
+            let ignore_initial_nls = input.prompt.to_text().ends_with('?');
+            let nl_token = context.llama_token_nl();
 
             // Generate remaining tokens.
             while n_remaining > 0 {
@@ -158,9 +159,16 @@ impl Executor {
                 {
                     break;
                 }
-                // If the prompt is in the form of a question then next
-                // predicted tok will be a new line.
-                if tok == tokenized_stop_prompt[stop_sequence_i] && n_samples > 2 {
+
+                // If the input prompt is in the form of a question then next
+                // predicted tok will be a new line to finish off the question
+                // itself, followed by another new line before the actual
+                // answer. This is what the following is checking for.
+                if n_samples <= 2 && ignore_initial_nls && tok == nl_token {
+                    continue;
+                }
+
+                if tok == tokenized_stop_prompt[stop_sequence_i] {
                     stop_sequence_i += 1;
                     if stop_sequence_i >= tokenized_stop_prompt.len() {
                         break;

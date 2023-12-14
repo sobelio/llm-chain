@@ -297,6 +297,10 @@ impl LLamaContext {
         unsafe { llama_token_eos(self.model) }
     }
 
+    pub fn llama_token_nl(&self) -> i32 {
+        unsafe { llama_token_nl(self.model) }
+    }
+
     pub fn llama_token_to_piece(
         &self,
         token_id: i32,
