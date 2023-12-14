@@ -134,6 +134,7 @@ impl Executor {
             let mut stop_sequence_i = 0;
             // Generate remaining tokens.
             let mut n_samples = 0;
+            let mut n_batch = batch.token_count();
 
             // Generate remaining tokens.
             while n_remaining > 0 {
@@ -142,7 +143,7 @@ impl Executor {
                     embd.as_slice(),
                     n_used as i32,
                     &input,
-                    batch.token_count() as i32,
+                    n_batch as i32,
                 );
                 n_samples += 1;
                 n_used += 1;
@@ -174,9 +175,9 @@ impl Executor {
                     must_send!(sender, StreamSegment::Content(piece));
                     stop_sequence_i = 0;
 
-                    // set the batch for the next iteration.
-                    batch.set_token(tok, n_cur as i32);
+                    let batch = LlamaBatch::new_with_token(tok, n_cur as i32);
 
+                    n_batch = batch.token_count();
                     n_cur += 1;
 
                     bail!(

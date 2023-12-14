@@ -41,13 +41,19 @@ impl LlamaBatch {
         }
     }
 
-    pub fn set_token(&mut self, token: i32, pos: i32) {
-        self.n_tokens = 1;
-        self.token[0] = token;
-        self.pos[0] = pos;
-        self.n_seq_id[0] = 1;
-        self.seq_id[0][0] = 0;
-        self.logits[0] = true;
+    pub fn new_with_token(token: i32, pos: i32) -> Self {
+        Self {
+            n_tokens: 1,
+            token: vec![token],
+            embd: vec![],
+            pos: vec![pos],
+            n_seq_id: vec![1],
+            seq_id: vec![vec![0]],
+            logits: vec![true],
+            all_pos_0: 0,
+            all_pos_1: 0,
+            all_seq_id: 0,
+        }
     }
 
     pub fn token_count(&self) -> usize {
