@@ -1,19 +1,21 @@
-use std::{
-    ffi::{CStr, CString},
-    ptr::null_mut,
-};
+use std::ffi::{CStr, CString};
 
+use crate::batch;
+use crate::model::ModelParams;
 use crate::options::LlamaInvocation;
 use anyhow::Result;
 use llm_chain_llama_sys::{
-    llama_context, llama_context_default_params, llama_context_params, llama_eval, llama_free,
-    llama_get_logits, llama_init_from_file, llama_n_vocab,
-    llama_sample_frequency_and_presence_penalties, llama_sample_repetition_penalty,
+    llama_context, llama_context_default_params, llama_context_params, llama_decode, llama_eval,
+    llama_free, llama_get_logits, llama_get_logits_ith, llama_load_model_from_file, llama_model,
+    llama_n_vocab, llama_new_context_with_model, llama_sample_repetition_penalties,
     llama_sample_tail_free, llama_sample_temperature, llama_sample_token,
     llama_sample_token_greedy, llama_sample_token_mirostat, llama_sample_token_mirostat_v2,
     llama_sample_top_k, llama_sample_top_p, llama_sample_typical, llama_token_data,
-    llama_token_data_array, llama_token_nl, llama_token_to_str,
+    llama_token_data_array, llama_token_eos, llama_token_get_text, llama_token_nl,
+    llama_token_to_piece,
 };
+
+pub use batch::LlamaBatch;
 
 #[derive(Debug, thiserror::Error)]
 #[error("LLAMA.cpp returned error-code {0}")]
@@ -22,13 +24,22 @@ pub struct LLAMACPPErrorCode(i32);
 // Represents the configuration parameters for a LLamaContext.
 #[derive(Debug, Clone)]
 pub struct ContextParams {
-    pub n_parts: i32,
-    pub n_ctx: i32,
-    pub seed: i32,
+    pub seed: u32,
+    pub n_ctx: u32,
+    pub n_batch: u32,
+    pub n_threads: u32,
+    pub n_threads_batch: u32,
+    pub rope_scaling_type: i8,
+    pub rope_freq_base: f32,
+    pub rope_freq_scale: f32,
+    pub yarn_ext_factor: f32,
+    pub yarn_attn_factor: f32,
+    pub yarn_beta_fast: f32,
+    pub yarn_beta_slow: f32,
+    pub yarn_orig_ctx: u32,
+    pub mul_mat_q: bool,
     pub f16_kv: bool,
-    pub vocab_only: bool,
-    pub use_mlock: bool,
-    pub use_mmap: bool,
+    pub logits_all: bool,
     pub embedding: bool,
 }
 
@@ -57,17 +68,23 @@ impl Default for ContextParams {
 impl From<ContextParams> for llama_context_params {
     fn from(params: ContextParams) -> Self {
         llama_context_params {
-            n_parts: params.n_parts,
-            n_ctx: params.n_ctx,
             seed: params.seed,
+            n_ctx: params.n_ctx,
+            n_batch: params.n_batch,
+            n_threads: params.n_threads,
+            n_threads_batch: params.n_threads_batch,
+            rope_scaling_type: params.rope_scaling_type,
+            rope_freq_base: params.rope_freq_base,
+            rope_freq_scale: params.rope_freq_scale,
+            yarn_ext_factor: params.yarn_ext_factor,
+            yarn_attn_factor: params.yarn_attn_factor,
+            yarn_beta_fast: params.yarn_beta_fast,
+            yarn_beta_slow: params.yarn_beta_slow,
+            yarn_orig_ctx: params.yarn_orig_ctx,
+            mul_mat_q: params.mul_mat_q,
             f16_kv: params.f16_kv,
             logits_all: false,
-            vocab_only: params.vocab_only,
-            use_mlock: params.use_mlock,
-            use_mmap: params.use_mmap,
             embedding: params.embedding,
-            progress_callback: None,
-            progress_callback_user_data: null_mut(),
         }
     }
 }
@@ -75,13 +92,22 @@ impl From<ContextParams> for llama_context_params {
 impl From<llama_context_params> for ContextParams {
     fn from(params: llama_context_params) -> Self {
         ContextParams {
-            n_ctx: params.n_ctx,
-            n_parts: params.n_parts,
             seed: params.seed,
+            n_ctx: params.n_ctx,
+            n_batch: params.n_batch,
+            n_threads: params.n_threads,
+            n_threads_batch: params.n_threads_batch,
+            rope_scaling_type: params.rope_scaling_type,
+            rope_freq_base: params.rope_freq_base,
+            rope_freq_scale: params.rope_freq_scale,
+            yarn_ext_factor: params.yarn_ext_factor,
+            yarn_attn_factor: params.yarn_attn_factor,
+            yarn_beta_fast: params.yarn_beta_fast,
+            yarn_beta_slow: params.yarn_beta_slow,
+            yarn_orig_ctx: params.yarn_orig_ctx,
+            mul_mat_q: params.mul_mat_q,
             f16_kv: params.f16_kv,
-            vocab_only: params.vocab_only,
-            use_mlock: params.use_mlock,
-            use_mmap: params.use_mmap,
+            logits_all: params.logits_all,
             embedding: params.embedding,
         }
     }
@@ -90,21 +116,31 @@ impl From<llama_context_params> for ContextParams {
 // Represents the LLamaContext which wraps FFI calls to the llama.cpp library.
 pub(crate) struct LLamaContext {
     ctx: *mut llama_context,
+    pub model: *mut llama_model,
 }
 
+#[allow(dead_code)]
 impl LLamaContext {
     // Creates a new LLamaContext from the specified file and configuration parameters.
     pub fn from_file_and_params(
         path: &str,
-        params: Option<&ContextParams>,
+        model_params: Option<&ModelParams>,
+        context_params: Option<&ContextParams>,
     ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let path = CString::new(path).expect("could not convert to CString");
-        let params = ContextParams::or_default(params);
-        let ctx = unsafe { llama_init_from_file(path.into_raw() as *const i8, params) };
+        let model_params = ModelParams::or_default(model_params);
+        let model =
+            unsafe { llama_load_model_from_file(path.into_raw() as *const i8, model_params) };
+        if model.is_null() {
+            return Err("Initializing llama model returned nullptr".into());
+        }
+
+        let context_params = ContextParams::or_default(context_params);
+        let ctx = unsafe { llama_new_context_with_model(model, context_params) };
         if ctx.is_null() {
             return Err("Initializing llama context returned nullptr".into());
         }
-        Ok(Self { ctx })
+        Ok(Self { ctx, model })
     }
 
     // Token logits obtained from the last call to llama_eval()
@@ -117,7 +153,12 @@ impl LLamaContext {
         unsafe { std::slice::from_raw_parts_mut(llama_get_logits(self.ctx), len) }.to_vec()
     }
     pub fn llama_n_vocab(&self) -> i32 {
-        unsafe { llama_n_vocab(self.ctx) }
+        unsafe { llama_n_vocab(self.model) }
+    }
+
+    pub fn llama_get_logits_ith(&self, index: usize) -> Vec<f32> {
+        let float_ptr = unsafe { llama_get_logits_ith(self.ctx, index as i32) };
+        Vec::from(unsafe { std::slice::from_raw_parts(float_ptr, self.llama_n_vocab() as usize) })
     }
 
     // Executes the LLama sampling process with the specified configuration.
@@ -127,6 +168,7 @@ impl LLamaContext {
         last_n_tokens_data: &[i32],
         last_n_tokens_size: i32,
         input: &LlamaInvocation,
+        batch_n_tokens: i32,
     ) -> i32 {
         let top_k = if input.top_k <= 0 {
             self.llama_n_vocab()
@@ -140,7 +182,7 @@ impl LLamaContext {
         };
         let n_vocab = self.llama_n_vocab() as usize;
         // only get the last row, as the sample only requires this.
-        let mut logits = self.llama_get_logits_as_slice(1, n_vocab);
+        let mut logits = self.llama_get_logits_ith((batch_n_tokens - 1) as usize);
 
         // let id : llama_token = 0;
         input
@@ -160,11 +202,11 @@ impl LLamaContext {
             size: candidates.len(),
             sorted: false,
         };
-        let nl_logit = logits[unsafe { llama_token_nl() } as usize];
+        let nl_logit = logits[unsafe { llama_token_nl(self.model) } as usize];
         let last_n_repeat = i32::min(i32::min(last_n_tokens_size, repeat_last_n), n_ctx) as usize;
 
         unsafe {
-            llama_sample_repetition_penalty(
+            llama_sample_repetition_penalties(
                 self.ctx,
                 &mut candidates_p,
                 last_n_tokens_data
@@ -172,22 +214,12 @@ impl LLamaContext {
                     .add((last_n_tokens_size - last_n_repeat as i32) as usize),
                 last_n_repeat,
                 input.repeat_penalty,
-            )
-        };
-        unsafe {
-            llama_sample_frequency_and_presence_penalties(
-                self.ctx,
-                &mut candidates_p,
-                last_n_tokens_data
-                    .as_ptr()
-                    .add((last_n_tokens_size - last_n_repeat as i32) as usize),
-                last_n_repeat,
                 input.frequency_penalty,
                 input.presence_penalty,
             )
         };
         if !input.penalize_nl {
-            logits[unsafe { llama_token_nl() as usize }] = nl_logit;
+            logits[unsafe { llama_token_nl(self.model) as usize }] = nl_logit;
         }
 
         if input.temp <= 0.0 {
@@ -231,25 +263,73 @@ impl LLamaContext {
     }
 
     pub fn llama_token_to_bytes(&self, token: &i32) -> Vec<u8> {
-        let c_ptr = unsafe { llama_token_to_str(self.ctx, *token) };
+        let c_ptr = unsafe { llama_token_get_text(self.model, *token) };
         unsafe { CStr::from_ptr(c_ptr) }.to_bytes().to_vec()
     }
 
     // Evaluates the given tokens with the specified configuration.
     pub fn llama_eval(
         &self,
-        tokens: &[i32],
+        tokens: &mut [i32],
         n_tokens: i32,
         n_past: i32,
-        input: &LlamaInvocation,
+        _input: &LlamaInvocation,
     ) -> Result<(), LLAMACPPErrorCode> {
-        let res =
-            unsafe { llama_eval(self.ctx, tokens.as_ptr(), n_tokens, n_past, input.n_threads) };
+        let res = unsafe { llama_eval(self.ctx, tokens.as_mut_ptr(), n_tokens, n_past) };
         if res == 0 {
             Ok(())
         } else {
             Err(LLAMACPPErrorCode(res))
         }
+    }
+
+    // Evaluates the provided batch.
+    pub fn llama_decode(&self, batch: &LlamaBatch) -> Result<(), LLAMACPPErrorCode> {
+        let res = unsafe { llama_decode(self.ctx, batch.into()) };
+        if res == 0 {
+            Ok(())
+        } else {
+            Err(LLAMACPPErrorCode(res))
+        }
+    }
+
+    pub fn llama_token_eos(&self) -> i32 {
+        unsafe { llama_token_eos(self.model) }
+    }
+
+    pub fn llama_token_nl(&self) -> i32 {
+        unsafe { llama_token_nl(self.model) }
+    }
+
+    pub fn llama_token_to_piece(
+        &self,
+        token_id: i32,
+    ) -> Result<String, std::string::FromUtf8Error> {
+        let mut result = vec![0 as i8; 8];
+        let n_tokens = unsafe {
+            llama_token_to_piece(
+                self.model,
+                token_id,
+                result.as_mut_ptr(),
+                result.len() as i32,
+            )
+        };
+        if n_tokens < 0 {
+            result.resize(-n_tokens as usize, 0 as i8);
+            let check = unsafe {
+                llama_token_to_piece(
+                    self.model,
+                    token_id,
+                    result.as_mut_ptr(),
+                    result.len() as i32,
+                )
+            };
+            assert_eq!(check, -n_tokens);
+        } else {
+            result.resize(n_tokens as usize, 0 as i8);
+        }
+        let result_bytes: Vec<u8> = result.into_iter().map(|b| b as u8).collect();
+        String::from_utf8(result_bytes)
     }
 }
 

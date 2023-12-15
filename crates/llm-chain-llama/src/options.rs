@@ -9,10 +9,10 @@ use llm_chain::{
 use std::collections::HashMap;
 
 use crate::context::ContextParams;
+use crate::model::ModelParams;
 
 /// Represents a concrete call to the LLM model, with all the parameters specified, and no implicit behavior.
 pub struct LlamaInvocation {
-    pub(crate) n_threads: i32,
     pub(crate) n_tok_predict: usize,
     pub(crate) logit_bias: HashMap<i32, f32>,
     pub(crate) top_k: i32,
@@ -49,7 +49,6 @@ impl LlamaInvocation {
         opt: OptionsCascade,
         prompt: &Prompt,
     ) -> Result<LlamaInvocation, ExecutorCreationError> {
-        let n_threads = opt_extract!(opt, n_threads, NThreads)?;
         let n_tok_predict = opt_extract!(opt, n_tok_predict, MaxTokens)?;
         let top_k = opt_extract!(opt, top_k, TopK)?;
         let top_p = opt_extract!(opt, top_p, TopP)?;
@@ -70,7 +69,6 @@ impl LlamaInvocation {
         let logit_bias = HashMap::<i32, f32>::new(); // token_bias.as_i32_f32_hashmap()?;
 
         Ok(LlamaInvocation {
-            n_threads: *n_threads as i32,
             n_tok_predict: *n_tok_predict,
             logit_bias,
             top_k: *top_k,
@@ -97,6 +95,7 @@ lazy_static! {
         // ModelType: "llama", // not used
         NThreads: 1_usize,
         MaxTokens: 0_usize,
+        MaxBatchSize: 512_usize,
         MaxContextSize: 2048_usize,
         TopK: 40_i32,
         TopP: 0.95,
@@ -111,18 +110,58 @@ lazy_static! {
         MirostatTau: 5.0,
         MirostatEta: 0.1,
         PenalizeNl: true,
-        StopSequence: vec!["\n\n".to_string()]
+        StopSequence: vec!["\n\n".to_string()],
+        NGpuLayers: 0_i32,
+        MainGpu: 0_i32,
+        TensorSplit: Vec::new(),
+        VocabOnly: false,
+        UseMmap: true,
+        UseMlock: false
     );
 }
 
 pub(crate) fn get_executor_initial_opts(
     opt: &OptionsCascade,
-) -> Result<(String, ContextParams), ExecutorCreationError> {
+) -> Result<(String, ModelParams, ContextParams), ExecutorCreationError> {
     let model = opt_extract!(opt, model, Model)?;
-    let max_context_size = opt_extract!(opt, max_context_size, MaxContextSize)?;
+
+    let mut mp = ModelParams::new();
+    if let Some(Opt::NGpuLayers(value)) = opt.get(OptDiscriminants::NGpuLayers) {
+        mp.n_gpu_layers = *value;
+    }
+    if let Some(Opt::MainGpu(value)) = opt.get(OptDiscriminants::MainGpu) {
+        mp.main_gpu = *value;
+    }
+    if let Some(Opt::TensorSplit(values)) = opt.get(OptDiscriminants::TensorSplit) {
+        mp.tensor_split = values.clone();
+    }
+    // Currently, the setting of vocab_only is not allowed as it will cause
+    // a crash when using the llama executor which needs to have wieghts loaded
+    // in order to work.
+    mp.vocab_only = false;
+
+    if let Some(Opt::UseMmap(value)) = opt.get(OptDiscriminants::UseMmap) {
+        mp.use_mmap = *value;
+    }
+    if let Some(Opt::UseMlock(value)) = opt.get(OptDiscriminants::UseMlock) {
+        mp.use_mlock = *value;
+    }
 
     let mut cp = ContextParams::new();
-    cp.n_ctx = *max_context_size as i32;
+    if let Some(Opt::NThreads(value)) = opt.get(OptDiscriminants::NThreads) {
+        cp.n_threads = *value as u32;
+    }
 
-    Ok((model.to_path(), cp))
+    let max_context_size = opt_extract!(opt, max_context_size, MaxContextSize)?;
+    cp.n_ctx = *max_context_size as u32;
+
+    let n_batch = opt_extract!(opt, nbatch, MaxBatchSize)?;
+    cp.n_batch = *n_batch as u32;
+    if max_context_size < n_batch {
+        return Err(ExecutorCreationError::InvalidValue(
+            "MaxBatchSize must be less than or equal to MaxContextSize".to_string(),
+        ));
+    }
+
+    Ok((model.to_path(), mp, cp))
 }

@@ -30,7 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ModelType: "llama",
         MaxContextSize: 512_usize,
         NThreads: 4_usize,
-        MaxTokens: 0_usize,
+        MaxTokens: 512_usize,
         TopK: 40_i32,
         TopP: 0.95,
         TfsZ: 1.0,

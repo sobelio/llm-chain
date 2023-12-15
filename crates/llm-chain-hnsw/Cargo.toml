@@ -14,7 +14,7 @@ repository = "https://github.com/sobelio/llm-chain/"
 
 [dependencies]
 async-trait.workspace = true
-hnsw_rs = "0.1.19"
+hnsw_rs = "0.2"
 llm-chain = { path = "../llm-chain", version = "0.13.0", default-features = false }
 serde.workspace = true
 serde_json.workspace = true

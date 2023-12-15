@@ -4,10 +4,9 @@ use llm_chain::{executor, parameters, prompt};
 /// This example demonstrates how to use the llm-chain-llama crate to generate streaming text using a
 /// LLaMA model.
 ///
-/// Usage: cargo run --example simple path/to/llama-or-alpaca-model
+/// Usage: cargo run --example stream
 ///
-/// For example, if the model is located at "/models/llama"
-/// cargo run --example simple /models/llama
+/// Make sure to have the env var 'LLM_CHAIN_MODEL' set.
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let exec = executor!(llama)?;

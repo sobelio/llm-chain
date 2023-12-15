@@ -49,6 +49,9 @@ fn main() {
                 let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
                 b.write_to_file(out_path.join("bindings.rs"))
                     .expect("Couldn't write bindings!");
+                let out_path = PathBuf::from("src");
+                b.write_to_file(out_path.join("bindings.rs"))
+                    .expect("Couldn't write binding to src directorys!");
             }
             Err(e) => {
                 println!("cargo:warning=Unable to generate bindings: {}", e);
@@ -85,7 +88,9 @@ fn main() {
         .arg("-DLLAMA_ALL_WARNINGS=OFF")
         .arg("-DLLAMA_ALL_WARNINGS_3RD_PARTY=OFF")
         .arg("-DLLAMA_BUILD_TESTS=OFF")
-        .arg("-DLLAMA_BUILD_EXAMPLES=OFF");
+        .arg("-DLLAMA_BUILD_EXAMPLES=OFF")
+        .arg("-DLLAMA_NO_METAL=ON")
+        .arg("-DLLAMA_METAL=OFF");
     // .arg("-DLLAMA_STATIC=ON")
     if cuda_enabled {
         // If CUDA feature is enabled, build with cuBlAS to enable GPU acceleration

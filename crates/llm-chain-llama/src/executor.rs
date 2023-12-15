@@ -1,9 +1,9 @@
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-use crate::context::{ContextParams, LLamaContext};
+use crate::context::{ContextParams, LLamaContext, LlamaBatch};
 use crate::options::{get_executor_initial_opts, LlamaInvocation, DEFAULT_OPTIONS};
-use crate::tokenizer::{embedding_to_output, llama_token_eos, tokenize, tokens_to_string};
+use crate::tokenizer::{embedding_to_output, tokenize};
 
 use async_trait::async_trait;
 
@@ -61,6 +61,7 @@ impl Executor {
         tokio::task::spawn_blocking(move || {
             let context_size = context_size;
             let context = context.blocking_lock();
+
             let tokenized_stop_prompt = tokenize(
                 &context,
                 input
@@ -69,6 +70,7 @@ impl Executor {
                     .map(|x| x.as_str())
                     .unwrap_or("\n\n"),
                 false,
+                true,
             );
 
             if tokenized_stop_prompt.len() > context_size {
@@ -77,68 +79,78 @@ impl Executor {
             }
 
             let prompt_text = input.prompt.to_text();
-            let tokenized_input = tokenize(&context, prompt_text.as_str(), true);
+
+            let tokenized_input = tokenize(&context, prompt_text.as_str(), true, false);
             if tokenized_input.len() > context_size {
                 must_send!(sender, StreamSegment::Err(ExecutorError::ContextTooSmall));
                 return;
             }
 
-            // Embd contains the prompt and the completion. The longer the prompt, the shorter the completion.
+            // embd contains the prompt and the completion. The longer the
+            // prompt, the shorter the completion.
+            // It will initially contain a copy the tokenized prompt and then
+            // may be extended with the tokenized answer prefix. After each
+            // sampling the sampled token will also be added to this vector.
+            // This is done so that the sampling function has access to all the
+            // tokens which it may need for repetition penalties, etc.
             let mut embd = tokenized_input.clone();
 
-            // Evaluate the prompt in full.
+            let mut batch = LlamaBatch::new_with_tokens(tokenized_input.clone(), 1);
+            let last_idx = (batch.token_count() - 1) as usize;
+            batch.enable_logits(last_idx);
+
             bail!(
                 context
-                    .llama_eval(
-                        tokenized_input.as_slice(),
-                        tokenized_input.len() as i32,
-                        0,
-                        &input,
-                    )
+                    .llama_decode(&batch)
                     .map_err(|e| ExecutorError::InnerError(e.into())),
                 sender
             );
+            let mut n_cur = batch.token_count();
+            let mut n_used = (batch.token_count() - 1) as usize;
 
             let mut n_remaining = context_size - tokenized_input.len();
-            let mut n_used = tokenized_input.len() - 1;
             if let Some(prefix) = answer_prefix {
-                let tokenized_answer_prefix = tokenize(&context, prefix.as_str(), false);
+                let tokenized_answer_prefix = tokenize(&context, prefix.as_str(), true, true);
                 if tokenized_answer_prefix.len() > context_size {
                     must_send!(sender, StreamSegment::Err(ExecutorError::ContextTooSmall));
                     return;
                 }
-
+                let batch = LlamaBatch::new_with_tokens(tokenized_answer_prefix.clone(), 1);
                 // Evaluate the answer prefix (the role -- should be Assistant: )
                 bail!(
                     context
-                        .llama_eval(
-                            tokenized_answer_prefix.as_slice(),
-                            tokenized_answer_prefix.len() as i32,
-                            n_used as i32,
-                            &input,
-                        )
+                        .llama_decode(&batch)
                         .map_err(|e| ExecutorError::InnerError(e.into())),
                     sender
                 );
                 n_remaining -= tokenized_answer_prefix.len();
-                n_used += tokenized_answer_prefix.len();
                 embd.extend(tokenized_answer_prefix);
+                n_cur += batch.token_count();
+                n_used += (batch.token_count() - 1) as usize;
             }
             embd.resize(context_size, 0);
-            let token_eos = llama_token_eos();
+            let token_eos = context.llama_token_eos();
+
             let mut stop_sequence_i = 0;
+            let mut n_batch = batch.token_count();
+            let mut n_samples = 0;
+            let ignore_initial_nls = input.prompt.to_text().ends_with('?');
+            let nl_token = context.llama_token_nl();
+
             // Generate remaining tokens.
-            let mut leftover_bytes: Vec<u8> = vec![];
             while n_remaining > 0 {
                 let tok = context.llama_sample(
                     context_size as i32,
                     embd.as_slice(),
                     n_used as i32,
                     &input,
+                    n_batch as i32,
                 );
+                n_samples += 1;
                 n_used += 1;
                 n_remaining -= 1;
                 embd[n_used] = tok;
+
                 if tok == token_eos {
                     break;
                 }
@@ -147,46 +159,42 @@ impl Executor {
                 {
                     break;
                 }
+
+                // If the input prompt is in the form of a question then next
+                // predicted tok will be a new line to finish off the question
+                // itself, followed by another new line before the actual
+                // answer. This is what the following is checking for.
+                if n_samples <= 2 && ignore_initial_nls && tok == nl_token {
+                    continue;
+                }
+
                 if tok == tokenized_stop_prompt[stop_sequence_i] {
                     stop_sequence_i += 1;
                     if stop_sequence_i >= tokenized_stop_prompt.len() {
                         break;
                     }
                 } else {
-                    let str_output =
-                        tokens_to_string(&context, &embd[n_used - stop_sequence_i..n_used]);
-                    // XXX: make into chat if chat
-                    must_send!(sender, StreamSegment::Content(str_output));
+                    let piece = bail!(
+                        context
+                            .llama_token_to_piece(tok)
+                            .map_err(|e| ExecutorError::InnerError(e.into())),
+                        sender
+                    );
+                    must_send!(sender, StreamSegment::Content(piece));
                     stop_sequence_i = 0;
-                }
-                bail!(
-                    context
-                        .llama_eval(&embd[n_used..], 1, n_used as i32, &input)
-                        .map_err(|e| ExecutorError::InnerError(e.into())),
-                    sender
-                );
 
-                if n_used >= tokenized_input.len() && stop_sequence_i == 0 {
-                    let bytes_output: Vec<u8> =
-                        [leftover_bytes, context.llama_token_to_bytes(&embd[n_used])].concat();
+                    let batch = LlamaBatch::new_with_token(tok, n_cur as i32);
 
-                    let (str_output, leftover) = decode_up_to_valid_utf8(&bytes_output);
-                    leftover_bytes = leftover;
-                    // XXX: make into chat if chat
-                    if sender.send(StreamSegment::Content(str_output)).is_err() {
-                        panic!("Failed to send");
-                    }
+                    n_batch = batch.token_count();
+                    n_cur += 1;
+
+                    bail!(
+                        context
+                            .llama_decode(&batch)
+                            .map_err(|e| ExecutorError::InnerError(e.into())),
+                        sender
+                    );
                 }
-            }
-            if sender
-                .send(StreamSegment::Content(
-                    std::char::REPLACEMENT_CHARACTER
-                        .to_string()
-                        .repeat(leftover_bytes.len()),
-                ))
-                .is_err()
-            {
-                panic!("Failed to send");
             }
         }); //JoinHandle is dropped? not sure how this works
 
@@ -206,10 +214,11 @@ impl ExecutorTrait for Executor {
             .with_options(&opts_from_env)
             .with_options(&options);
 
-        let (model_path, context_params) = get_executor_initial_opts(&cas)?;
+        let (model_path, model_params, context_params) = get_executor_initial_opts(&cas)?;
         Ok(Self {
             context: Arc::new(Mutex::new(LLamaContext::from_file_and_params(
                 &model_path,
+                Some(&model_params),
                 Some(&context_params),
             )?)),
             options,
@@ -233,18 +242,18 @@ impl ExecutorTrait for Executor {
         let mut tokens_used = tokenizer
             .tokenize_str(&input)
             .map_err(|_e| PromptTokensError::UnableToCompute)?
-            .len() as i32;
+            .len();
         // includes answer_prefix
         let answer_prefix = self.answer_prefix(prompt);
         if let Some(prefix) = answer_prefix {
             let answer_used = tokenizer
                 .tokenize_str(&prefix)
                 .map_err(|_e| PromptTokensError::UnableToCompute)?
-                .len() as i32;
+                .len();
             tokens_used += answer_used
         }
         let max_tokens = self.max_tokens_allowed(options);
-        Ok(TokenCount::new(max_tokens, tokens_used))
+        Ok(TokenCount::new(max_tokens, tokens_used as i32))
     }
 
     fn answer_prefix(&self, prompt: &Prompt) -> Option<String> {
@@ -263,7 +272,7 @@ impl ExecutorTrait for Executor {
     }
 
     fn max_tokens_allowed(&self, _step: &Options) -> i32 {
-        self.context_params.n_ctx
+        self.context_params.n_ctx as i32
     }
 
     fn get_tokenizer(&self, _step: &Options) -> Result<LLamaTokenizer, TokenizerError> {
@@ -289,7 +298,7 @@ impl Tokenizer for LLamaTokenizer<'_> {
     fn tokenize_str(&self, doc: &str) -> Result<TokenCollection, TokenizerError> {
         let tokenized = tokio::task::block_in_place(|| {
             let context = self.context.blocking_lock();
-            tokenize(&context, doc, true)
+            tokenize(&context, doc, true, false)
         });
         Ok(tokenized.into())
     }
@@ -302,35 +311,4 @@ impl Tokenizer for LLamaTokenizer<'_> {
         });
         Ok(output.to_string())
     }
-}
-
-fn decode_up_to_valid_utf8(bytes: &[u8]) -> (String, Vec<u8>) {
-    let (str_output, leftover): (String, Vec<u8>) = match std::str::from_utf8(bytes) {
-        Ok(s) => (s.to_owned(), Vec::new()),
-        Err(unicode_err) => {
-            let index = unicode_err.valid_up_to();
-            let good = &bytes[0..index];
-            match unicode_err.error_len() {
-                None => {
-                    let leftover = bytes[index..].to_vec();
-                    let out = std::str::from_utf8(good).unwrap().to_owned();
-                    (out, leftover)
-                }
-                Some(len) => {
-                    //let bad = &bytes[index..index+len];
-                    //eprintln!("bad utf8: {:?}", bad);
-                    let rest = &bytes[index + len..];
-                    let beggining = std::str::from_utf8(good).unwrap().to_owned();
-                    let (after, leftover) = decode_up_to_valid_utf8(rest);
-
-                    let mut out = beggining;
-                    out.push_str(&std::char::REPLACEMENT_CHARACTER.to_string().repeat(len));
-                    out.push_str(&after);
-
-                    (out, leftover)
-                }
-            }
-        }
-    };
-    (str_output, leftover)
 }

@@ -27,6 +27,8 @@ pub enum ExecutorCreationError {
     InnerError(#[from] Box<dyn Error + Send + Sync>),
     #[error("Field must be set: {0}")]
     FieldRequiredError(String),
+    #[error("Invalid value. {0}")]
+    InvalidValue(String),
 }
 
 #[derive(thiserror::Error, Debug)]
