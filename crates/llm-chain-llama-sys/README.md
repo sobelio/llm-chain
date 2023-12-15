@@ -19,3 +19,11 @@ To update the llama.cpp submodule, run the following command:
 ```console
 $ git submodule update --remote --merge llama.cpp
 ```
+Then to save the generated bindings run the build and set the environment
+variable `LLAMA_SAVE_BINDINGS` to `true`:
+
+```console
+$ env LLAMA_SAVE_BINDINGS=true cargo build --release
+```
+
+And then check-in the generated bindings in `src/bindings.rs`.
