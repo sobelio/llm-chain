@@ -38,8 +38,8 @@ macro_rules! must_send {
 
 /// Executor is responsible for running the LLAMA model and managing its context.
 pub struct Executor {
-    context: Arc<Mutex<LLamaContext>>,
-    options: Options,
+    pub(crate) context: Arc<Mutex<LLamaContext>>,
+    pub(crate) options: Options,
     context_params: ContextParams,
 }
 
@@ -61,6 +61,17 @@ impl Executor {
         tokio::task::spawn_blocking(move || {
             let context_size = context_size;
             let context = context.blocking_lock();
+
+            // The following clears the Key-Value cache to allow conversational
+            // (chat) applications to be able to call run_model multiple times
+            // using the same context. Without this, and because the same
+            // sequence id is used below, the cache can contain tokens from
+            // a previous interaction which may cause the model to generate
+            // a response that is not appropriate for the current prompt.
+            //
+            // TODO(danbev) Is there a better way to do this, perhaps by using
+            // sequence ids in some way?
+            context.llama_kv_cache_clear();
 
             let tokenized_stop_prompt = tokenize(
                 &context,

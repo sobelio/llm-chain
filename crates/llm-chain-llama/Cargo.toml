@@ -22,6 +22,7 @@ serde = { version = "1.0.163", features = ["derive"] }
 thiserror.workspace = true
 lazy_static = "1.4.0"
 tokio.workspace = true
+futures = "0.3.29"
 
 [dev-dependencies]
 tokio = { version = "1.28.2", features = ["macros", "rt"] }
