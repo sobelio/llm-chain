@@ -50,7 +50,7 @@ pub enum ExecutorError {
 #[async_trait]
 /// The `Executor` trait represents an executor that performs a single step in a chain. It takes a
 /// step, executes it, and returns the output.
-pub trait Executor: Sized {
+pub trait Executor {
     type StepTokenizer<'a>: Tokenizer
     where
         Self: 'a;
@@ -58,9 +58,14 @@ pub trait Executor: Sized {
     /// Create a new executor with the given options. If you don't need to set any options, you can use the `new` method instead.
     /// # Parameters
     /// * `options`: The options to set.
-    fn new_with_options(options: Options) -> Result<Self, ExecutorCreationError>;
+    fn new_with_options(options: Options) -> Result<Self, ExecutorCreationError>
+    where
+        Self: Sized;
 
-    fn new() -> Result<Self, ExecutorCreationError> {
+    fn new() -> Result<Self, ExecutorCreationError>
+    where
+        Self: Sized,
+    {
         Self::new_with_options(Options::empty().clone())
     }
 
