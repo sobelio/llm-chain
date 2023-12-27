@@ -113,7 +113,7 @@ lazy_static! {
         StopSequence: vec!["\n\n".to_string()],
         NGpuLayers: 0_i32,
         MainGpu: 0_i32,
-        TensorSplit: Vec::new(),
+        TensorSplit: None,
         VocabOnly: false,
         UseMmap: true,
         UseMlock: false

@@ -403,7 +403,7 @@ pub enum Opt {
     // The GPU that should be used for scratch and small tensors for llm-chain-llama.
     MainGpu(i32),
     // How the layers should be split accross the available GPUs for llm-chain-llama.
-    TensorSplit(Vec<f32>),
+    TensorSplit(Option<Vec<f32>>),
     // Only load the vocabulary for llm-chain-llama, no weights will be loaded.
     VocabOnly(bool),
     // Use memory mapped files for llm-chain-llama where possible.
