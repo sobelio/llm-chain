@@ -23,3 +23,4 @@
 
 pub mod chatgpt;
 pub mod embeddings;
+pub use async_openai;
