@@ -167,7 +167,7 @@ where
             })
             .collect();
         self.client
-            .upsert_points(self.collection_name.clone(), points, None)
+            .upsert_points(&self.collection_name, None, points, None)
             .await
             .map_err(QdrantError::Client)?;
         Ok(ids)
@@ -209,7 +209,7 @@ where
         let points = points?;
 
         self.client
-            .upsert_points(self.collection_name.clone(), points, None)
+            .upsert_points(self.collection_name.clone(), None, points, None)
             .await
             .map_err(QdrantError::Client)?;
 
@@ -225,6 +225,9 @@ where
         let res = self
             .client
             .search_points(&SearchPoints {
+                timeout: None,
+                shard_key_selector: None,
+                sparse_indices: None,
                 collection_name: self.collection_name.clone(),
                 vector: embedded_query,
                 filter: self.filter.clone(),
