@@ -2640,9 +2640,9 @@ checksum = "8e86d370532557ae7573551a1ec8235a0f8d6cb276c7c9e6aa490b511c447485"
 
 [[package]]
 name = "qdrant-client"
-version = "1.6.0"
+version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "337c9a836a26e90a171fe8eb4c57e8d0a4e65a23cbac76685960df36c227081e"
+checksum = "90cf22c9f96056b730bdb189ccc72793db1fe106375165d5c7828fc1654b2909"
 dependencies = [
  "anyhow",
  "futures-util",
