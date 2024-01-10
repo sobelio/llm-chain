@@ -8,7 +8,6 @@
 /// - some models have safety measures against asking about events which are in the future (from the point of view of the model); they will not even attempt to use the search tool
 /// - models sometimes finish on "Intermediate answer: ..." if it contains the final answer to the question
 /// - models sometimes immediately answer with "Yes, ..." or "No, ..."; they should always structure their final answer with "So the final answer is: ..." (or equivalent)
-
 use crate::{
     options::Options,
     parameters,
