@@ -67,16 +67,6 @@ jobs:
           toolchain: ${{ matrix.rust-version }}
           override: true
 
-      - name: Install Protobuf Compiler (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
-        run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
-      - name: Install Protobuf Compiler (macOS)
-        if: matrix.os == 'macos-13'
-        run: brew install protobuf
-      - name: Install Protobuf Compiler (Windows)
-        if: matrix.os == 'windows-latest'
-        run: choco install protoc --yes
-
       - name: Build (no default-features)
         uses: actions-rs/cargo@v1
         with:
