@@ -20,7 +20,7 @@ serde = { version = "1.0.164", features = ["derive"] }
 serde_yaml = { version = "0.9.27" }
 thiserror = "1.0.40"
 tokio = { version = "1.28.2", features = ["fs", "io-util", "rt", "macros"] }
-markdown = { version = "1.0.0-alpha.8" }
+markdown = { version = "1.0.0-alpha.16" }
 tera = { version = "1.19.0" }
 lazy_static = "1.4.0"
 uuid = { version = "1.6.1", features = ["v4"] }
