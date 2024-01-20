@@ -18,6 +18,7 @@ readme = "README.md"
 
 [build-dependencies]
 bindgen = "0.66"
+cfg-if = "1"
 
 [features]
 cuda = []

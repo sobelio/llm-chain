@@ -24,6 +24,21 @@ fn main() {
 
     // Check if CUDA is enabled for cuBlAS
     let cuda_enabled = env::var("CARGO_FEATURE_CUDA").is_ok();
+    if cuda_enabled {
+        println!("cargo:rustc-link-lib=cublas");
+        println!("cargo:rustc-link-lib=cudart");
+        println!("cargo:rustc-link-lib=cublasLt");
+        cfg_if::cfg_if! {
+            if #[cfg(target_os = "windows")] {
+                let cuda_path = PathBuf::from(env::var("CUDA_PATH").unwrap()).join("lib/x64");
+                println!("cargo:rustc-link-search={}", cuda_path.display());
+            } else {
+                println!("cargo:rustc-link-lib=culibos");
+                println!("cargo:rustc-link-search=/usr/local/cuda/lib64");
+                println!("cargo:rustc-link-search=/opt/cuda/lib64");
+            }
+        }
+    }
 
     if env::var("LLAMA_DONT_GENERATE_BINDINGS").is_ok() {
         let _: u64 = std::fs::copy(
