@@ -23,7 +23,7 @@ fn main() {
     println!("cargo:rerun-if-changed=wrapper.h");
 
     // Check if CUDA is enabled for cuBlAS
-    let cuda_enabled = env::var("CARGO_FEATURE_CUDA").is_ok();
+    let cuda_enabled = env::var("LLM_CHAIN_CUDA").is_ok();
 
     if env::var("LLAMA_DONT_GENERATE_BINDINGS").is_ok() {
         let _: u64 = std::fs::copy(
@@ -99,8 +99,22 @@ fn main() {
         .arg("-DLLAMA_METAL=OFF");
     // .arg("-DLLAMA_STATIC=ON")
     if cuda_enabled {
-        // If CUDA feature is enabled, build with cuBlAS to enable GPU acceleration
+        // If CUDA is enabled, build with cuBlAS to enable GPU acceleration
+        if let Ok(cuda_lib_path) = env::var("LLM_CHAIN_CUDA_LIB_PATH") {
+            println!(
+                "{}",
+                format!("cargo:rustc-link-search=native={}", cuda_lib_path)
+            );
+        } else {
+            panic!("CUDA_FEATURE_CUDA_LIB_PATH is not set. Please set it to the library path of your CUDA installation.");
+        }
         code.arg("-DLLAMA_CUBLAS=ON");
+        code.arg("-DCMAKE_CUDA_FLAGS=-Xcompiler=-fPIC");
+        println!("cargo:rustc-link-lib=cuda");
+        println!("cargo:rustc-link-lib=cublas");
+        println!("cargo:rustc-link-lib=culibos");
+        println!("cargo:rustc-link-lib=cudart");
+        println!("cargo:rustc-link-lib=cublasLt");
     }
     let code = code.status().expect("Failed to generate build script");
     if code.code() != Some(0) {

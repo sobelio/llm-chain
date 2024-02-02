@@ -18,6 +18,3 @@ readme = "README.md"
 
 [build-dependencies]
 bindgen = "0.66"
-
-[features]
-cuda = []
