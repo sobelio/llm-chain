@@ -94,6 +94,11 @@ impl traits::Executor for Executor {
         if let Ok(org_id) = std::env::var("OPENAI_ORG_ID") {
             cfg = cfg.with_org_id(org_id);
         }
+
+        if let Ok(base_url) = std::env::var("OPENAI_API_BASE_URL") {
+            cfg = cfg.with_api_base(base_url);
+        }
+
         let client = Arc::new(async_openai::Client::with_config(cfg));
         Ok(Self { client, options })
     }
