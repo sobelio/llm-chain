@@ -4,9 +4,13 @@ First of all, thank you for considering contributing to our project! 🎉 We are
 
 ## Getting Started
 ### Prerequisites
-Be sure to have cmake installed.
+Install cmake.
 On MacOS run `brew install cmake`.
 On Ubuntu run `sudo apt-get install cmake` 
+
+Install protobuf.
+On MacOS run `brew install protobuf`
+On Ubuntu run `sudo apt-get install protobuf-compiler`
 
 1. Make your own fork of [`llm-chain`](https://github.com/sobelio/llm-chain).
 2. ` git clone --recurse-submodule git@github.com:<YOUR GITHUB ACCOUNT HERE>/llm-chain.git` your fork to your local machine.
