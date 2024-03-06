@@ -1,3 +1,6 @@
 [submodule "crates/llm-chain-llama/sys/llama.cpp"]
 	path = crates/llm-chain-llama-sys/llama.cpp
 	url = https://github.com/ggerganov/llama.cpp.git
+[submodule "crates/llm-chain-gemma-sys/gemma.cpp"]
+	path = crates/llm-chain-gemma-sys/gemma.cpp
+	url = https://github.com/google/gemma.cpp.git

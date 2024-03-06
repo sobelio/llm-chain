@@ -698,12 +698,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.0.83"
+version = "1.0.87"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1174fb0b6ec23863f8b971027804a42614e347eafb0a95bf0b12cdae21fc4d0"
-dependencies = [
- "libc",
-]
+checksum = "3286b845d0fccbdd15af433f61c5970e711987036cb468f437ff6badd70f4e24"
 
 [[package]]
 name = "cexpr"
@@ -1798,6 +1795,23 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "uuid",
+]
+
+[[package]]
+name = "llm-chain-gemma"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "llm-chain",
+ "llm-chain-gemma-sys",
+ "tokio",
+]
+
+[[package]]
+name = "llm-chain-gemma-sys"
+version = "0.1.0"
+dependencies = [
+ "cc",
 ]
 
 [[package]]

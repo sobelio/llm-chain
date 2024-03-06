@@ -56,6 +56,10 @@ macro_rules! executor {
         use llm_chain::traits::Executor;
         llm_chain_openai::chatgpt::Executor::new_with_options($options)
     }};
+    (gemma, $options:expr) => {{
+        use llm_chain::traits::Executor;
+        llm_chain_gemma::Executor::new_with_options($options)
+    }};
     (llama) => {{
         use llm_chain::traits::Executor;
         llm_chain_llama::Executor::new()
