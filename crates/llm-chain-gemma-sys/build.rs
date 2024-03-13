@@ -103,6 +103,7 @@ fn main() {
     cc::Build::new()
         .cpp(true)
         .file("src/bindings.cc")
+        .flag("--std=c++17")
         .include("./gemma.cpp")
         .include("./gemma.cpp/build/_deps/highway-src")
         .include("./gemma.cpp/build/_deps/sentencepiece-src")
