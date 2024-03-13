@@ -22,32 +22,32 @@ gcpp::ModelTraining gcpp_LoaderArgs_ModelTraining(const gcpp::LoaderArgs* args) 
     return args->ModelTraining();
 }
 
-void gcpp_LoaderArgs_SetTokenizer(gcpp::LoaderArgs* args, char* path) {
-    args->tokenizer.path = std::string(path);
+void gcpp_LoaderArgs_SetTokenizer(gcpp::LoaderArgs* args, char* path, size_t n) {
+    args->tokenizer.path = std::string(path, n);
 }
 
 const char* gcpp_LoaderArgs_Tokenizer(gcpp::LoaderArgs* args) {
     return args->tokenizer.path.c_str();
 }
 
-void gcpp_LoaderArgs_SetModel(gcpp::LoaderArgs* args, char* path) {
-    args->model.path = std::string(path);
+void gcpp_LoaderArgs_SetModel(gcpp::LoaderArgs* args, char* path, size_t n) {
+    args->model.path = std::string(path, n);
 }
 
 const char* gcpp_LoaderArgs_Model(gcpp::LoaderArgs* args) {
     return args->model.path.c_str();
 }
 
-void gcpp_LoaderArgs_SetCache(gcpp::LoaderArgs* args, char* path) {
-    args->cache.path = std::string(path);
+void gcpp_LoaderArgs_SetCache(gcpp::LoaderArgs* args, char* path, size_t n) {
+    args->cache.path = std::string(path, n);
 }
 
 const char* gcpp_LoaderArgs_Cache(gcpp::LoaderArgs* args) {
     return args->cache.path.c_str();
 }
 
-void gcpp_LoaderArgs_SetModelTypeValue(gcpp::LoaderArgs* args, char* v) {
-    args->model_type = std::string(v);
+void gcpp_LoaderArgs_SetModelTypeValue(gcpp::LoaderArgs* args, char* v, size_t n) {
+    args->model_type = std::string(v, n);
 }
 
 const char* gcpp_LoaderArgs_ModelTypeValue(gcpp::LoaderArgs* args) {

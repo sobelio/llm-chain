@@ -38,13 +38,14 @@ impl GemmaContext {
                 gcpp_LoaderArgs_SetModelTypeValue(
                     largs,
                     mt.clone().into_bytes().as_ptr() as *const i8,
+                    mt.len() as ffi::c_uint,
                 );
             }
             if let Some(Opt::Model(m)) = options.get(OptDiscriminants::Model) {
                 // Typically the downloaded model data is compressed and set as cache.
                 // TODO: consider the case of non-compressed one?
                 let path = m.to_path();
-                gcpp_LoaderArgs_SetCache(largs, path.as_ptr() as *const i8);
+                gcpp_LoaderArgs_SetCache(largs, path.as_ptr() as *const i8, path.len() as ffi::c_uint);
                 // TODO: consider adding the option for tokenizer file.
                 let parent = Path::new(&path).parent();
                 if parent.is_none() {
@@ -53,7 +54,7 @@ impl GemmaContext {
                     )));
                 }
                 if let Some(tokenizer_path) = parent.unwrap().join("tokenizer.spm").to_str() {
-                    gcpp_LoaderArgs_SetTokenizer(largs, tokenizer_path.as_ptr() as *const i8);
+                    gcpp_LoaderArgs_SetTokenizer(largs, tokenizer_path.as_ptr() as *const i8, tokenizer_path.len() as ffi::c_uint);
                 } else {
                     return Err(ExecutorCreationError::InvalidValue(String::from(
                         "conversion from path to str for tokenizer",
