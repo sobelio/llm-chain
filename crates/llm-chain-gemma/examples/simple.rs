@@ -17,7 +17,7 @@ fn get_model_type(model_path: &str) -> &str {
     let p = Path::new(model_path);
     if let Some(stem) = p.file_stem() {
         if let Some(model_type) = stem.to_str() {
-            return model_type
+            return model_type;
         }
     }
     "2b-it"

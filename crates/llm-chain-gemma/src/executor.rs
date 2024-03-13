@@ -1,11 +1,13 @@
+use crate::context::GemmaContext;
+use async_trait::async_trait;
 use llm_chain::options::{Opt, OptDiscriminants, Options};
-use llm_chain::prompt::Prompt;
-use llm_chain::tokens::{PromptTokensError, TokenCollection, TokenCount, Tokenizer, TokenizerError};
 use llm_chain::output::Output;
+use llm_chain::prompt::Prompt;
+use llm_chain::tokens::{
+    PromptTokensError, TokenCollection, TokenCount, Tokenizer, TokenizerError,
+};
 use llm_chain::traits::{Executor as ExecutorTrait, ExecutorCreationError, ExecutorError};
 use std::sync::{Arc, Mutex};
-use async_trait::async_trait;
-use crate::context::GemmaContext;
 use tokio;
 
 pub struct Executor {
@@ -19,7 +21,7 @@ impl ExecutorTrait for Executor {
 
     fn new_with_options(options: Options) -> Result<Executor, ExecutorCreationError> {
         let gemma_context = GemmaContext::new(&options)?;
-        Ok(Executor{
+        Ok(Executor {
             context: Arc::new(Mutex::new(gemma_context)),
             stream: if let Some(Opt::Stream(s)) = options.get(OptDiscriminants::Stream) {
                 *s
@@ -49,7 +51,10 @@ impl ExecutorTrait for Executor {
             let mut ctx = context.lock().map_err(|_| ExecutorError::InvalidOptions)?;
             ctx.generate(prompt_text, sender);
         }
-        stream.to_immediate().await.map(|imm| Output::Immediate(imm))
+        stream
+            .to_immediate()
+            .await
+            .map(|imm| Output::Immediate(imm))
     }
 
     fn tokens_used(
@@ -59,7 +64,10 @@ impl ExecutorTrait for Executor {
     ) -> Result<TokenCount, PromptTokensError> {
         let tokenizer = self.get_tokenizer(options)?;
         let tokens = tokenizer.tokenize_str(prompt.to_string().as_str())?;
-        Ok(TokenCount::new(self.max_tokens_allowed(options), tokens.len() as i32))
+        Ok(TokenCount::new(
+            self.max_tokens_allowed(options),
+            tokens.len() as i32,
+        ))
     }
 
     fn max_tokens_allowed(&self, options: &Options) -> i32 {
@@ -70,7 +78,9 @@ impl ExecutorTrait for Executor {
     }
 
     fn get_tokenizer(&self, _options: &Options) -> Result<Self::StepTokenizer<'_>, TokenizerError> {
-        Ok(GemmaTokenizer{context: self.context.clone()})
+        Ok(GemmaTokenizer {
+            context: self.context.clone(),
+        })
     }
 
     fn answer_prefix(&self, _prompt: &Prompt) -> Option<String> {
@@ -84,12 +94,18 @@ pub struct GemmaTokenizer {
 
 impl Tokenizer for GemmaTokenizer {
     fn tokenize_str(&self, doc: &str) -> Result<TokenCollection, TokenizerError> {
-        let ctx = self.context.lock().map_err(|_| TokenizerError::TokenizationError)?;
+        let ctx = self
+            .context
+            .lock()
+            .map_err(|_| TokenizerError::TokenizationError)?;
         ctx.tokenize_str(doc)
     }
 
     fn to_string(&self, tokens: TokenCollection) -> Result<String, TokenizerError> {
-        let ctx = self.context.lock().map_err(|_| TokenizerError::ToStringError)?;
+        let ctx = self
+            .context
+            .lock()
+            .map_err(|_| TokenizerError::ToStringError)?;
         ctx.to_string(tokens)
     }
 }

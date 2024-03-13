@@ -1,12 +1,23 @@
-use std::ffi;
-use std::path::Path;
+use llm_chain::options::{Opt, OptDiscriminants, Options};
 use llm_chain::output::StreamSegment;
-use llm_chain_gemma_sys::{
-    gcpp_Gemma, gcpp_Gemma_Decode, gcpp_Gemma_Decodes, gcpp_Gemma_Encode, gcpp_Gemma_Gemma, gcpp_Gemma_destructor, gcpp_GenerateGemma, gcpp_InferenceArgs, gcpp_InferenceArgs_InferenceArgs, gcpp_InferenceArgs_MaxGeneratedTokens, gcpp_InferenceArgs_Multiturn, gcpp_InferenceArgs_SetMaxTokens, gcpp_InferenceArgs_SetTemperature, gcpp_InferenceArgs_Validate, gcpp_InferenceArgs_destructor, gcpp_LoaderArgs_LoaderArgs, gcpp_LoaderArgs_ModelTraining, gcpp_LoaderArgs_SetCache, gcpp_LoaderArgs_SetModelTypeValue, gcpp_LoaderArgs_SetTokenizer, gcpp_LoaderArgs_Validate, gcpp_LoaderArgs_destructor, gcpp_ModelTraining, gcpp_ModelTraining_GEMMA_IT, hwy_ThreadPool, hwy_ThreadPool_ThreadPool, hwy_ThreadPool_destructor, std_mt19937, std_mt19937_destructor, std_mt19937_mt19937, std_mt19937_random_seed, std_string_c_str, std_string_destructor, std_string_string, std_vector_int_destructor, std_vector_int_iter, std_vector_int_size, std_vector_int_vector, EOS_ID
-};
-use llm_chain::options::{Opt, Options, OptDiscriminants};
 use llm_chain::tokens::{TokenCollection, Tokenizer, TokenizerError};
 use llm_chain::traits::ExecutorCreationError;
+use llm_chain_gemma_sys::{
+    gcpp_Gemma, gcpp_Gemma_Decode, gcpp_Gemma_Decodes, gcpp_Gemma_Encode, gcpp_Gemma_Gemma,
+    gcpp_Gemma_destructor, gcpp_GenerateGemma, gcpp_InferenceArgs,
+    gcpp_InferenceArgs_InferenceArgs, gcpp_InferenceArgs_MaxGeneratedTokens,
+    gcpp_InferenceArgs_Multiturn, gcpp_InferenceArgs_SetMaxTokens,
+    gcpp_InferenceArgs_SetTemperature, gcpp_InferenceArgs_Validate, gcpp_InferenceArgs_destructor,
+    gcpp_LoaderArgs_LoaderArgs, gcpp_LoaderArgs_ModelTraining, gcpp_LoaderArgs_SetCache,
+    gcpp_LoaderArgs_SetModelTypeValue, gcpp_LoaderArgs_SetTokenizer, gcpp_LoaderArgs_Validate,
+    gcpp_LoaderArgs_destructor, gcpp_ModelTraining, gcpp_ModelTraining_GEMMA_IT, hwy_ThreadPool,
+    hwy_ThreadPool_ThreadPool, hwy_ThreadPool_destructor, std_mt19937, std_mt19937_destructor,
+    std_mt19937_mt19937, std_mt19937_random_seed, std_string_c_str, std_string_destructor,
+    std_string_string, std_vector_int_destructor, std_vector_int_iter, std_vector_int_size,
+    std_vector_int_vector, EOS_ID,
+};
+use std::ffi;
+use std::path::Path;
 use tokio::sync::mpsc;
 
 pub struct GemmaContext {
@@ -24,7 +35,10 @@ impl GemmaContext {
         unsafe {
             let largs = gcpp_LoaderArgs_LoaderArgs(0, std::ptr::null_mut());
             if let Some(Opt::ModelType(mt)) = options.get(OptDiscriminants::ModelType) {
-                gcpp_LoaderArgs_SetModelTypeValue(largs, mt.clone().into_bytes().as_ptr() as *const i8);
+                gcpp_LoaderArgs_SetModelTypeValue(
+                    largs,
+                    mt.clone().into_bytes().as_ptr() as *const i8,
+                );
             }
             if let Some(Opt::Model(m)) = options.get(OptDiscriminants::Model) {
                 // Typically the downloaded model data is compressed and set as cache.
@@ -34,12 +48,16 @@ impl GemmaContext {
                 // TODO: consider adding the option for tokenizer file.
                 let parent = Path::new(&path).parent();
                 if parent.is_none() {
-                    return Err(ExecutorCreationError::InvalidValue(String::from("no parent for path")));
+                    return Err(ExecutorCreationError::InvalidValue(String::from(
+                        "no parent for path",
+                    )));
                 }
                 if let Some(tokenizer_path) = parent.unwrap().join("tokenizer.spm").to_str() {
                     gcpp_LoaderArgs_SetTokenizer(largs, tokenizer_path.as_ptr() as *const i8);
                 } else {
-                    return Err(ExecutorCreationError::InvalidValue(String::from("conversion from path to str for tokenizer")));
+                    return Err(ExecutorCreationError::InvalidValue(String::from(
+                        "conversion from path to str for tokenizer",
+                    )));
                 }
             }
 
@@ -47,7 +65,9 @@ impl GemmaContext {
             if err != std::ptr::null_mut() {
                 let msg = ffi::CString::from_raw(err as *mut ffi::c_char).into_string();
                 if msg.is_err() {
-                    return Err(ExecutorCreationError::InnerError(Box::new(msg.unwrap_err())));
+                    return Err(ExecutorCreationError::InnerError(Box::new(
+                        msg.unwrap_err(),
+                    )));
                 }
                 gcpp_LoaderArgs_destructor(largs);
                 return Err(ExecutorCreationError::InvalidValue(msg.unwrap()));
@@ -65,7 +85,9 @@ impl GemmaContext {
             if err != std::ptr::null_mut() {
                 let msg = ffi::CString::from_raw(err as *mut ffi::c_char).into_string();
                 if msg.is_err() {
-                    return Err(ExecutorCreationError::InnerError(Box::new(msg.unwrap_err())));
+                    return Err(ExecutorCreationError::InnerError(Box::new(
+                        msg.unwrap_err(),
+                    )));
                 }
                 gcpp_LoaderArgs_destructor(largs);
                 gcpp_InferenceArgs_destructor(iargs);
@@ -77,7 +99,8 @@ impl GemmaContext {
                     *nt as ffi::c_uint
                 } else {
                     0
-                });
+                },
+            );
             let inner_pool = hwy_ThreadPool_ThreadPool(1);
 
             let gemma = gcpp_Gemma_Gemma(largs, pool);
@@ -88,7 +111,7 @@ impl GemmaContext {
 
             gcpp_LoaderArgs_destructor(largs);
 
-            Ok(GemmaContext{
+            Ok(GemmaContext {
                 gemma: gemma,
                 gen: gen,
                 model_training: model_training as gcpp_ModelTraining,
@@ -122,7 +145,11 @@ struct GenerateContext {
     out: mpsc::UnboundedSender<StreamSegment>,
 }
 
-extern fn stream_token(ctx: *mut ffi::c_void, token: ffi::c_int, _: ffi::c_float) -> ffi::c_char {
+extern "C" fn stream_token(
+    ctx: *mut ffi::c_void,
+    token: ffi::c_int,
+    _: ffi::c_float,
+) -> ffi::c_char {
     unsafe {
         let gctx = ctx as *mut GenerateContext;
         (*gctx).pos += 1;
@@ -141,11 +168,14 @@ extern fn stream_token(ctx: *mut ffi::c_void, token: ffi::c_int, _: ffi::c_float
         if decoded.is_err() {
             return false as ffi::c_char;
         }
-        (*gctx).out.send(StreamSegment::Content(decoded.unwrap())).is_ok() as ffi::c_char
+        (*gctx)
+            .out
+            .send(StreamSegment::Content(decoded.unwrap()))
+            .is_ok() as ffi::c_char
     }
 }
 
-extern fn accept_token(_ctx: *mut ffi::c_void, _token: ffi::c_int) -> ffi::c_char {
+extern "C" fn accept_token(_ctx: *mut ffi::c_void, _token: ffi::c_int) -> ffi::c_char {
     true as ffi::c_char
 }
 
@@ -164,8 +194,13 @@ impl GemmaContext {
                 prompt_text = format!("<end_of_turn>{prompt_text}");
             }
             let tokens = std_vector_int_vector();
-            gcpp_Gemma_Encode(self.gemma, prompt_text.as_mut_ptr() as *mut ffi::c_char, prompt_text.len() as ffi::c_uint, tokens);
-            let mut genctx = GenerateContext{
+            gcpp_Gemma_Encode(
+                self.gemma,
+                prompt_text.as_mut_ptr() as *mut ffi::c_char,
+                prompt_text.len() as ffi::c_uint,
+                tokens,
+            );
+            let mut genctx = GenerateContext {
                 gemma: self.gemma,
                 pos: self.pos,
                 tokens_processed: 0,
@@ -173,19 +208,26 @@ impl GemmaContext {
                 out: out,
             };
             gcpp_GenerateGemma(
-                self.gemma, self.iargs,
-                tokens, self.pos, self.pool, self.inner_pool,
-                (&mut genctx as *mut GenerateContext) as *mut ffi::c_void, stream_token,
-                std::ptr::null_mut(), accept_token, self.gen, 0);
+                self.gemma,
+                self.iargs,
+                tokens,
+                self.pos,
+                self.pool,
+                self.inner_pool,
+                (&mut genctx as *mut GenerateContext) as *mut ffi::c_void,
+                stream_token,
+                std::ptr::null_mut(),
+                accept_token,
+                self.gen,
+                0,
+            );
             self.pos = genctx.pos;
             std_vector_int_destructor(tokens);
         }
     }
 
     pub fn max_generated_tokens(&self) -> u32 {
-        unsafe {
-            gcpp_InferenceArgs_MaxGeneratedTokens(self.iargs)
-        }
+        unsafe { gcpp_InferenceArgs_MaxGeneratedTokens(self.iargs) }
     }
 }
 
@@ -194,11 +236,18 @@ impl Tokenizer for GemmaContext {
         unsafe {
             let mut doc_copied = String::from(doc);
             let tokens = std_vector_int_vector();
-            let result = gcpp_Gemma_Encode(self.gemma, doc_copied.as_mut_ptr() as *mut ffi::c_char, doc.len() as ffi::c_uint, tokens);
+            let result = gcpp_Gemma_Encode(
+                self.gemma,
+                doc_copied.as_mut_ptr() as *mut ffi::c_char,
+                doc.len() as ffi::c_uint,
+                tokens,
+            );
             if result == 0 {
                 return Err(TokenizerError::ToStringError);
             }
-            Ok(TokenCollection::from(Vec::from_iter(std_vector_int_iter::new(tokens))))
+            Ok(TokenCollection::from(Vec::from_iter(
+                std_vector_int_iter::new(tokens),
+            )))
         }
     }
 
