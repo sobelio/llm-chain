@@ -64,7 +64,29 @@ fn main() {
     // move libllama.a to where Cargo expects it (OUT_DIR)
     #[cfg(target_os = "windows")]
     {
-        // I haven't tested windows, so it's not supported yet.
+        std::fs::copy(
+            "gemma.lib",
+            format!("{}/gemma.lib", env::var("OUT_DIR").unwrap()),
+        )
+        .expect("Failed to copy lib");
+
+        std::fs::copy(
+            "_deps/highway-build/hwy.lib",
+            format!("{}/hwy.lib", env::var("OUT_DIR").unwrap()),
+        )
+        .expect("Failed to copy hwy.lib");
+
+        std::fs::copy(
+            "_deps/highway-build/hwy_contrib.lib",
+            format!("{}/hwy_contrib.lib", env::var("OUT_DIR").unwrap()),
+        )
+        .expect("Failed to copy hyy_contrib.lib");
+
+        std::fs::copy(
+            "_deps/sentencepiece-build/src/sentencepiece.lib",
+            format!("{}/sentencepiece.lib", env::var("OUT_DIR").unwrap()),
+        )
+        .expect("Failed to copy sentencepiece.lib");
     }
 
     #[cfg(not(target_os = "windows"))]
@@ -79,13 +101,13 @@ fn main() {
             "_deps/highway-build/libhwy.a",
             format!("{}/libhwy.a", env::var("OUT_DIR").unwrap()),
         )
-        .expect("Failed to copy libwhy.a");
+        .expect("Failed to copy libhwy.a");
 
         std::fs::copy(
             "_deps/highway-build/libhwy_contrib.a",
             format!("{}/libhwy_contrib.a", env::var("OUT_DIR").unwrap()),
         )
-        .expect("Failed to copy libwhy_contrib.a");
+        .expect("Failed to copy libhwy_contrib.a");
 
         std::fs::copy(
             "_deps/sentencepiece-build/src/libsentencepiece.a",
