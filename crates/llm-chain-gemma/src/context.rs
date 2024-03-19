@@ -103,7 +103,9 @@ impl GemmaContext {
                 },
             );
             if pool == std::ptr::null_mut() {
-                return Err(ExecutorCreationError::InnerError(Box::new(GemmaNotSupportedError{})))
+                return Err(ExecutorCreationError::InnerError(Box::new(
+                    GemmaNotSupportedError {},
+                )));
             }
 
             let gemma = gcpp_Gemma_Gemma(
@@ -117,13 +119,17 @@ impl GemmaContext {
                 pool,
             );
             if gemma == std::ptr::null_mut() {
-                return Err(ExecutorCreationError::InnerError(Box::new(GemmaNotSupportedError{})))
+                return Err(ExecutorCreationError::InnerError(Box::new(
+                    GemmaNotSupportedError {},
+                )));
             }
             gcpp_Gemma_SetModelTraining(gemma, model_training);
 
             let gen = std_mt19937_mt19937();
             if gen == std::ptr::null_mut() {
-                return Err(ExecutorCreationError::InnerError(Box::new(GemmaNotSupportedError{})))
+                return Err(ExecutorCreationError::InnerError(Box::new(
+                    GemmaNotSupportedError {},
+                )));
             }
             std_mt19937_random_seed(gen);
 

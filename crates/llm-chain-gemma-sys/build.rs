@@ -12,10 +12,10 @@ fn main() {
         // is out of the support because of this.
         // See: https://github.com/google/gemma.cpp/pull/6
         cc::Build::new()
-        .cpp(true)
-        .file("src/bindings_win.cc")
-        .std("c++17")
-        .compile("bindings");
+            .cpp(true)
+            .file("src/bindings_win.cc")
+            .std("c++17")
+            .compile("bindings");
         return;
     }
     let target = env::var("TARGET").unwrap();
