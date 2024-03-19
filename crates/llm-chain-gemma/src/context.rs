@@ -17,6 +17,10 @@ use std::ffi;
 use std::path::Path;
 use tokio::sync::mpsc;
 
+#[derive(thiserror::Error, Debug)]
+#[error("Gemma.cpp is not supported")]
+pub struct GemmaNotSupportedError {}
+
 pub struct GemmaContext {
     gemma: *mut gcpp_Gemma,
     model_training: gcpp_ModelTraining,
@@ -98,6 +102,9 @@ impl GemmaContext {
                     0
                 },
             );
+            if pool == std::ptr::null_mut() {
+                return Err(ExecutorCreationError::InnerError(Box::new(GemmaNotSupportedError{})))
+            }
 
             let gemma = gcpp_Gemma_Gemma(
                 tokenizer_path.as_ptr() as *const i8,
@@ -109,9 +116,15 @@ impl GemmaContext {
                 model_type,
                 pool,
             );
+            if gemma == std::ptr::null_mut() {
+                return Err(ExecutorCreationError::InnerError(Box::new(GemmaNotSupportedError{})))
+            }
             gcpp_Gemma_SetModelTraining(gemma, model_training);
 
             let gen = std_mt19937_mt19937();
+            if gen == std::ptr::null_mut() {
+                return Err(ExecutorCreationError::InnerError(Box::new(GemmaNotSupportedError{})))
+            }
             std_mt19937_random_seed(gen);
 
             Ok(GemmaContext {

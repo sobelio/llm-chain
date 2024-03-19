@@ -19,3 +19,4 @@ async-trait.workspace = true
 llm-chain = {path = "../llm-chain", version="0.13.0"}
 llm-chain-gemma-sys = {path = "../llm-chain-gemma-sys", version="0.1.0"}
 tokio.workspace = true
+thiserror.workspace = true

@@ -1804,6 +1804,7 @@ dependencies = [
  "async-trait",
  "llm-chain",
  "llm-chain-gemma-sys",
+ "thiserror",
  "tokio",
 ]
 

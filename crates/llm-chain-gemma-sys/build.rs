@@ -5,6 +5,19 @@ extern crate cc;
 use std::env;
 
 fn main() {
+    #[cfg(target_os = "windows")]
+    {
+        // Gemma.cpp does not support MSBuild at this point --
+        // it does support clang-cl though. At this time, Windows
+        // is out of the support because of this.
+        // See: https://github.com/google/gemma.cpp/pull/6
+        cc::Build::new()
+        .cpp(true)
+        .file("src/bindings_win.cc")
+        .std("c++17")
+        .compile("bindings");
+        return;
+    }
     let target = env::var("TARGET").unwrap();
     // Link C++ standard library
     if let Some(cpp_stdlib) = get_cpp_link_stdlib(&target) {
@@ -63,59 +76,29 @@ fn main() {
     }
 
     // move libllama.a to where Cargo expects it (OUT_DIR)
-    #[cfg(target_os = "windows")]
-    {
-        std::fs::copy(
-            "gemma.lib",
-            format!("{}/gemma.lib", env::var("OUT_DIR").unwrap()),
-        )
-        .expect("Failed to copy lib");
+    std::fs::copy(
+        "libgemma.a",
+        format!("{}/libgemma.a", env::var("OUT_DIR").unwrap()),
+    )
+    .expect("Failed to copy lib");
 
-        std::fs::copy(
-            "_deps/highway-build/hwy.lib",
-            format!("{}/hwy.lib", env::var("OUT_DIR").unwrap()),
-        )
-        .expect("Failed to copy hwy.lib");
+    std::fs::copy(
+        "_deps/highway-build/libhwy.a",
+        format!("{}/libhwy.a", env::var("OUT_DIR").unwrap()),
+    )
+    .expect("Failed to copy libhwy.a");
 
-        std::fs::copy(
-            "_deps/highway-build/hwy_contrib.lib",
-            format!("{}/hwy_contrib.lib", env::var("OUT_DIR").unwrap()),
-        )
-        .expect("Failed to copy hyy_contrib.lib");
+    std::fs::copy(
+        "_deps/highway-build/libhwy_contrib.a",
+        format!("{}/libhwy_contrib.a", env::var("OUT_DIR").unwrap()),
+    )
+    .expect("Failed to copy libhwy_contrib.a");
 
-        std::fs::copy(
-            "_deps/sentencepiece-build/src/sentencepiece.lib",
-            format!("{}/sentencepiece.lib", env::var("OUT_DIR").unwrap()),
-        )
-        .expect("Failed to copy sentencepiece.lib");
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    {
-        std::fs::copy(
-            "libgemma.a",
-            format!("{}/libgemma.a", env::var("OUT_DIR").unwrap()),
-        )
-        .expect("Failed to copy lib");
-
-        std::fs::copy(
-            "_deps/highway-build/libhwy.a",
-            format!("{}/libhwy.a", env::var("OUT_DIR").unwrap()),
-        )
-        .expect("Failed to copy libhwy.a");
-
-        std::fs::copy(
-            "_deps/highway-build/libhwy_contrib.a",
-            format!("{}/libhwy_contrib.a", env::var("OUT_DIR").unwrap()),
-        )
-        .expect("Failed to copy libhwy_contrib.a");
-
-        std::fs::copy(
-            "_deps/sentencepiece-build/src/libsentencepiece.a",
-            format!("{}/libsentencepiece.a", env::var("OUT_DIR").unwrap()),
-        )
-        .expect("Failed to copy libsentencepiece.a");
-    }
+    std::fs::copy(
+        "_deps/sentencepiece-build/src/libsentencepiece.a",
+        format!("{}/libsentencepiece.a", env::var("OUT_DIR").unwrap()),
+    )
+    .expect("Failed to copy libsentencepiece.a");
 
     // Finally, build bindings.cc to allow access for gemma.cpp.
     // So far, bindgen does not correctly generate buildable rust file,
