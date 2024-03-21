@@ -1,0 +1,20 @@
+[package]
+name = "llm-chain-gemma-sys"
+description = "A library with bindings for gemma.cpp"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+keywords = ["llm", "langchain", "gemma", "chain"]
+categories = ["science"]
+authors = [
+    "Jun Mukai <jun.mukai@gmail.com>",
+]
+repository = "https://github.com/sobelio/llm-chain/"
+readme = "README.md"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+[build-dependencies]
+cc = "1.0.87"

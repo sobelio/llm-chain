@@ -1,0 +1,22 @@
+[package]
+name = "llm-chain-gemma"
+description = "The llm-chain implementation for Gemma."
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+keywords = ["llm", "langchain", "gemma", "chain"]
+categories = ["science"]
+authors = [
+    "Jun Mukai <jun.mukai@gmail.com>",
+]
+readme = "./README.md"
+repository = "https://github.com/sobelio/llm-chain/"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-trait.workspace = true
+llm-chain = {path = "../llm-chain", version="0.13.0"}
+llm-chain-gemma-sys = {path = "../llm-chain-gemma-sys", version="0.1.0"}
+tokio.workspace = true
+thiserror.workspace = true

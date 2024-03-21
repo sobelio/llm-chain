@@ -698,12 +698,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.0.83"
+version = "1.0.87"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1174fb0b6ec23863f8b971027804a42614e347eafb0a95bf0b12cdae21fc4d0"
-dependencies = [
- "libc",
-]
+checksum = "3286b845d0fccbdd15af433f61c5970e711987036cb468f437ff6badd70f4e24"
 
 [[package]]
 name = "cexpr"
@@ -1801,6 +1798,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "llm-chain-gemma"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "llm-chain",
+ "llm-chain-gemma-sys",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "llm-chain-gemma-sys"
+version = "0.1.0"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "llm-chain-hnsw"
 version = "0.13.0"
 dependencies = [
@@ -2102,9 +2117,9 @@ dependencies = [
 
 [[package]]
 name = "mio"
-version = "0.8.10"
+version = "0.8.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f3d0b296e374a4e6f3c7b0a1f5a51d748a0d34c85e7dc48fc3fa9a87657fe09"
+checksum = "a4a650543ca06a924e8b371db273b2756685faae30f8487da1b56505a8f78b0c"
 dependencies = [
  "libc",
  "wasi 0.11.0+wasi-snapshot-preview1",
