@@ -30,7 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap();
 
     // Print the result to the console
-    // Call `res.primary_textual_output()` explictly to get the streamed response.
+    // Call `res.primary_textual_output()` explicitly to get the streamed response.
     let mut stream = res.as_stream().await?;
     while let Some(v) = stream.next().await {
         print!("{}", v);
