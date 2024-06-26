@@ -133,7 +133,7 @@ impl traits::Executor for Executor {
             _ => PromptTokensError::UnableToCompute,
         })?;
         let tokens_used = num_tokens_from_messages(&model, &messages)
-            .map_err(|_| PromptTokensError::NotAvailable)?;
+            .map_err(|_| {println!("4"); PromptTokensError::NotAvailable})?;
 
         Ok(TokenCount::new(
             self.max_tokens_allowed(opts),
@@ -162,11 +162,12 @@ fn num_tokens_from_messages(
     model: &str,
     messages: &[ChatCompletionRequestMessage],
 ) -> Result<usize, PromptTokensError> {
-    let tokenizer = get_tokenizer(model).ok_or_else(|| PromptTokensError::NotAvailable)?;
+    let tokenizer = get_tokenizer(model).ok_or_else(|| {println!("1"); PromptTokensError::NotAvailable})?;
     if tokenizer != tiktoken_rs::tokenizer::Tokenizer::Cl100kBase {
+        println!("2");
         return Err(PromptTokensError::NotAvailable);
     }
-    let bpe = get_bpe_from_tokenizer(tokenizer).map_err(|_| PromptTokensError::NotAvailable)?;
+    let bpe = get_bpe_from_tokenizer(tokenizer).map_err(|_| {println!("3");PromptTokensError::NotAvailable})?;
 
     let (tokens_per_message, tokens_per_name) = if model.starts_with("gpt-3.5") {
         (
@@ -244,7 +245,7 @@ impl OpenAITokenizer {
 
     fn get_bpe_from_model(&self) -> Result<tiktoken_rs::CoreBPE, PromptTokensError> {
         use tiktoken_rs::get_bpe_from_model;
-        get_bpe_from_model(&self.model_name).map_err(|_| PromptTokensError::NotAvailable)
+        get_bpe_from_model(&self.model_name).map_err(|_| {println!("5"); PromptTokensError::NotAvailable})
     }
 }
 
