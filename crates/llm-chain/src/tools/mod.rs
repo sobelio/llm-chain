@@ -35,8 +35,8 @@ pub mod multitool_default;
 pub use description::{Describe, Format, FormatPart, ToolDescription};
 pub mod multitool;
 mod tool;
-#[allow(clippy::module_inception)]
-pub mod tools;
+// #[allow(clippy::module_inception)]
+// pub mod tools;
 
 pub use collection::{ToolCollection, ToolInvocationInput, ToolUseError};
 pub use tool::{Tool, ToolError};

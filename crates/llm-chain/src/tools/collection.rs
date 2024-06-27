@@ -79,7 +79,21 @@ where
         &self,
         data: &str,
     ) -> Result<String, ToolUseError<<T as Tool>::Error>> {
-        let tool_invocation = self.get_tool_invocation(data)?;
+
+        let data = data
+            .replace("```yaml", "")
+            .replace("```", "")
+            .lines()
+            .filter(|line| !line.trim_start().starts_with('#'))
+            .collect::<Vec<&str>>() 
+            .join("\n") 
+            ;
+
+        if data.trim().is_empty(){
+            return Err(ToolUseError::NoToolInvocation)
+        }
+
+        let tool_invocation = self.get_tool_invocation(&data)?;
         let output = self
             .invoke(&tool_invocation.command, &tool_invocation.input)
             .await?;

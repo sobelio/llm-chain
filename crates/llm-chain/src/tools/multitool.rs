@@ -27,6 +27,12 @@ macro_rules! multitool {
             }
         )+
 
+        impl From<String> for $input {
+            fn from(_: String) -> Self {
+                todo!()
+            }
+        }
+
         #[derive(Serialize, Deserialize)]
         enum $output {
             $($tool_output($tool_output)),+

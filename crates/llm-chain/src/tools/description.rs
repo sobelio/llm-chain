@@ -67,7 +67,7 @@ pub struct ToolDescription {
     pub name: String,
     pub description: String,
     pub description_context: String,
-    pub input_format: Format,
+    pub input: Format,
     // #[serde(skip)]
     // #[allow(dead_code)]
     /// This will be used in the future.
@@ -80,14 +80,14 @@ impl ToolDescription {
         name: &str,
         description: &str,
         description_context: &str,
-        input_format: Format,
+        input: Format,
         output_format: Format,
     ) -> Self {
         ToolDescription {
             name: name.to_string(),
             description: description.to_string(),
             description_context: description_context.to_string(),
-            input_format,
+            input,
             output_format,
         }
     }
