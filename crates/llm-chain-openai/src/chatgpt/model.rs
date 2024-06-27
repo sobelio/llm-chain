@@ -55,7 +55,7 @@ pub enum Model {
     /// updates, and will be deprecated 3 months after a new version is released.
     #[strum(serialize = "gpt-4-32k-0314")]
     Gpt4_32k0314,
-    
+
     /// A high-performance, fast, and moderately priced model. It is cheaper and quicker than
     /// gpt-4.
     #[strum(serialize = "gpt-4o")]
