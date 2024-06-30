@@ -56,6 +56,11 @@ pub enum Model {
     #[strum(serialize = "gpt-4-32k-0314")]
     Gpt4_32k0314,
 
+    /// A high-performance, fast, and moderately priced model. It is cheaper and quicker than
+    /// gpt-4.
+    #[strum(serialize = "gpt-4o")]
+    Gpt4o,
+
     /// A variant that allows you to specify a custom model name as a string, in case new models
     /// are introduced or you have access to specialized models.
     #[strum(default)]
@@ -82,6 +87,7 @@ impl ToString for Model {
             Model::Gpt4_0314 => "gpt-4-0314".to_string(),
             Model::Gpt4_32k => "gpt-4-32k".to_string(),
             Model::Gpt4_32k0314 => "gpt-4-32k-0314".to_string(),
+            Model::Gpt4o => "gpt-4o".to_string(),
             Model::Other(model) => model.to_string(),
         }
     }
@@ -119,6 +125,7 @@ mod tests {
         assert_eq!(Model::from_str("gpt-4-0314")?, Model::Gpt4_0314);
         assert_eq!(Model::from_str("gpt-4-32k")?, Model::Gpt4_32k);
         assert_eq!(Model::from_str("gpt-4-32k-0314")?, Model::Gpt4_32k0314);
+        assert_eq!(Model::from_str("gpt-4o")?, Model::Gpt4o);
         assert_eq!(
             Model::from_str("custom_model")?,
             Model::Other("custom_model".to_string())
@@ -135,6 +142,7 @@ mod tests {
         assert_eq!(Model::Gpt4_0314.to_string(), "gpt-4-0314");
         assert_eq!(Model::Gpt4_32k.to_string(), "gpt-4-32k");
         assert_eq!(Model::Gpt4_32k0314.to_string(), "gpt-4-32k-0314");
+        assert_eq!(Model::Gpt4o.to_string(), "gpt-4o");
         assert_eq!(
             Model::Other("custom_model".to_string()).to_string(),
             "custom_model"
