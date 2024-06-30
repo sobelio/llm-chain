@@ -80,4 +80,8 @@ macro_rules! executor {
         use llm_chain::traits::Executor;
         llm_chain_sagemaker_endpoint::Executor::new_with_options($options)
     }};
+    (ernie_endpoint,$options:expr) => {{
+        use llm_chain::traits::Executor;
+        llm_chain_ernie::Executor::new_with_options($options)
+    }};
 }
