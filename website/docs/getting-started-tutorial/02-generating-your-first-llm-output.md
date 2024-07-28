@@ -45,5 +45,39 @@ One common issue you might encounter is forgetting to set the OpenAI API key. Ma
 ```bash
 export OPENAI_API_KEY="YOUR_OPEN_AI_KEY" # TIP: It stars with sk-
 ```
+If you don't want to set enviroment variable or want to multiple api-keys. Then you can use a different macro like this. 
+
+```rust
+use llm_chain::{executor, options, parameters, prompt};
+use tokio;
+
+// Declare an async main function
+#[tokio::main(flavor = "current_thread")]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create a new ChatGPT executor
+    let options = options! {
+        ApiKey: "sk-proj-..."
+    };
+
+    let exec = executor!(chatgpt, options);
+    match exec {
+        Ok(exec) => {
+            
+            let res = prompt!(
+                "You are a robot assistant for making personalized greetings",
+                "Make a personalized greeting for Joe"
+            )
+            .run(&parameters!(), &exec) // ...and run it
+            .await?;
+            println!("{}", res);
+        }
+        Err(err) => panic!("Unable to create executor: {}", err),
+    }
+    // Create our step containing our prompt template
+
+    Ok(())
+}
+
+```
 
 In the next tutorial, we'll cover adding parameters to customize the LLM prompt to create more complicated interactions.
