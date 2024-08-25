@@ -77,6 +77,7 @@ pub fn format_chat_messages(
 pub fn create_chat_completion_request(
     model: String,
     prompt: &Prompt,
+    stop_tokens: Vec<String>,
     is_streaming: bool,
 ) -> Result<CreateChatCompletionRequest, OpenAIInnerError> {
     let messages = format_chat_messages(prompt.to_chat())?;
@@ -84,6 +85,7 @@ pub fn create_chat_completion_request(
         .model(model)
         .stream(is_streaming)
         .messages(messages)
+        .stop(stop_tokens)
         .build()?)
 }
 

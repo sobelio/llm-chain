@@ -6,6 +6,7 @@ use async_openai::types::ChatCompletionRequestMessage;
 
 use async_openai::types::ChatCompletionRequestUserMessageContent;
 use llm_chain::options::Opt;
+use llm_chain::options::OptDiscriminants;
 use llm_chain::options::Options;
 use llm_chain::options::OptionsCascade;
 use llm_chain::output::Output;
@@ -103,11 +104,27 @@ impl traits::Executor for Executor {
         Ok(Self { client, options })
     }
 
-    async fn execute(&self, options: &Options, prompt: &Prompt) -> Result<Output, ExecutorError> {
+    async fn execute(&self, _: &Options, prompt: &Prompt) -> Result<Output, ExecutorError> {
+
+        let options = &self.options;
+
+        println!("OPENAI Options\n{:?}\n", &options);
         let opts = self.cascade(Some(options));
         let client = self.client.clone();
         let model = self.get_model_from_invocation_options(&opts);
-        let input = create_chat_completion_request(model, prompt, opts.is_streaming()).unwrap();
+
+        let stop_sequence = match opts.get(OptDiscriminants::StopSequence){
+            Some(Opt::StopSequence(s)) => s.to_owned(),
+            Some(_) => Vec::new(),
+            None => Vec::new()
+        };
+
+        let input = create_chat_completion_request(
+            model, 
+            prompt, 
+            stop_sequence,
+            opts.is_streaming(),
+        ).unwrap();
         if opts.is_streaming() {
             let res = async move { client.chat().create_stream(input).await }
                 .await
