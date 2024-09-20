@@ -2,7 +2,7 @@
 
 :::tip
 
-Having problems? Don't worry reach out on [discord](https://discord.gg/kewN9Gtjt2) and we will help you out.
+Having problems? Don't worry, reach out on [discord](https://discord.gg/kewN9Gtjt2) and we will help you out.
 
 :::
 
@@ -59,7 +59,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
    - The first step has a prompt to make a personalized birthday email for a company.
    - The second step has a prompt to summarize the email into a tweet.
 
-   Both prompts use placeholders (e.g., `{{name}}`, `{{date}}`, and `{{text}}`) that will be replaced with specific values later. Importantly the value of `{{text}}` will replaced by result of the first step in the chain.
+   Both prompts use placeholders (e.g., `{{name}}`, `{{date}}`, and `{{text}}`) that will be replaced with specific values later. Importantly, the value of `{{text}}` will be replaced by result of the first step in the chain.
 
 5. We run the `Chain` with the provided parameters:
 
@@ -74,6 +74,6 @@ When working with sequential chains, consider the following tips and best practi
 
 1. Use descriptive and clear instructions for the system role to help guide the LLM.
 2. Keep the chain as short and simple as possible. Longer chains are harder to manage and debug.
-3. Test each step independently before in
+3. Test each step independently before testing the entire sequence.
 
 For the next tutorial we will switch our focus from sequential to map-reduce chains. Map reduce chains are more complicated than sequential chains but allow us to do things that sequential chains can't. Stay tuned!

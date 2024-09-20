@@ -2,13 +2,13 @@
 
 :::tip
 
-Having problems? Don't worry reach out on [discord](https://discord.gg/kewN9Gtjt2) and we will help you out.
+Having problems? Don't worry, reach out on [discord](https://discord.gg/kewN9Gtjt2) and we will help you out.
 
 :::
 
 Map-reduce is a powerful technique for processing and aggregating data in parallel. In this tutorial, we'll explore how to use map-reduce in `llm-chain` to summarize text effectively. We'll cover implementing a basic map-reduce for text summarization.
 
-To start create a file named in "article_to_summarize.md" take the content of a wikipedia article and paste it in there.
+To start, create a file named "article_to_summarize.md", take the content of a wikipedia article and paste it in there.
 
 Here's a Rust program that demonstrates how to create a map-reduce chain for summarizing text:
 
