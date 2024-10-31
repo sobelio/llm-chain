@@ -47,7 +47,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-n this example, we start by importing the necessary modules and defining the main function. We then create a new ChatGPT executor using the executor!() macro.
+In this example, we start by importing the necessary modules and defining the main function. We then create a new ChatGPT executor using the executor!() macro.
 
 Next, we create the "map" and "reduce" steps using Step::for_prompt_template(). The "map" step is responsible for summarizing each article chunk, while the "reduce" step combines the summaries into a single output.
 

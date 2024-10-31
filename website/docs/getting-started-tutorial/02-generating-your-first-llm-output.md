@@ -2,7 +2,7 @@
 
 :::tip
 
-Having problems? Don't worry reach out on [discord](https://discord.gg/kewN9Gtjt2) and we will help you out.
+Having problems? Don't worry, reach out on [discord](https://discord.gg/kewN9Gtjt2) and we will help you out.
 
 :::
 
