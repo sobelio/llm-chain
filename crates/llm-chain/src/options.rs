@@ -410,6 +410,11 @@ pub enum Opt {
     UseMmap(bool),
     // Force the system to keep the model in memory for llm-chain-llama.
     UseMlock(bool),
+
+    // Disable realtime online search fro llm-chain-ernie
+    DisableSearch(bool),
+    // Enable return citation info for llm-chain-ernie
+    EnableCitation(bool),
 }
 
 // Helper function to extract environment variables
