@@ -17,4 +17,4 @@ readme = "README.md"
 [dependencies]
 
 [build-dependencies]
-bindgen = "0.66"
+bindgen = "0.69"
