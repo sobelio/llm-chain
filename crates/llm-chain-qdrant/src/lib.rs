@@ -165,7 +165,7 @@ where
                     vectors: Some(Vectors::from(vec)),
                 }
             })
-            .collect();
+            .collect::<Vec<PointStruct>>();
         self.client
             .upsert_points(&self.collection_name, None, points, None)
             .await
@@ -204,12 +204,12 @@ where
                     vectors: Some(Vectors::from(vec)),
                 })
             })
-            .collect();
+            .collect::<Result<Vec<PointStruct>, Self::Error>>();
 
         let points = points?;
 
         self.client
-            .upsert_points(self.collection_name.clone(), None, points, None)
+            .upsert_points(&self.collection_name, None, points, None)
             .await
             .map_err(QdrantError::Client)?;
 
