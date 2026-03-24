@@ -30,6 +30,7 @@ println!("{}", res);
 - **Prompt templates**: Create reusable and easily customizable prompt templates for consistent and structured interactions with LLMs.
 - **Chains**: Build powerful chains of prompts that allow you to execute more complex tasks, step by step, leveraging the full potential of LLMs.
 - **ChatGPT support**: Supports ChatGPT models, with plans to add OpenAI's other models in the future.
+- **MiniMax support**: Integrates with [MiniMax](https://www.minimax.io/) models (M2.7, M2.5) via their OpenAI-compatible API, offering up to 1M token context windows.
 - **LLaMa support**: Provides seamless integration with LLaMa models, enabling natural language understanding and generation tasks with Facebook's research models.
 - **Alpaca support**: Incorporates support for Stanford's Alpaca models, expanding the range of available language models for advanced AI applications.
 - **`llm.rs` support**: Use llms in rust without dependencies on C++ code with our support for `llm.rs`
@@ -54,6 +55,30 @@ export OPENAI_API_KEY="sk-YOUR_OPEN_AI_KEY_HERE"
 ```
 
 Then, refer to the [documentation](https://docs.rs/llm-chain) and [examples](/crates/llm-chain-openai/examples) to learn how to create prompt templates, chains, and more.
+
+### Using MiniMax
+
+To use MiniMax models, add `llm-chain-minimax` to your dependencies:
+
+```toml
+[dependencies]
+llm-chain = "0.13.0"
+llm-chain-minimax = "0.13.0"
+```
+
+Set your MiniMax API key:
+
+```bash
+export MINIMAX_API_KEY="your-minimax-api-key"
+```
+
+Then use the `minimax` executor:
+
+```rust
+let exec = executor!(minimax)?;
+```
+
+See [examples](/crates/llm-chain-minimax/examples) for more details.
 
 ## Contributing 🤝
 

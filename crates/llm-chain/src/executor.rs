@@ -80,4 +80,12 @@ macro_rules! executor {
         use llm_chain::traits::Executor;
         llm_chain_sagemaker_endpoint::Executor::new_with_options($options)
     }};
+    (minimax) => {{
+        use llm_chain::traits::Executor;
+        llm_chain_minimax::chatgpt::Executor::new()
+    }};
+    (minimax, $options:expr) => {{
+        use llm_chain::traits::Executor;
+        llm_chain_minimax::chatgpt::Executor::new_with_options($options)
+    }};
 }
