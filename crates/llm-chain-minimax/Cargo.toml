@@ -1,0 +1,26 @@
+[package]
+name = "llm-chain-minimax"
+version = "0.13.0"
+edition = "2021"
+description = "Use `llm-chain` with MiniMax's LLM models (M2.7, M2.5). MiniMax provides an OpenAI-compatible API for chat completions."
+license = "MIT"
+keywords = ["llm", "langchain", "minimax", "chain"]
+categories = ["science"]
+authors = ["MiniMax Community"]
+readme = "../../docs/README.md"
+repository = "https://github.com/sobelio/llm-chain/"
+
+[dependencies]
+futures = "0.3.28"
+async-openai = "0.16.2"
+async-trait.workspace = true
+llm-chain = { path = "../llm-chain", version = "0.13.0", default-features = false }
+serde.workspace = true
+strum = "0.24"
+strum_macros = "0.24"
+thiserror.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+tokio = { version = "1.28.2", features = ["macros", "rt"] }
+llm-chain = { path = "../llm-chain" }
