@@ -12,7 +12,7 @@ use crate::{
     options::Options,
     parameters,
     prompt::{PromptTemplate, StringTemplateError},
-    tools::{Tool, ToolError},
+    tools::{tools::ParallelSearch, Tool, ToolContext, ToolError},
     traits::{Executor, ExecutorError},
     Parameters,
 };
@@ -247,7 +247,7 @@ pub struct EarlyStoppingConfig {
     pub max_time_elapsed_seconds: Option<f64>,
 }
 
-pub struct Agent<E, T>
+pub struct Agent<E, T = ParallelSearch>
 where
     E: Executor,
     T: Tool,
@@ -260,6 +260,40 @@ where
     observation_prefix: String,
     llm_prefix: String,
     output_parser: SelfAskWithSearchAgentOutputParser,
+}
+
+impl<E: Executor> Agent<E, ParallelSearch> {
+    /// Creates an agent using free, anonymous Parallel Search MCP by default.
+    /// No search-provider account or API key is required. Use `new` to supply
+    /// another search tool explicitly; explicit tools never fall back to Parallel.
+    /// Each `run` starts an independent research context, shared by its follow-ups.
+    ///
+    /// ```no_run
+    /// use llm_chain::{
+    ///     agents::self_ask_with_search::{Agent, EarlyStoppingConfig},
+    ///     traits::Executor,
+    /// };
+    ///
+    /// async fn answer<E: Executor>(executor: E) -> Result<(), Box<dyn std::error::Error>> {
+    ///     let agent = Agent::with_default_search(executor, EarlyStoppingConfig {
+    ///         max_iterations: Some(5),
+    ///         max_time_elapsed_seconds: Some(60.0),
+    ///     })?;
+    ///     let (answer, _) = agent.run("Who created the Rust programming language?").await?;
+    ///     println!("{}", answer.return_values.get("output").unwrap());
+    ///     Ok(())
+    /// }
+    /// ```
+    pub fn with_default_search(
+        executor: E,
+        early_stopping_config: EarlyStoppingConfig,
+    ) -> Result<Self, reqwest::Error> {
+        Ok(Self::new(
+            executor,
+            ParallelSearch::new()?,
+            early_stopping_config,
+        ))
+    }
 }
 
 impl<E, T> Agent<E, T>
@@ -304,6 +338,7 @@ where
         &self,
         intermediate_steps: &Vec<AgentIntermediateStep>,
         query: &str,
+        context: &ToolContext,
     ) -> Result<AgentIntermediateStepOutput, SelfAskWithSearchAgentError<<T as Tool>::Error>> {
         let output = self.plan(intermediate_steps, query).await?;
 
@@ -312,7 +347,7 @@ where
             AgentDecision::Action(action) => {
                 let observation = self
                     .search_tool
-                    .invoke_typed(
+                    .invoke_typed_with_context(
                         &action
                             .tool_input
                             .as_str()
@@ -321,6 +356,7 @@ where
                             ))?
                             .to_string()
                             .into(),
+                        context,
                     )
                     .await
                     .map_err(SelfAskWithSearchAgentError::SearchToolError)?;
@@ -385,12 +421,17 @@ where
         SelfAskWithSearchAgentError<<T as Tool>::Error>,
     > {
         let mut intermediate_steps = vec![];
+        // A single agent/client can run multiple independent research tasks.
+        // Keep conversation identity local to this run, including concurrent runs.
+        let context = ToolContext::default();
 
         let mut iterations = 0;
         let start = Instant::now();
         let mut full_duration = Duration::from_nanos(0);
         while self.should_continue(iterations, full_duration.as_secs_f64()) {
-            let decision = self.take_next_step(&intermediate_steps, query).await?;
+            let decision = self
+                .take_next_step(&intermediate_steps, query, &context)
+                .await?;
             full_duration = start.elapsed();
             iterations += 1;
             match decision {
@@ -406,6 +447,10 @@ where
         })
     }
 }
+
+#[cfg(test)]
+#[path = "self_ask_with_search/parallel_tests.rs"]
+mod parallel_tests;
 
 #[cfg(test)]
 mod tests {

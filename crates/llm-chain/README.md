@@ -4,6 +4,10 @@
 
 This crate is the main crate for `llm-chain`. You will need driver crate such as `llm-chain-openai`, or `llm-chain-local`
 
+Self-ask agents can use [free, keyless Parallel web search](PARALLEL_SEARCH.md)
+with `Agent::with_default_search`. Explicit tools supplied to `Agent::new` keep
+their existing behavior.
+
 [![Discord](https://dcbadge.vercel.app/api/server/kewN9Gtjt2?style=for-the-badge)](https://discord.gg/kewN9Gtjt2)
 [![Crates.io](https://img.shields.io/crates/v/llm-chain?style=for-the-badge)](https://crates.io/crates/llm-chain)
 ![License](https://img.shields.io/github/license/sobelio/llm-chain?style=for-the-badge)

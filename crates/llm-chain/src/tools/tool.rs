@@ -3,6 +3,27 @@ use super::description::ToolDescription;
 use async_trait::async_trait;
 use serde::{de::DeserializeOwned, Serialize};
 
+/// Context shared by related tool calls in one conversation or research run.
+/// Create a new context when starting a new conversation, and retain it for retries.
+#[derive(Debug, Clone)]
+pub struct ToolContext {
+    session_id: uuid::Uuid,
+}
+
+impl Default for ToolContext {
+    fn default() -> Self {
+        Self {
+            session_id: uuid::Uuid::new_v4(),
+        }
+    }
+}
+
+impl ToolContext {
+    pub fn session_id(&self) -> uuid::Uuid {
+        self.session_id
+    }
+}
+
 /// Marker trait for Tool errors. It is needed so the concrete Errors can have a derived `From<ToolError>`
 pub trait ToolError {}
 
@@ -17,6 +38,16 @@ pub trait Tool {
     type Error: std::fmt::Debug + std::error::Error + ToolError + From<serde_yaml::Error>;
 
     async fn invoke_typed(&self, input: &Self::Input) -> Result<Self::Output, Self::Error>;
+
+    /// Invokes a tool in an existing conversation. Tools without conversation
+    /// state retain their normal behavior. The caller owns the context lifetime.
+    fn invoke_typed_with_context<'a>(
+        &'a self,
+        input: &'a Self::Input,
+        _context: &'a ToolContext,
+    ) -> futures::future::BoxFuture<'a, Result<Self::Output, Self::Error>> {
+        self.invoke_typed(input)
+    }
 
     /// Returns the `ToolDescription` containing metadata about the tool.
     fn description(&self) -> ToolDescription;

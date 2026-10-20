@@ -94,6 +94,22 @@ macro_rules! multitool {
                 }
             }
 
+            fn invoke_typed_with_context<'a>(
+                &'a self,
+                input: &'a Self::Input,
+                context: &'a $crate::tools::ToolContext,
+            ) -> ::std::pin::Pin<::std::boxed::Box<dyn ::std::future::Future<Output = Result<Self::Output, Self::Error>> + Send + 'a>> {
+                match (self, input) {
+                    $(($multitool::$tool(t), $input::$tool_input(i)) => {
+                        let output = t.invoke_typed_with_context(i, context);
+                        Box::pin(async move {
+                            output.await.map(|o| <$tool_output as Into<Self::Output>>::into(o)).map_err(|e| e.into())
+                        })
+                    }),+
+                    _ => Box::pin(async { Err($error::BadVariant) }),
+                }
+            }
+
             /// Returns the `ToolDescription` containing metadata about the tool.
             fn description(&self) -> ToolDescription {
                 match self {
